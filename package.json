@@ -1,0 +1,15 @@
+{
+  "name": "texaskcd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "shorten": "netlify-shortener"
+  },
+  "keywords": [],
+  "author": "Chad Crowell",
+  "license": "MIT",
+  "devDependencies": {
+    "netlify-shortener": "^2.4.0"
+  }
+}
