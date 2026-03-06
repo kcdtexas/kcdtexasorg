@@ -1,3 +1,21 @@
-/schedule  https://kcdtexas2025.sessionize.com/schedule
-/present   https://sessionize.com/kcd-texas
-/*         https://community.cncf.io/events/details/cncf-kcd-texas-presents-kcd-texas-2026/cohost-kcd-texas/
+# Event pages
+/schedule        https://kcdtexas2025.sessionize.com/schedule
+/present         https://sessionize.com/kcd-texas
+
+# GitHub repos - community
+/cfp             https://github.com/kcdtexas/cfp
+/talks           https://github.com/kcdtexas/talks
+/code-of-conduct https://github.com/kcdtexas/code-of-conduct
+/coc             https://github.com/kcdtexas/code-of-conduct
+/workshops       https://github.com/kcdtexas/workshop-materials
+
+# GitHub repos - sponsors
+/sponsor-guide   https://github.com/kcdtexas/sponsor-guide
+/sponsors        https://github.com/kcdtexas/sponsor-prospectus
+
+# GitHub repos - org
+/github          https://github.com/kcdtexas
+/committees      https://github.com/kcdtexas/committees
+
+# Catch-all -> main event page
+/*               https://community.cncf.io/events/details/cncf-kcd-texas-presents-kcd-texas-2026/cohost-kcd-texas/
