@@ -31,6 +31,8 @@ for (const [name, pattern] of Object.entries(REQUIRED_HEADERS)) {
   expect(pattern.test(home.headers.get(name) ?? ''), `/ header ${name} missing or wrong: ${home.headers.get(name)}`);
 }
 expect(!home.headers.get('set-cookie'), '/ sets a cookie');
+// upgrade-insecure-requests breaks any plain-HTTP preview (see write-host-files.mjs).
+expect(!/upgrade-insecure-requests/.test(home.headers.get('content-security-policy') ?? ''), 'CSP contains upgrade-insecure-requests');
 const homeHtml = await home.text();
 
 // 2. Unknown paths get the real 404 page.
