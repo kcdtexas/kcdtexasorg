@@ -15,7 +15,7 @@ The Texas cloud native community (Austin, Dallas and Houston Chapters) that runs
 _Avoid_: Using it as a synonym for KCD Texas
 
 **Edition**:
-One year's KCD Texas event, with its own date, city, venue, program and sponsors (for example, the 2027 Edition). The city can change from Edition to Edition.
+One year's KCD Texas event, with its own date, city, venue, program and sponsors (for example, the 2027 Edition). The city can change from Edition to Edition. Each Edition has a status: planned, postponed or canceled.
 _Avoid_: Event year, iteration, instance, "the event" when the year matters
 
 **Current Edition**:
@@ -56,6 +56,10 @@ _Avoid_: Call for Speakers, call for papers, C4P
 One item in an Edition's program (a keynote, talk, workshop or panel), given by one or more Speakers.
 _Avoid_: Talk (when you mean any kind of Session), slot
 
+**End-User Story**:
+A Session in which an End User shares how their own organization runs cloud native in production. The Schedule labels these Sessions publicly.
+_Avoid_: Case study (vendor case studies are marketing), customer story
+
 **Speaker**:
 A person presenting in one Edition's program. The same person speaking in two Editions counts as two Speakers.
 _Avoid_: Presenter, talent
@@ -89,19 +93,23 @@ _Avoid_: Customer, enterprise, practitioner (when you mean the organization type
 ### Sponsorship
 
 **Sponsor**:
-An organization that pays to support an Edition at a Sponsor Tier.
+An organization that supports one or more Editions through Sponsorships. A Sponsor persists across Editions. A company that is acquired and later sponsors under its new owner's name counts as a new Sponsor.
 _Avoid_: Partner (when money changes hands), vendor
 
+**Sponsorship**:
+A Sponsor's support for one Edition: its Sponsor Tier, any Add-ons, and the logo it used that year. A Sponsorship is paid in cash or in kind (goods or services).
+_Avoid_: Deal, package, contract
+
 **Sponsor Tier**:
-A named sponsorship level with a fixed price and benefits, such as Platinum, Gold or Silver.
+A named level of Sponsorship with a fixed price and benefits, such as Platinum, Gold or Silver.
 _Avoid_: Package, level
 
 **Add-on**:
-A paid sponsorship of one specific item, such as the lanyards or the happy hour, bought by a Sponsor on top of or instead of a Sponsor Tier.
+A paid sponsorship of one specific item, such as the lanyards or the happy hour, that forms part of a Sponsorship on top of or instead of a Sponsor Tier.
 _Avoid_: Extra, upsell
 
 **Partner**:
-A community or media organization that promotes an Edition and does not pay.
+A community or media organization that promotes one or more Editions and does not pay. Like a Sponsor, it persists across Editions and is listed for each Edition with a partner type (community or media).
 _Avoid_: Sponsor (when no money changes hands)
 
 ### Channels
@@ -129,8 +137,12 @@ _Avoid_: Badge (a badge is the physical attendee badge), banner
 ### People
 
 **Organizer**:
-A volunteer on the KCD Texas organizing team, publicly listed with their employer. "Co-Organizer" is a role title within that team, not a separate kind of person.
+A volunteer on the KCD Texas organizing team, publicly listed with their employer. An Organizer persists across Editions and holds a role in each Edition they help run, such as a Committee seat or Moderator. "Co-Organizer" is a role title within that team, not a separate kind of person.
 _Avoid_: Staff, admin, host
+
+**Volunteer**:
+A person who helps run Event Day without being an Organizer. Volunteers are credited for each Edition, with their consent.
+_Avoid_: Staff, helper, crew
 
 **Committee**:
 A functional group of Organizers that owns one area of the event: Finance, Session, Marketing, Venue, Sponsor, Core Event or Volunteer.
