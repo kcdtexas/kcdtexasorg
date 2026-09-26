@@ -48,6 +48,15 @@ if grep -ril 'kcd' src/foundation; then
   exit 1
 fi
 
+step "Checking templates use design tokens, not raw colors"
+# Colors live only in src/foundation/ and src/styles/. Templates use semantic
+# tokens (bg, fg, accent, band...), so a new design direction is a token swap
+# plus a few signature components, never a hunt through every page.
+if grep -rnE '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?\b|rgba?\(|hsla?\(' src --include='*.astro' --include='*.ts' --include='*.tsx' --include='*.jsx'; then
+  echo "Raw colors found in templates. Add a token in src/styles/global.css and use it instead." >&2
+  exit 1
+fi
+
 step "Checking color contrast (WCAG AA)"
 node scripts/check-contrast.mjs
 
