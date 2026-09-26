@@ -41,6 +41,7 @@ const TYPES = {
   '.avif': 'image/avif',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
   '.pdf': 'application/pdf',
 };
 
