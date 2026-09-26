@@ -9,7 +9,7 @@ const sponsorMail = `mailto:${contact.email}?subject=${encodeURIComponent(`Spons
 
 <Base title={title} description={description}>
   <section class="mx-auto max-w-5xl px-6 pt-20 pb-16 sm:pt-28">
-    <p class="text-sm font-semibold uppercase tracking-widest text-muted">Kubernetes Community Days</p>
+    <p class="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted"><span class="inline-block h-2.5 w-2.5 rounded-full bg-highlight" aria-hidden="true"></span>Kubernetes Community Days</p>
     <h1 class="mt-3 text-5xl font-bold tracking-tight sm:text-7xl">KCD Texas {currentEdition.year}</h1>
     <p class="mt-4 text-2xl font-semibold text-accent sm:text-3xl">{currentEdition.city} · {currentEdition.when}</p>
     <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
@@ -29,23 +29,23 @@ const sponsorMail = `mailto:${contact.email}?subject=${encodeURIComponent(`Spons
     </p>
   </section>
 
-  <section class="border-y border-line bg-surface" aria-labelledby="numbers">
+  <section class="bg-band text-band-fg" aria-labelledby="numbers">
     <div class="mx-auto max-w-5xl px-6 py-16">
       <h2 id="numbers" class="text-2xl font-bold tracking-tight">KCD Texas 2026 in numbers</h2>
       <dl class="mt-8 grid grid-cols-2 gap-8 sm:grid-cols-4">
         {edition2026.stats.map((s) => (
-          <div class="flex flex-col">
-            <dt class="text-sm text-muted">{s.label}</dt>
+          <div class="flex flex-col border-l-4 border-highlight pl-4">
+            <dt class="text-sm text-band-muted">{s.label}</dt>
             <dd class="order-first text-4xl font-bold tracking-tight">{s.value}</dd>
           </div>
         ))}
       </dl>
-      <p class="mt-8 text-sm text-muted">
-        Austin, May 15, 2026. Source: the <a class="underline underline-offset-4 hover:text-fg" href={edition2026.reportUrl}>KCD Texas 2026 transparency report</a>.
+      <p class="mt-8 text-sm text-band-muted">
+        Austin, May 15, 2026. Source: the <a class="underline decoration-highlight underline-offset-4 hover:text-band-fg" href={edition2026.reportUrl}>KCD Texas 2026 transparency report</a>.
       </p>
       <ul class="mt-6 flex flex-wrap gap-x-8 gap-y-2 font-semibold">
-        <li><a class="text-accent underline underline-offset-4" href={edition2026.talksUrl}>Watch the 2026 talks</a></li>
-        <li><a class="text-accent underline underline-offset-4" href={edition2026.photosUrl}>See the 2026 photos</a></li>
+        <li><a class="underline decoration-highlight decoration-2 underline-offset-4" href={edition2026.talksUrl}>Watch the 2026 talks</a></li>
+        <li><a class="underline decoration-highlight decoration-2 underline-offset-4" href={edition2026.photosUrl}>See the 2026 photos</a></li>
       </ul>
     </div>
   </section>

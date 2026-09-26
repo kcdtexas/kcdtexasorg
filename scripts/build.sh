@@ -48,6 +48,9 @@ if grep -ril 'kcd' src/foundation; then
   exit 1
 fi
 
+step "Checking color contrast (WCAG AA)"
+node scripts/check-contrast.mjs
+
 step "Type-checking"
 npx astro check
 

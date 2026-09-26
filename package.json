@@ -11,6 +11,9 @@
     "dev": "astro dev",
     "check": "astro check",
     "build": "bash scripts/build.sh",
+    "serve": "node scripts/serve.mjs",
+    "test": "node tests/run-local.mjs --shots docs/research/review/latest",
+    "test:smoke": "node tests/smoke.mjs",
     "preview": "astro preview"
   },
   "dependencies": {
@@ -21,6 +24,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "axe-core": "^4.13.0",
+    "playwright-core": "^1.63.0",
     "typescript": "^6.0.3"
   }
 }

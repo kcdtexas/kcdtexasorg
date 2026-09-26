@@ -15,9 +15,13 @@ scripts/build.sh            # install, type-check, build, write _redirects/_head
 scripts/build.sh --serve    # the same, then preview at http://127.0.0.1:4321
 scripts/build.sh --zip      # the same, plus out/kcdtexas-<commit>.zip
 npm run dev                 # live-reload dev server while editing
+npm run serve               # serve dist/ like production: _redirects, _headers, 404 page
+npm test                    # HTTP smoke tests + browser tests (zero data, CSP, axe WCAG 2.2 AA) on a local server
 ```
 
 The built site goes to `dist/`. It's plain static files that any static host can serve.
+
+To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. To run the tests against any running copy, use `node tests/smoke.mjs <url>` and `node tests/browser.mjs <url>`. The browser tests use Playwright's Chromium if it's installed, otherwise the system snap Chromium.
 
 ## Where things live
 

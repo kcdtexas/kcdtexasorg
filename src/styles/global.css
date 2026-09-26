@@ -1,16 +1,39 @@
 @import "tailwindcss";
 @import "../foundation/tokens.css";
 
-/* KCD Texas accent: CNCF blue from the KCD logo, darkened for text contrast. */
+/*
+ * KCD Texas palette: prickly pear, the Texas state plant.
+ * Magenta fruit (accent, echoes CNCF pink), cactus-pad green (bands),
+ * yellow flower (small highlights only; never text on light backgrounds).
+ * Every text pair meets WCAG AA; see scripts/check-contrast.mjs.
+ */
 :root {
-  --accent: #0062bd;
+  --bg: #fcfbf8;
+  --fg: #1b1a17;
+  --muted: #57534c;
+  --line: #e6e0d6;
+  --surface: #f4f0e8;
+  --accent: #a3174e;
   --accent-contrast: #ffffff;
+  --band: #1f4a38;
+  --band-fg: #f7f3ea;
+  --band-muted: #c9d6cc;
+  --highlight: #f2c230;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --accent: #5cb0ff;
-    --accent-contrast: #0b1220;
+    --bg: #121412;
+    --fg: #f3efe6;
+    --muted: #b7b1a5;
+    --line: #2e332f;
+    --surface: #1a1d1a;
+    --accent: #f17ba7;
+    --accent-contrast: #121412;
+    --band: #1a3328;
+    --band-fg: #f3efe6;
+    --band-muted: #b9cabe;
+    --highlight: #f2c230;
   }
 }
 
