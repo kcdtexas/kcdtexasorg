@@ -27,3 +27,6 @@ Thumbs.db
 
 # Private research and organizer notes (never public)
 docs/research/
+
+# Build output archives
+out/

@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "../foundation/tokens.css";
+
+/* KCD Texas accent: CNCF blue from the KCD logo, darkened for text contrast. */
+:root {
+  --accent: #0062bd;
+  --accent-contrast: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #5cb0ff;
+    --accent-contrast: #0b1220;
+  }
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

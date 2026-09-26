@@ -1,0 +1,62 @@
+/*
+ * Shared design foundation (ADR 0006).
+ * Nothing site-specific lives here: each site sets its own accent in its own
+ * stylesheet. The build fails if this folder mentions a specific site.
+ */
+
+@font-face {
+  font-family: "Clarity City";
+  src: url("/fonts/clarity-city/ClarityCity-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Clarity City";
+  src: url("/fonts/clarity-city/ClarityCity-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Clarity City";
+  src: url("/fonts/clarity-city/ClarityCity-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #ffffff;
+  --fg: #0b1220;
+  --muted: #475569;
+  --line: #e2e8f0;
+  --surface: #f5f8fc;
+  --accent: #0b1220;
+  --accent-contrast: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --fg: #e8eef7;
+    --muted: #a3b3c7;
+    --line: #1e293b;
+    --surface: #111a2e;
+    --accent: #e8eef7;
+    --accent-contrast: #0b1220;
+  }
+}
+
+@theme inline {
+  --font-sans: "Clarity City", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
+}
