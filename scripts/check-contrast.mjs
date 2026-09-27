@@ -1,6 +1,6 @@
 // Fails the build if any text/background color pair in the site palette
-// drops below WCAG AA (4.5:1). Reads the light and dark :root blocks in
-// src/styles/global.css.
+// drops below WCAG AA (4.5:1). Reads the :root blocks in src/styles/global.css:
+// the light palette, plus a dark one if the site has one.
 import { readFileSync } from 'node:fs';
 
 const MIN = 4.5;
@@ -36,13 +36,14 @@ function ratio(a, b) {
 }
 
 const blocks = [...css.matchAll(/:root\s*\{([^}]*)\}/g)].map((m) => m[1]);
-if (blocks.length < 2) {
-  console.error('Expected a light and a dark :root block in src/styles/global.css');
+if (blocks.length < 1) {
+  console.error('Expected a :root palette block in src/styles/global.css');
   process.exit(1);
 }
 
 const failures = [];
-[['light', blocks[0]], ['dark', blocks[1]]].forEach(([mode, block]) => {
+const modes = [['light', blocks[0]], ['dark', blocks[1]]].filter(([, block]) => block);
+modes.forEach(([mode, block]) => {
   const vars = readVars(block);
   for (const [text, background] of PAIRS) {
     if (!vars[text] || !vars[background]) {
@@ -58,4 +59,4 @@ if (failures.length) {
   console.error('Contrast check failed:\n  ' + failures.join('\n  '));
   process.exit(1);
 }
-console.log(`Contrast check passed: ${PAIRS.length} pairs in light and dark mode.`);
+console.log(`Contrast check passed: ${PAIRS.length} pairs in ${modes.map(([m]) => m).join(' and ')} mode.`);

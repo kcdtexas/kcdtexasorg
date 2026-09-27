@@ -21,23 +21,13 @@
   --highlight: #f2c230;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121412;
-    --fg: #f3efe6;
-    --muted: #b7b1a5;
-    --line: #2e332f;
-    --surface: #1a1d1a;
-    --accent: #f17ba7;
-    --accent-contrast: #121412;
-    --band: #1a3328;
-    --band-fg: #f3efe6;
-    --band-muted: #b9cabe;
-    --highlight: #f2c230;
-  }
-}
+/*
+ * One palette in every color scheme, matching the Prickly Pear prototypes:
+ * this later :root rule also wins over the foundation's dark defaults.
+ */
 
 html {
+  color-scheme: light;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
@@ -47,7 +37,6 @@ html {
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
