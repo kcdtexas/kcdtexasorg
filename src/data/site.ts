@@ -19,7 +19,7 @@ export const currentEdition = {
 } as const;
 
 export const legal = {
-  codeOfConductUrl: 'https://events.linuxfoundation.org/about/code-of-conduct/',
+  codeOfConductUrl: 'https://www.cncf.io/conduct/',
   lfTrademarksUrl: 'https://www.linuxfoundation.org/legal/trademark-usage',
 } as const;
 
