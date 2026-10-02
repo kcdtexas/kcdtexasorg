@@ -45,7 +45,11 @@ const links = parse(readFileSync('src/data/short-links.yaml', 'utf8'));
 for (const { from, to, code } of links) {
   const res = await get(from);
   expect(res.status === code, `${from} returned ${res.status}, expected ${code}`);
-  expect(res.headers.get('location') === to, `${from} points to ${res.headers.get('location')}, expected ${to}`);
+  // Compare resolved URLs: hosts write the same address differently (Cloudflare adds the
+  // "/" after a bare domain, and may send an absolute URL for a relative target).
+  const location = res.headers.get('location');
+  const sameTarget = location !== null && new URL(location, `${base}/`).href === new URL(to, `${base}/`).href;
+  expect(sameTarget, `${from} points to ${location}, expected ${to}`);
   expect(!res.headers.get('set-cookie'), `${from} sets a cookie`);
   if (to.startsWith('/')) {
     const target = await get(to);
