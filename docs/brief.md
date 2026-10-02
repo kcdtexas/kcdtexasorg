@@ -1,6 +1,6 @@
 # Project brief: the KCD Texas website
 
-kcdtexas.org is the official, permanent home of KCD Texas, the community-run Kubernetes Community Day for Texas. It presents the Current Edition (2027 in Dallas, April 2027) and keeps every Past Edition as a record. See `CONTEXT.md` for the vocabulary and `docs/adr/` for the decisions behind this brief.
+kcdtexas.org is the official, permanent home of KCD Texas, the community-run Kubernetes Community Day for Texas. It presents the Current Edition (2027 in Dallas, on April 23, 2027) and keeps every Past Edition as a record. See `CONTEXT.md` for the vocabulary and `docs/adr/` for the decisions behind this brief.
 
 ## Goals, in order
 

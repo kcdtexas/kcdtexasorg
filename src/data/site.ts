@@ -15,7 +15,8 @@ export const contact = {
 export const currentEdition = {
   year: 2027,
   city: 'Dallas',
-  when: 'April 2027',
+  date: '2027-04-23', // Event Day (Central time)
+  when: 'April 23, 2027',
 } as const;
 
 export const legal = {

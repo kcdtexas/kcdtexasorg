@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import { contact, currentEdition, edition2026 } from '../data/site';
 
 const title = `KCD Texas ${currentEdition.year} · ${currentEdition.city} · ${currentEdition.when}`;
-const description = `Kubernetes Community Days Texas comes to ${currentEdition.city} in ${currentEdition.when}. Talks and hands-on workshops from people who run cloud native in production, organized by volunteers from the Texas community.`;
+const description = `Kubernetes Community Days Texas comes to ${currentEdition.city} on ${currentEdition.when}. Talks and hands-on workshops from people who run cloud native in production, organized by volunteers from the Texas community.`;
 const sponsorMail = `mailto:${contact.email}?subject=${encodeURIComponent(`Sponsoring KCD Texas ${currentEdition.year}`)}`;
 ---
 
@@ -11,7 +11,7 @@ const sponsorMail = `mailto:${contact.email}?subject=${encodeURIComponent(`Spons
   <section class="mx-auto max-w-5xl px-6 pt-20 pb-16 sm:pt-28">
     <p class="text-base font-semibold text-fg"><a class="underline decoration-line underline-offset-4 hover:decoration-fg" href="https://www.cncf.io/kcds/">Kubernetes Community Days</a></p>
     <h1 class="mt-3 text-6xl font-bold tracking-tight sm:text-8xl">KCD Texas <span class="font-normal">{currentEdition.year}</span></h1>
-    <p class="mt-5 text-2xl font-semibold sm:text-4xl">{currentEdition.city} · {currentEdition.when}</p>
+    <p class="mt-5 text-2xl font-semibold sm:text-4xl">{currentEdition.city} · <time datetime={currentEdition.date}>{currentEdition.when}</time></p>
     <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
       Talks and hands-on workshops from people who run cloud native in production, organized by volunteers from the Texas community.
     </p>
