@@ -7,8 +7,9 @@
 // Usage: node scripts/rebuild-dates.mjs [--json] [--from YYYY-MM-DD]
 //   --json  print [{ "day", "why" }] instead of lines
 //   --from  leave out days before this one (default: all)
-// Needs Node 22.18 or newer, which reads the TypeScript Edition file directly.
-import { edition2027 as e, timeline } from '../src/data/edition-2027.ts';
+import { importTs } from './lib/import-ts.mjs';
+
+const { edition2027: e, timeline } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
 
 const next = (day) => {
   const d = new Date(`${day}T12:00:00Z`);

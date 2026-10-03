@@ -1,8 +1,10 @@
 // The schema check for the home page's JSON-LD (src/lib/structured-data.ts): the fields search engines
 // need are there, the dates and place match the Edition file, and nothing unannounced is (no venue,
 // no offers). tests/smoke.mjs runs it on the home page.
-import { edition2027 } from '../src/data/edition-2027.ts';
 import { readFileSync } from 'node:fs';
+import { importTs } from '../scripts/lib/import-ts.mjs';
+
+const { edition2027 } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
 
 // site.ts needs Astro to load, so the social links are read from its text: the social: [...] list.
 const socialBlock = readFileSync(new URL('../src/data/site.ts', import.meta.url), 'utf8').match(/social: \[([\s\S]*?)\]/)?.[1] ?? '';
