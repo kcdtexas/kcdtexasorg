@@ -22,12 +22,12 @@ export const home = {
     ticketNote: 'Free CNCF community account',
     managerLink: 'Need your manager’s OK?',
     proofLead: `KCD Texas 2026 in ${edition2026.city}:`,
-    // The band's two photos, each captioned on the photo itself (the broadcast kit's lower third).
+    // The band's two photos, each captioned under itself like every photo on the site: a bold lead, then the words.
     // The one with a phone crop is the only one phones show.
     // Critique fix 7: no time on Ian Coldwater's keynote here; the stage card keeps 10:14 a.m.
     band: [
-      { photo: 'band-043', label: 'Keynote', title: 'Ian Coldwater', alt: 'KCD Texas 2026: Ian Coldwater gives a keynote to a full room of attendees, many in cowboy hats.' },
-      { photo: 'band-171', phone: 'band-171-phone', label: '3:03 p.m.', title: 'A packed afternoon session', alt: 'KCD Texas 2026: a packed afternoon session of attendees at tables with laptops listens to a talk.' },
+      { photo: 'band-043', lead: 'Keynote', text: 'Ian Coldwater', alt: 'KCD Texas 2026: Ian Coldwater gives a keynote to a full room of attendees, many in cowboy hats.' },
+      { photo: 'band-171', phone: 'band-171-phone', lead: '3:03 p.m.', text: 'A packed afternoon session', alt: 'KCD Texas 2026: a packed afternoon session of attendees at tables with laptops listens to a talk.' },
     ],
   },
 

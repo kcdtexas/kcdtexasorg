@@ -22,7 +22,7 @@ const st = home.stage;
       {edition2026.keynotes.map((k) => (
         <li class="kn">
           <Image class="kn-photo" src={keynotePhotos[k.photo]} quality={70} widths={[720, 1200]} sizes="(min-width: 1440px) 432px, (min-width: 600px) 30vw, 38vw" alt={k.alt} />
-          <p class="kn-meta"><b>{k.time}</b> Keynote<span class="kn-ed">, KCD Texas 2026</span></p>
+          <p class="kn-meta"><b>{k.time}</b> Keynote</p>
           <h3 class="kn-name">{k.name}</h3>
           <p class="kn-aff">{k.affiliation}</p>
           <p class="kn-talk">{k.talk}</p>

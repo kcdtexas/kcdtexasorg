@@ -100,7 +100,6 @@
     .kn-photo { grid-column: 1; grid-row: 1 / -1; }
     .kn > :not(.kn-photo) { grid-column: 2; }
     .kn-meta { margin-top: 0; font-size: 14px; }
-    .kn-ed { display: none; }
     .kn-name { margin-top: 4px; font-size: 28px; }
     .kn-aff { margin-top: 4px; font-size: 14px; line-height: 1.35; }
     .kn-talk { margin-top: 6px; font-size: 15px; line-height: 1.35; }

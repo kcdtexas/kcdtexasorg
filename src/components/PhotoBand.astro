@@ -1,6 +1,6 @@
 ---
-// The 2026 photo band under the hero: 2026's verified numbers, then two photos, each captioned on
-// the photo itself (the broadcast kit's lower third: a gold label and a dark plate).
+// The 2026 photo band under the hero: 2026's verified numbers, then two photos, each with its
+// caption under it, in the same style as every other photo caption (.photo in base.css).
 // Phones show only the photo that has a phone crop: the afternoon session, cropped tighter.
 import { getImage } from 'astro:assets';
 import { home } from '../data/home';
@@ -25,13 +25,13 @@ const shots = await Promise.all(h.band.map(async (b) => {
   <p class="proof"><strong>{h.proofLead}</strong> <span><b>{edition2026.checkedIn}</b> checked in</span> <i aria-hidden="true">·</i> <span><b>{edition2026.speakers}</b> Speakers</span> <i aria-hidden="true">·</i> <span><b>{edition2026.sponsorCount}</b> sponsors</span> <i aria-hidden="true">·</i> <span>{edition2026.recordings} talks on YouTube</span></p>
   <div class="shots">
     {shots.map((s) => (
-      <figure class:list={['shot', { 'shot--wide': !s.phone }]}>
+      <figure class:list={['photo', 'shot', { 'shot--wide': !s.phone }]}>
         <picture>
           {s.phone && s.p1 && s.p2 && <source media="(max-width: 599px)" srcset={`${s.p1.src} 780w, ${s.p2.src} 964w`} sizes="100vw" width={s.phone.width} height={s.phone.height} />}
           {/* Phones never show the wide-only photo, so it loads lazily and they skip it. */}
           <img src={s.w1.src} srcset={`${s.w1.src} 668w, ${s.w2.src} 1336w`} sizes="(min-width: 1440px) 668px, 47vw" width={s.wide.width} height={s.wide.height} alt={s.alt} decoding="async" loading={s.phone ? undefined : 'lazy'} fetchpriority={s.phone ? 'high' : undefined} />
         </picture>
-        <figcaption class="lt"><span class="lt-label">{s.label}</span><span class="lt-title">{s.title}</span></figcaption>
+        <figcaption><b>{s.lead}</b> {s.text}</figcaption>
       </figure>
     ))}
   </div>

@@ -44,19 +44,8 @@
   .proof span { white-space: nowrap; }
   .proof b { color: var(--figure); font-stretch: 75%; font-weight: 800; font-size: 17px; }
   .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .shot { position: relative; margin: 0; }
+  .shot { margin: 0; }
   .band img { display: block; width: 100%; height: auto; }
-  /* The broadcast kit's lower third: a gold label and a dark plate at the photo's bottom left.
-     Without gold in light (the --signal line removed), the label joins the plate. */
-  .lt { position: absolute; left: 12px; bottom: 12px; display: flex; align-items: stretch; max-width: calc(100% - 24px); }
-  .lt-label {
-    display: flex; align-items: center; padding: 0 10px; background: var(--signal, var(--plate)); color: var(--on-signal, var(--on-plate));
-    font-stretch: 75%; font-weight: 800; font-size: 14px; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase; font-variant-numeric: tabular-nums; white-space: nowrap;
-  }
-  .lt-title {
-    padding: 8px 12px 9px; background: var(--plate); color: var(--on-plate);
-    font-stretch: 75%; font-weight: 800; font-size: clamp(15px, 1.4vw, 19px); line-height: 1.1; letter-spacing: 0.04em; text-transform: uppercase;
-  }
 
   @media (max-width: 1299px) { .doors { grid-template-columns: 1fr; gap: 12px; } }
   @media (max-width: 1099px) {
@@ -99,7 +88,7 @@
     .band .proof { padding: 8px var(--pad); font-size: 14px; }
     .shots { grid-template-columns: 1fr; }
     .shot--wide { display: none; }
-    .lt { left: var(--pad); bottom: 10px; }
+    .band .photo figcaption { margin-top: 8px; padding-inline: var(--pad); font-size: 14px; }
     .proof b { font-size: 16px; }
     .band img { height: auto; }
   }

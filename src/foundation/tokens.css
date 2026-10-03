@@ -88,10 +88,6 @@
 
   --tile: transparent;        /* behind sponsor logos */
   --focus: #121412;
-
-  /* Captions on photos (the broadcast kit's lower third): a dark plate, the same in both themes. */
-  --plate: #121412;
-  --on-plate: #ffffff;
 }
 
 /* Dark: The Lineup's ink as the page, white text, magenta lightened for buttons, gold for highlights. */
