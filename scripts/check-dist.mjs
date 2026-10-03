@@ -60,7 +60,7 @@ function check() {
   for (const path of REQUIRED_PAGES) {
     if (!existsSync(join(DIST, pageFile(path)))) failures.push(`missing page ${path} (dist/${pageFile(path)})`);
   }
-  for (const f of ['_redirects', '_headers', 'robots.txt', 'favicon.svg', 'theme.js', 'now.js']) {
+  for (const f of ['_redirects', '_headers', 'robots.txt', 'sitemap.xml', 'favicon.svg', 'theme.js', 'now.js']) {
     if (!existsSync(join(DIST, f))) failures.push(`missing dist/${f}`);
   }
 
@@ -73,7 +73,8 @@ function check() {
   }
 
   // Zero data: no scripts except /theme.js (the remembered theme) and, on the key dates, /now.js (today's date),
-  // no inline styles, nothing loaded from another host.
+  // no inline styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
+  // (type="application/ld+json"): browsers never run it, it holds only JSON, and only the home page has one.
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
     return statSync(p).isDirectory() ? walk(p) : [p];
@@ -81,7 +82,15 @@ function check() {
   const htmlFiles = walk(DIST).filter((p) => extname(p) === '.html').sort();
   const pages = htmlFiles.map((file) => ({ file, html: readFileSync(file, 'utf8') }));
   for (const { file, html } of pages) {
-    const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const all = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
+    const data = all.filter((m) => /^<script type="application\/ld\+json">/.test(m[0]));
+    const scripts = all.filter((m) => !data.includes(m));
+    if (data.length > 1) failures.push(`${file}: more than one JSON-LD block`);
+    for (const m of data) {
+      try { JSON.parse(m[1]); } catch { failures.push(`${file}: the JSON-LD block is not valid JSON`); }
+      if (m[1].includes('<')) failures.push(`${file}: the JSON-LD block contains an unescaped "<"`);
+    }
+    if (data.length && file !== join(DIST, 'index.html')) failures.push(`${file}: a JSON-LD block outside the home page`);
     const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer)><\/script>$/;
     if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || scripts.filter((m) => /now\.js/.test(m[0])).length > 1) {
       failures.push(`${file}: scripts other than /theme.js first and /now.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
@@ -95,7 +104,20 @@ function check() {
       if (!/rel="canonical"/.test(m[0])) failures.push(`${file}: <link> to another host: ${m[1]}`);
     }
     for (const marker of findDraftMarkers(html)) failures.push(`${file}: draft marker ${marker}`);
+    if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
   }
+
+  // The sitemap lists every page except the 404 page, at absolute kcdtexas.org addresses, and robots.txt names it.
+  if (existsSync(join(DIST, 'sitemap.xml'))) {
+    const listed = [...readFileSync(join(DIST, 'sitemap.xml'), 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    const expected = htmlFiles.filter((f) => f !== join(DIST, '404.html'))
+      .map((f) => 'https://kcdtexas.org/' + relative(DIST, f).split(sep).join('/').replace(/(^|\/)index\.html$/, '$1'));
+    const missingFromMap = expected.filter((u) => !listed.includes(u));
+    const extra = listed.filter((u) => !expected.includes(u));
+    if (missingFromMap.length) failures.push(`sitemap.xml misses ${missingFromMap.join(', ')}`);
+    if (extra.length) failures.push(`sitemap.xml lists what isn't a page: ${extra.join(', ')}`);
+  }
+  if (!/^Sitemap: https:\/\/kcdtexas\.org\/sitemap\.xml$/m.test(readFileSync(join(DIST, 'robots.txt'), 'utf8'))) failures.push('robots.txt does not name the sitemap');
 
   // The social cards: link previews need 1200 x 630 PNGs, and they stay small enough for every site that fetches them.
   const CARDS = ['default', 'sponsorships', 'cfp'];

@@ -11,9 +11,10 @@ import DayPhotos from '../components/DayPhotos.astro';
 import AttendBlock from '../components/AttendBlock.astro';
 import { home } from '../data/home';
 import { phase } from '../data/edition-2027';
+import { homeJsonLd } from '../lib/structured-data';
 ---
 
-<Base title={home.title} description={home.description} mainClass={phase === 'cfp' ? 'main--cfp' : undefined}>
+<Base title={home.title} description={home.description} mainClass={phase === 'cfp' ? 'main--cfp' : undefined} jsonLd={homeJsonLd()}>
   <Hero />
   <KeyDates />
   <SponsorWall />

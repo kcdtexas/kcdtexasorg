@@ -4,6 +4,7 @@ import themeColor from '../foundation/theme-color.json';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import { cards, CARD, type CardId } from '../lib/cards/cards';
+import { jsonLdText } from '../lib/structured-data';
 
 interface Props {
   title: string;
@@ -12,9 +13,11 @@ interface Props {
   mainClass?: string;
   /** The page's link-preview card (src/pages/cards); the title card when the page has none of its own. */
   card?: CardId;
+  /** Structured data for search engines, as a JSON-LD object (src/lib/structured-data.ts). */
+  jsonLd?: object;
 }
 
-const { title, description, mainClass, card = 'default' } = Astro.props;
+const { title, description, mainClass, card = 'default', jsonLd } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 // Link previews need an absolute image URL. Preview builds set CARD_ORIGIN to their own address.
 const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Astro.site);
@@ -46,6 +49,7 @@ const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Ast
     <meta property="og:image:height" content={String(CARD.height)} />
     <meta property="og:image:alt" content={cards[card].alt} />
     <meta name="twitter:card" content="summary_large_image" />
+    {jsonLd && <script is:inline type="application/ld+json" set:html={jsonLdText(jsonLd)} />}
   </head>
   <body id="top">
     <a class="skip" href="#main">Skip to content</a>

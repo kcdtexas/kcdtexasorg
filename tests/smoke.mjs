@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import { REQUIRED_PAGES, findDraftMarkers } from '../scripts/check-dist.mjs';
+import { checkJsonLd } from './structured-data.mjs';
 
 const base = (process.argv[2] ?? process.env.BASE_URL ?? 'http://127.0.0.1:8090').replace(/\/$/, '');
 const failures = [];
@@ -217,6 +218,27 @@ for (const [link, pages] of allLinks) {
 // 8. Basics.
 expect((await get('/robots.txt')).status === 200, 'robots.txt missing');
 expect((await get('/favicon.svg')).status === 200, 'favicon.svg missing');
+
+// 9. Search engines: the sitemap's pages load here, robots.txt names the sitemap, and the home page's
+// JSON-LD passes the schema check. Its kcdtexas.org addresses are checked as paths on this host.
+const sitemap = await get('/sitemap.xml');
+expect(sitemap.status === 200, `/sitemap.xml returned ${sitemap.status}`);
+const locs = sitemap.status === 200 ? [...(await sitemap.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]) : [];
+expect(locs.length > 0, 'the sitemap lists no pages');
+for (const loc of locs) {
+  expect(loc.startsWith('https://kcdtexas.org/'), `sitemap address is not on kcdtexas.org: ${loc}`);
+  const { status } = await fetchOnce(new URL(loc).pathname);
+  expect(status === 200, `sitemap page ${loc} returned ${status}`);
+}
+expect(/^Sitemap: https:\/\/kcdtexas\.org\/sitemap\.xml$/m.test(await (await get('/robots.txt')).text()), 'robots.txt does not name the sitemap');
+const ldProblems = checkJsonLd(pageHtml['/'] ?? '');
+expect(!ldProblems.length, `home page JSON-LD: ${ldProblems.join('; ')}`);
+for (const [, url] of (pageHtml['/'] ?? '').matchAll(/"(?:logo|image)":"(https:\/\/kcdtexas\.org\/[^"]+)"/g)) {
+  expect((await get(new URL(url).pathname)).status === 200, `JSON-LD file ${url} does not load here`);
+}
+for (const path of PAGES) {
+  expect(/<link rel="canonical" href="https:\/\/kcdtexas\.org\//.test(pageHtml[path]), `${path} has no canonical kcdtexas.org link`);
+}
 
 console.log(`Smoke pages: ${Object.keys(pageHtml).sort().join(' ')}`);
 if (notices.length) console.log(`Smoke notice: links to v1 pages not built yet (pending until listed in REQUIRED_PAGES): ${notices.sort().join(' ')}`);
