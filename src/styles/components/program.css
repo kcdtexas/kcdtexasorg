@@ -1,3 +1,46 @@
-/* program pages. */
+/* The 2026 page: keynote cards, the program lists and the partners. */
 @layer components {
+  .pg-src { margin-top: 12px; font-size: 15px; line-height: 1.5; color: var(--muted); }
+  .pg-aff { color: var(--muted); }
+  .pg-title { font-weight: 700; font-size: 18px; line-height: 1.3; text-wrap: pretty; }
+  .pg-none, .pg-note { color: var(--muted); }
+  .pg-none { font-size: 15px; }
+
+  .pg-keynotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gutter); margin-top: 8px; }
+  .pg-kn-photo { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+  .pg-kn-name { margin-top: 14px; font-stretch: 68%; font-weight: 800; font-size: 28px; line-height: 1.05; }
+  .pg-keynotes .pg-aff { margin-top: 4px; font-size: 15px; line-height: 1.4; }
+  .pg-keynotes .pg-title, .pg-keynotes .pg-none { margin-top: 10px; }
+
+  .pg-talks { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: var(--gutter); margin-top: 8px; border-top: 3px solid var(--fg); }
+  .pg-talks > li { padding: 14px 0 10px; border-bottom: 1px solid var(--line); }
+  .pg-who { margin-top: 4px; font-size: 15px; line-height: 1.4; }
+  .pg-who .pg-aff::before, .pg-people .pg-aff::before { content: " · "; }
+  .pg-talks .watch { margin-top: 4px; }
+
+  .page-sec > .pg-note { margin-top: 0; font-size: 15px; }
+  .pg-people { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: var(--gutter); margin-top: 12px; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.4; }
+  .pg-people > li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .pg-people b { font-size: 16px; }
+  .page-sec > .pg-src { margin-top: 20px; }
+  .pg-more { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 16px; font-weight: 700; }
+
+  .pg-addons { margin-top: 20px; font-size: 15px; color: var(--muted); }
+  .pg-partners { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: var(--gutter); border-top: 1px solid var(--line); }
+  .pg-partners > div { padding: 10px 0; }
+  .pg-partners dt { font-weight: 700; font-size: 15px; color: var(--muted); }
+  .pg-partners dd { margin-top: 2px; }
+
+  @media (max-width: 899px) {
+    .pg-people { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 599px) {
+    .pg-keynotes, .pg-talks, .pg-people, .pg-partners { grid-template-columns: 1fr; }
+    .pg-keynotes { row-gap: 28px; }
+    .pg-keynotes > li { display: grid; grid-template-columns: 38% 1fr; column-gap: 16px; align-content: start; }
+    .pg-kn-photo { grid-column: 1; grid-row: 1 / span 5; }
+    .pg-keynotes > li > :not(.pg-kn-photo) { grid-column: 2; }
+    .pg-kn-name { margin-top: 0; font-size: 24px; }
+    .pg-title { font-size: 17px; }
+  }
 }

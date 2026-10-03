@@ -1,10 +1,18 @@
 // The 2026 Edition, a Past Edition. Every figure needs a public source (CLAUDE.md):
 // numbers from the CNCF transparency report, names and affiliations as printed on the Event Page.
 
+// Partners by type, as listed on the 2026 Event Page (the home page shows them as one line).
+const partnerGroups = [
+  { type: 'Partners', names: ['Cuemby', 'KubeSkills'] },
+  { type: 'Community partners', names: ['Austin Women in Technology', 'Merge Forward'] },
+  { type: 'Media partners', names: ['Software Guru', 'KUBE Events', 'Clowder Space'] },
+] as const;
+
 export const edition2026 = {
   year: 2026,
   city: 'Austin',
   date: 'May 15, 2026',
+  venue: 'TCEA',
   reportUrl: 'https://www.cncf.io/reports/kcd-texas-2026/',
   report2025Url: 'https://www.cncf.io/reports/kcd-texas-2025/',
   eventPageUrl: 'https://community2.cncf.io/events/details/cncf-kcd-texas-presents-kcd-texas-2026/',
@@ -18,6 +26,8 @@ export const edition2026 = {
   checkedIn: 207,
   speakers: 27,
   hosts: 3,
+  firstTimeSpeakers: 2,
+  workshops: 3,
   sponsorCount: 14,
   recordings: 18,
   // 2025 Edition, from the 2025 transparency report.
@@ -60,7 +70,13 @@ export const edition2026 = {
       { id: 'synadia', name: 'Synadia' },
     ],
   },
-  partners: 'Partners: Cuemby, KubeSkills. Community partners: Austin Women in Technology, Merge Forward. Media partners: Software Guru, KUBE Events, Clowder Space.',
+  // Add-ons, from the Event Page.
+  addOns: [
+    { name: 'vCluster', item: 'lanyards' },
+    { name: 'Komodor', item: 'happy hour' },
+  ],
+  partnerGroups,
+  partners: partnerGroups.map((g) => `${g.type}: ${g.names.join(', ')}.`).join(' '),
 
   keynotes: [
     { photo: 'katie', time: '9:28 a.m.', name: 'Katie Gamanji', affiliation: 'CNCF, TOC Member', talk: 'The State of Cloud Native: The Shift Towards AI', youtube: 'Z2hOG3K0gis',

@@ -1,0 +1,26 @@
+---
+// The 2026 sponsors by tier: equal cells per tier, each logo centered in its cell (see wall.css).
+// The home page's sponsor wall and the 2026 page both use it.
+import { Image } from 'astro:assets';
+import { edition2026 } from '../data/edition-2026';
+import { logos } from '../lib/images';
+
+const tiers = [
+  { key: 'platinum', name: 'Platinum', sponsors: edition2026.sponsors.platinum },
+  { key: 'gold', name: 'Gold', sponsors: edition2026.sponsors.gold },
+  { key: 'silver', name: 'Silver', sponsors: edition2026.sponsors.silver },
+];
+---
+
+<div class="tiers">
+  {tiers.map((t) => (
+    <div class={`tier tier--${t.key}`}>
+      <h3 class="tier-name">{t.name}</h3>
+      <ul class="logos">
+        {t.sponsors.map((s) => (
+          <li><Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /></li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</div>
