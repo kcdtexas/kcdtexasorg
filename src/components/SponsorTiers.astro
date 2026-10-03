@@ -5,6 +5,12 @@ import { Image } from 'astro:assets';
 import { edition2026 } from '../data/edition-2026';
 import { logos } from '../lib/images';
 
+interface Props {
+  /** Put before each tier name, such as "2026". */
+  tierPrefix?: string;
+}
+const { tierPrefix } = Astro.props;
+
 const tiers = [
   { key: 'platinum', name: 'Platinum', sponsors: edition2026.sponsors.platinum },
   { key: 'gold', name: 'Gold', sponsors: edition2026.sponsors.gold },
@@ -15,7 +21,7 @@ const tiers = [
 <div class="tiers">
   {tiers.map((t) => (
     <div class={`tier tier--${t.key}`}>
-      <h3 class="tier-name">{t.name}</h3>
+      <h3 class="tier-name">{tierPrefix ? `${tierPrefix} ${t.name}` : t.name}</h3>
       <ul class="logos">
         {t.sponsors.map((s) => (
           <li><Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /></li>
