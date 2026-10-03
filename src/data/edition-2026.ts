@@ -20,7 +20,9 @@ export const edition2026 = {
   recapUrl: 'https://www.youtube.com/watch?v=yg6AS9W7bzE',
   photosUrl: 'https://photos.kcdtexas.org/',
   // The raw file, 23 MB. A compressed copy on kcdtexas.org replaces it later.
-  prospectusPdf: { url: 'https://github.com/kcdtexas/sponsor-prospectus/raw/main/KCD-TEXAS-2026-Sponsorship-Prospectus.pdf', size: '23 MB' },
+  // A compressed copy of the public 2026 prospectus (github.com/kcdtexas/sponsor-prospectus, 23.9 MB), served
+  // from our domain: its photos recompressed as JPEG, the text and vectors unchanged (Sponsor Committee, question 4).
+  prospectusPdf: { url: '/2026/kcd-texas-2026-sponsorship-prospectus.pdf', size: '5 MB' },
 
   // Verified: the transparency report counts check-ins, not Registrations.
   checkedIn: 207,
