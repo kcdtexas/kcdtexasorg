@@ -1,6 +1,6 @@
 // The 2027 CFP page's words (Session Committee). Dates come from the Edition file.
 import { edition2026 } from './edition-2026';
-import { edition2027, longDate, shortDate, shortDateYear } from './edition-2027';
+import { edition2027, longDate, shortDateYear } from './edition-2027';
 
 const e = edition2027;
 
@@ -19,7 +19,7 @@ export const cfp = {
   // The Session Committee sends the Sessionize link. While it's empty, the page links nowhere.
   sessionizeUrl: '',
   submitButton: 'Submit on Sessionize',
-  submit: `Submit on Sessionize from ${shortDate(e.cfp.opens)}.`,
+  submit: 'Proposals go through Sessionize.',
   submitNote: 'The link goes here when the call for proposals opens.',
   // If the call opens before the link arrives, and after it closes.
   openNoLink: 'The Sessionize link goes here shortly.',
