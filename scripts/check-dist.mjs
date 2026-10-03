@@ -60,7 +60,7 @@ function check() {
   for (const path of REQUIRED_PAGES) {
     if (!existsSync(join(DIST, pageFile(path)))) failures.push(`missing page ${path} (dist/${pageFile(path)})`);
   }
-  for (const f of ['_redirects', '_headers', 'robots.txt', 'favicon.svg', 'theme.js']) {
+  for (const f of ['_redirects', '_headers', 'robots.txt', 'favicon.svg', 'theme.js', 'now.js']) {
     if (!existsSync(join(DIST, f))) failures.push(`missing dist/${f}`);
   }
 
@@ -72,7 +72,8 @@ function check() {
     if (!served) failures.push(`Short Link ${from} is not served`);
   }
 
-  // Zero data: no scripts except /theme.js (the remembered theme), no inline styles, nothing loaded from another host.
+  // Zero data: no scripts except /theme.js (the remembered theme) and, on the key dates, /now.js (today's date),
+  // no inline styles, nothing loaded from another host.
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
     return statSync(p).isDirectory() ? walk(p) : [p];
@@ -81,8 +82,9 @@ function check() {
   const pages = htmlFiles.map((file) => ({ file, html: readFileSync(file, 'utf8') }));
   for (const { file, html } of pages) {
     const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
-    if (scripts.length !== 1 || !/^<script src="\/theme\.js"><\/script>$/.test(scripts[0][0])) {
-      failures.push(`${file}: scripts other than <script src="/theme.js"></script>: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
+    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer)><\/script>$/;
+    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || scripts.filter((m) => /now\.js/.test(m[0])).length > 1) {
+      failures.push(`${file}: scripts other than /theme.js first and /now.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
     }
     if (/\sstyle="/i.test(html)) failures.push(`${file}: contains an inline style attribute`);
     // Plain <a href> links to other sites are fine; loading anything from them is not.
@@ -112,6 +114,7 @@ function check() {
 
   // The theme script runs before the first paint, so it stays tiny.
   if (existsSync(join(DIST, 'theme.js')) && statSync(join(DIST, 'theme.js')).size >= 1024) failures.push('theme.js is 1 KB or larger');
+  if (existsSync(join(DIST, 'now.js')) && statSync(join(DIST, 'now.js')).size >= 1024) failures.push('now.js is 1 KB or larger');
 
   // Each page's weight as a phone first loads it, in bytes over the wire: the HTML, the CSS,
   // fonts and script it references, and the smallest candidate of every image (photos are lazy

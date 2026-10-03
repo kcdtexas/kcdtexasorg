@@ -106,6 +106,13 @@ expect(/javascript/.test(theme.headers.get('content-type') ?? ''), `/theme.js co
 const themeBytes = (await theme.arrayBuffer()).byteLength;
 expect(themeBytes < 1024, `/theme.js is ${themeBytes} bytes, budget is under 1024`);
 
+// The key dates' clock script: same origin, deferred, tiny.
+const nowScript = await get('/now.js');
+expect(nowScript.status === 200, `/now.js returned ${nowScript.status}`);
+expect(/javascript/.test(nowScript.headers.get('content-type') ?? ''), `/now.js content type is ${nowScript.headers.get('content-type')}`);
+const nowBytes = (await nowScript.arrayBuffer()).byteLength;
+expect(nowBytes < 1024, `/now.js is ${nowBytes} bytes, budget is under 1024`);
+
 // 2. Unknown paths get the real 404 page.
 const MISSING = '/this-page-does-not-exist';
 const missing = await get(MISSING);

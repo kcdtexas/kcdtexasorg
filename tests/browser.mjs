@@ -364,6 +364,39 @@ try {
       await context.close();
     }
   }
+
+  // The key dates follow today between builds (/now.js, the owner's A50), and "Now" goes once the
+  // strip ends (Apr 30). The clock is fixed at noon Central, so the expected day is unambiguous.
+  const at = (day) => Date.parse(`${day}T12:00:00Z`);
+  for (const [day, asOf] of [['2026-11-15', 'As of Nov 15, 2026'], ['2027-05-02', 'As of May 2, 2027']]) {
+    const label = `key dates on ${day}`;
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+    const tab = await context.newPage();
+    const problems = await watch(tab);
+    await tab.clock.setFixedTime(new Date(`${day}T18:00:00Z`));
+    await tab.goto(base + '/', { waitUntil: 'networkidle' });
+    const state = await tab.evaluate(() => {
+      const tl = document.querySelector('[data-tl-start]');
+      return {
+        start: tl?.dataset.tlStart, end: tl?.dataset.tlEnd,
+        asOf: document.querySelector('[data-as-of]')?.textContent,
+        now: document.querySelector('.tl-now')?.getAttribute('x1') ?? null,
+        label: document.querySelector('.tl-now-label')?.getAttribute('x') ?? null,
+        past: document.querySelector('.tl-past')?.getAttribute('x2'),
+      };
+    });
+    const pct = Math.min(100, Math.max(0, ((at(day) - at(state.start)) / (at(state.end) - at(state.start))) * 100)).toFixed(2) + '%';
+    expect(state.asOf === asOf, `${label}: "${state.asOf}", expected "${asOf}"`);
+    expect(state.past === pct, `${label}: the past track ends at ${state.past}, expected ${pct}`);
+    if (day < state.end) {
+      expect(state.now === pct && state.label === pct, `${label}: Now at ${state.now} (label ${state.label}), expected ${pct}`);
+    } else {
+      expect(state.now === null && state.label === null, `${label}: Now still shown after the strip ends (at ${state.now})`);
+    }
+    const seen = await problems();
+    expect(!seen.length, `${label}: errors or CSP violations: ${seen.join(' | ')}`);
+    await context.close();
+  }
 } finally {
   await browser.close().catch(() => {});
   stop();

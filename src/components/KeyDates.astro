@@ -1,6 +1,7 @@
 ---
 // Key dates: a tour strip from October to April. Every bar and mark sits at its date, computed at
-// build time from the Edition file, so "Now" and "As of" follow the build day.
+// build time from the Edition file. "Now" and "As of" start at the build day; /now.js moves them
+// to today between builds (the owner's A50). After the strip ends, there is no "Now" (owner, 2026-10-03).
 import { home } from '../data/home';
 import { asOfDay, edition2027, shortDateYear, timeline, timelinePercent } from '../data/edition-2027';
 import { contact, prospectus } from '../data/site';
@@ -13,12 +14,13 @@ const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: co
 const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
 // "Now" sits left of its line, except near the strip's start, where it would run off the edge.
 const nowLeft = timelinePercent(asOfDay) > 6;
+const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
 ---
 
 <section class="dates" aria-labelledby="dates-title">
   <div class="wrap">
-    <h2 id="dates-title" class="dates-title">Key dates <span>As of {shortDateYear(asOfDay)}</span></h2>
-    <div class="tl" aria-hidden="true">
+    <h2 id="dates-title" class="dates-title">Key dates <span data-as-of>As of {shortDateYear(asOfDay)}</span></h2>
+    <div class="tl" aria-hidden="true" data-tl-start={timeline.start} data-tl-end={timeline.end}>
       <div class="tl-months">{months.map((m) => m === 'Jan' ? <span>Jan <i>{e.year}</i></span> : <span>{m}</span>)}</div>
       <svg class="tl-track" focusable="false">
         <line class="tl-axis" x1="0" x2="100%" y1="50%" y2="50%" />
@@ -28,8 +30,8 @@ const nowLeft = timelinePercent(asOfDay) > 6;
         <svg x={pct(e.schedule)} y="17" overflow="visible"><rect class="tl-mark" x="-7" y="-7" width="14" height="14" transform="rotate(45)" /></svg>
         <rect class="tl-event" x={pct(eventMonth)} width={width(eventMonth, timeline.end)} y="0" height="34" />
         <text class="tl-event-label" x={`${((timelinePercent(eventMonth) + 100) / 2).toFixed(2)}%`} y="17" text-anchor="middle" dominant-baseline="central">{e.city}</text>
-        <line class="tl-now" x1={pct(asOfDay)} x2={pct(asOfDay)} y1="-10" y2="44" />
-        <text class="tl-now-label" x={pct(asOfDay)} dx={nowLeft ? -7 : 7} y="9" text-anchor={nowLeft ? 'end' : 'start'} dominant-baseline="central">Now</text>
+        {showNow && <line class="tl-now" x1={pct(asOfDay)} x2={pct(asOfDay)} y1="-10" y2="44" />}
+        {showNow && <text class="tl-now-label" x={pct(asOfDay)} dx={nowLeft ? -7 : 7} y="9" text-anchor={nowLeft ? 'end' : 'start'} dominant-baseline="central">Now</text>}
       </svg>
     </div>
     <ol class="tl-list">
@@ -42,4 +44,5 @@ const nowLeft = timelinePercent(asOfDay) > 6;
       ))}
     </ol>
   </div>
+  <script is:inline src="/now.js" defer></script>
 </section>
