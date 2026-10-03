@@ -1,0 +1,43 @@
+---
+// The sponsor block: the case for sponsoring, what 2026 Sponsor Tiers included, and the prospectus door.
+import { Image } from 'astro:assets';
+import { home } from '../data/home';
+import { dallasMetro } from '../data/edition-2026';
+import { contact, legal, prospectus } from '../data/site';
+import { photos } from '../lib/images';
+
+const s = home.sponsor;
+---
+
+<section id="sponsor" class="sponsor" aria-labelledby="sponsor-title">
+  <div class="wrap sponsor-grid">
+    <div class="sponsor-head">
+      <p class="kicker">{s.kicker}</p>
+      <h2 id="sponsor-title" class="h2">{s.title}</h2>
+    </div>
+    <div class="sponsor-main">
+      <p class="lead">{s.lead}</p>
+      <div class="dallas">
+        <h3 class="dallas-label">Why Dallas</h3>
+        <div>
+          <p class="dallas-text">{dallasMetro.text}</p>
+          <p class="src">{dallasMetro.source}</p>
+        </div>
+      </div>
+      <h3 class="h3">{s.tiersTitle} <span>{s.tiersSource}</span></h3>
+      <ul class="rows">{s.tiers.map((t) => <li>{t}</li>)}</ul>
+      <p class="tiers-note">{s.tiersNote}</p>
+    </div>
+    <div class="sponsor-side">
+      <figure class="photo">
+        <Image src={photos['001-sponsor-hall']} quality={70} widths={[1000, 2000]} sizes="(min-width: 1100px) 46vw, (min-width: 600px) 92vw, 100vw" alt={s.photoAlt} />
+        <figcaption><b>KCD Texas 2026 · {s.photoTime}</b> {s.photoCaption}</figcaption>
+      </figure>
+      <div class="offer">
+        <a class="btn btn--wide" href={prospectus.href}>{prospectus.label}</a>
+        <p class="offer-mail">{prospectus.reply} Or write to {contact.email}.</p>
+      </div>
+      <p class="coc">Sponsors agree to the <a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a>.</p>
+    </div>
+  </div>
+</section>

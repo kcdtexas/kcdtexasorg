@@ -1,0 +1,24 @@
+---
+// The photo band: a day at KCD Texas 2026, in three timed photos.
+import { Image } from 'astro:assets';
+import { home } from '../data/home';
+import { edition2026 } from '../data/edition-2026';
+import { photos } from '../lib/images';
+
+const sizes = ['(min-width: 1440px) 432px, (min-width: 600px) 31vw, 100vw', '(min-width: 1440px) 432px, (min-width: 600px) 31vw, 48vw', '(min-width: 1440px) 432px, (min-width: 600px) 31vw, 48vw'];
+---
+
+<section class="day" aria-labelledby="day-title">
+  <div class="wrap">
+    <h2 id="day-title" class="h2">{home.day.title}</h2>
+    <div class="day-grid">
+      {home.day.photos.map((p, i) => (
+        <figure>
+          <Image src={photos[p.id]} quality={70} widths={[1000, 2000]} sizes={sizes[i]} alt={p.alt} />
+          <figcaption><b>{p.time}</b> {p.caption}</figcaption>
+        </figure>
+      ))}
+    </div>
+    <p class="more"><a href={edition2026.photosUrl}>See all 2026 photos</a></p>
+  </div>
+</section>

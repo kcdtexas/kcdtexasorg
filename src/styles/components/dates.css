@@ -1,0 +1,41 @@
+/* Key dates: a tour strip. The months, bars and marks sit at their dates (see KeyDates.astro). */
+@layer components {
+  .dates { padding-top: 40px; }
+  .dates-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-weight: 700; font-size: 16px; line-height: 1.2; }
+  .dates-title span { font-weight: 400; color: var(--muted); }
+  .tl { margin-top: 12px; }
+  .tl-months { display: grid; grid-template-columns: 31fr 30fr 31fr 31fr 28fr 31fr 30fr; font-stretch: 62%; font-weight: 800; font-size: 18px; line-height: 1; }
+  .tl-months span { padding: 0 0 8px 8px; border-left: 1px solid var(--fg); white-space: nowrap; }
+  .tl-months i { font-style: normal; font-weight: 600; color: var(--muted); }
+  .tl-track { display: block; width: 100%; height: 34px; overflow: visible; }
+  .tl-axis { stroke: var(--line); stroke-width: 1px; }
+  .tl-past { stroke: var(--muted); stroke-width: 1px; }
+  .tl-bar--cfp { fill: var(--fg); }
+  .tl-bar--tix { fill: var(--track-tickets); }
+  .tl-mark { fill: var(--signal, var(--fg)); stroke: var(--bg); stroke-width: 2px; }
+  .tl-event { fill: var(--signal, var(--fg)); }
+  .tl-event-label { fill: var(--on-signal, var(--bg)); font-stretch: 62%; font-weight: 900; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tl-now { stroke: var(--fg); stroke-width: 2px; }
+  .tl-now-label { fill: var(--fg); font-size: 13px; font-weight: 800; }
+  .tl-list { display: grid; grid-template-columns: 31fr 92fr 28fr 31fr 30fr; }
+  .tl-it { padding: 12px 12px 0 8px; border-left: 1px solid var(--fg); }
+  .it-name { font-weight: 700; font-size: 15px; line-height: 1.3; }
+  .it-st { margin-top: 2px; font-stretch: 62%; font-weight: 800; font-size: 24px; line-height: 1.1; }
+  .it-dt { margin-top: 4px; font-size: 15px; line-height: 1.35; color: var(--muted); }
+
+  @media (max-width: 1099px) {
+    .tl-months i { display: none; }
+    .tl-list { display: block; margin-top: 18px; }
+    .tl-it { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: baseline; padding: 10px 0; border-left: 0; border-top: 1px solid var(--line); }
+    .tl-it:last-child { border-bottom: 1px solid var(--line); }
+    .it-name { grid-column: 1; grid-row: 1; font-size: 16px; }
+    .it-st { grid-column: 2; grid-row: 1; margin: 0; font-size: 20px; text-align: right; }
+    .it-dt { grid-column: 1 / -1; margin-top: 2px; }
+  }
+  @media (max-width: 599px) {
+    .tl-months { font-size: 14px; }
+    .tl-months span { padding-left: 4px; }
+    .tl-event-label { font-size: 11px; letter-spacing: 0.02em; }
+    .it-st { font-size: 19px; }
+  }
+}

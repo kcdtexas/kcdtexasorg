@@ -1,0 +1,38 @@
+---
+// Every Edition, newest first: the Current Edition, then each Past Edition with its source.
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { editions as ed } from '../data/editions';
+---
+
+<Base title={`${ed.title} · KCD Texas`} description={ed.description}>
+  <article class="page wrap">
+    <PageHead kicker={ed.kicker} title={ed.title} lead={ed.lead} />
+
+    <ol class="eds">
+      <li class="ed ed--current">
+        <p class="ed-year" aria-hidden="true">{ed.current.year}</p>
+        <div class="ed-body">
+          <p class="ed-label">{ed.current.label}</p>
+          <h2 class="ed-title">{ed.current.title}</h2>
+          <p class="ed-place">{ed.current.line}</p>
+          <p class="ed-link"><a href={ed.current.link.href}>{ed.current.link.text}<span class="arrow" aria-hidden="true"> →</span></a></p>
+        </div>
+      </li>
+      {ed.past.map((e) => (
+        <li class="ed">
+          <p class="ed-year" aria-hidden="true">{e.year}</p>
+          <div class="ed-body">
+            <h2 class="ed-title">{e.title}</h2>
+            <p class="ed-place">{e.place}</p>
+            {e.facts.length > 0 && <ul class="ed-facts">{e.facts.map((f) => <li>{f}</li>)}</ul>}
+            {e.link && <p class="ed-link"><a href={e.link.href}>{e.link.text}<span class="arrow" aria-hidden="true"> →</span></a></p>}
+            <p class="ed-src">Source: <a href={e.source.href}>{e.source.text}</a>.{'sourceNote' in e && ` ${e.sourceNote}`}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+    <p class="page-soon">{ed.canceled}</p>
+    <p class="ed-note">{ed.sources}</p>
+  </article>
+</Base>

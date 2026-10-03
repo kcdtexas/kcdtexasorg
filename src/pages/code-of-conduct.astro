@@ -1,0 +1,41 @@
+---
+// The Code of Conduct page (Core Event Committee). Words in src/data/conduct.ts.
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import Door from '../components/Door.astro';
+import { conduct as c } from '../data/conduct';
+import { contact, legal } from '../data/site';
+---
+
+<Base title={`${c.title} · KCD Texas`} description={c.description}>
+  <article class="page wrap coc-page">
+    <PageHead kicker={c.kicker} title={c.title} lead={c.lead}>
+      <div class="coc-door"><Door href={legal.codeOfConductUrl} label={c.read} note={c.readNote} /></div>
+    </PageHead>
+
+    <section class="page-sec" aria-labelledby="report">
+      <h2 id="report" class="page-h2">{c.report.title}</h2>
+      <p class="coc-danger">{c.report.danger}</p>
+      <dl class="coc-ways">
+        <div>
+          <dt>{c.report.atEvent}</dt>
+          <dd>
+            {c.contacts.length === 0 ? (
+              <p class="coc-soon">{c.report.atEventSoon}</p>
+            ) : (
+              <ul>{c.contacts.map((p) => <li><b>{p.name}</b>, {p.how}</li>)}</ul>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>{c.report.byEmail}</dt>
+          <dd><a href={`mailto:${contact.email}`}>{contact.email}</a></dd>
+        </div>
+        <div>
+          <dt>{c.report.toCncf}</dt>
+          <dd><a href={`mailto:${contact.conductEmail}`}>{contact.conductEmail}</a></dd>
+        </div>
+      </dl>
+    </section>
+  </article>
+</Base>

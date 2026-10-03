@@ -1,0 +1,40 @@
+/* Inner pages: a condensed title, then sections under 1 px rules, in one reading column.
+   .page-wide lets a section (a sponsor wall, a program table) use the full width. */
+@layer components {
+  .page { padding-block: 56px var(--sec); }
+  .page > .page-head, .page > .page-sec, .page > .page-col { max-width: 980px; }
+  .page > .page-sec.page-wide { max-width: none; }
+  .page-title { font-stretch: 62%; font-weight: 900; font-size: clamp(56px, 8vw, 112px); line-height: 0.9; text-transform: uppercase; text-wrap: balance; }
+  .page-lead { margin-top: 24px; }
+  .page-sec { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--fg); }
+  .page-sec > p, .page-sec > ul, .page-sec > ol { max-width: 40em; }
+  .page-sec p + p, .page-sec p + ul, .page-sec ul + p { margin-top: 12px; }
+  .page-h2 { margin-bottom: 16px; font-stretch: 68%; font-weight: 800; font-size: clamp(28px, 3vw, 40px); line-height: 1.05; text-wrap: balance; }
+  .page-h3 { margin: 24px 0 8px; font-weight: 700; font-size: 19px; line-height: 1.3; }
+  .page-list { margin-top: 12px; }
+  .page-list li { padding: 10px 0; border-top: 1px solid var(--line); }
+  .page-list li:last-child { border-bottom: 1px solid var(--line); }
+  .page-bullets { padding-left: 1.2em; list-style: square; }
+  .page-bullets li + li { margin-top: 6px; }
+
+  /* Key facts as a row of terms on a 3 px rule, like the CFP dates. */
+  .page-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); column-gap: var(--gutter); margin-top: 32px; border-top: 3px solid var(--fg); }
+  .page-facts > div { padding-top: 12px; }
+  .page-facts dt { font-weight: 700; font-size: 15px; color: var(--muted); }
+  .page-facts dd { margin-top: 4px; font-stretch: 62%; font-weight: 800; font-size: 28px; line-height: 1.1; }
+
+  /* A plain line for something announced later. */
+  .page-soon { margin-top: 12px; padding: 14px 18px; border-left: 3px solid var(--fg); font-weight: 700; }
+  /* A boxed callout in the action color, for the one thing to do on the page. */
+  .page-callout { margin-top: 28px; padding: 16px 20px; border: 3px solid var(--action); font-weight: 700; font-size: 20px; }
+  .page-callout span { display: block; margin-top: 4px; font-weight: 400; font-size: 16px; color: var(--muted); }
+
+  @media (max-width: 599px) {
+    .page { padding-top: 36px; }
+    .page-sec { margin-top: 44px; }
+    .page-facts { grid-template-columns: 1fr; }
+    .page-facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .page-facts dd { margin-top: 0; font-size: 22px; text-align: right; }
+    .page-callout { font-size: 18px; }
+  }
+}

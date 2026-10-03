@@ -1,0 +1,22 @@
+---
+// The 2026 bill: keynotes in the day's order, every Speaker by surname, then the hosts.
+// Desktop and tablet rows are fitted to the measure; phones show the keynotes and a disclosure.
+import { edition2026 } from '../data/edition-2026';
+
+const b = edition2026.bill;
+const total = `See all ${edition2026.speakers} Speakers and ${edition2026.hosts} hosts`;
+---
+
+<div class="bill26">
+  <h3 class="bill26-title">The 2026 bill</h3>
+  <ul class="bl bl-key">{b.keynotes.map((n, i) => <li class={`k${i + 1}`}>{n}</li>)}</ul>
+  <ul class="bl bl-all">{b.speakers.map(([n, wide]) => <li class={wide}>{n}</li>)}</ul>
+  <p class="bl-by">Hosted by</p>
+  <ul class="bl bl-hosts">{b.hosts.map((n) => <li>{n}</li>)}</ul>
+  <details class="bl-more">
+    <summary>{total}</summary>
+    <ul class="bl bl-n">{b.speakers.map(([n, , phone]) => <li class={phone}>{n}</li>)}</ul>
+    <p class="bl-by">Hosted by</p>
+    <ul class="bl bl-hosts">{b.hosts.map((n) => <li>{n}</li>)}</ul>
+  </details>
+</div>

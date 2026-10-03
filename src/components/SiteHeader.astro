@@ -1,0 +1,37 @@
+---
+import { Image } from 'astro:assets';
+import ThemeSwitch from './ThemeSwitch.astro';
+import { badge } from '../lib/images';
+import { cfpPath, mainNav, isCurrent } from '../data/nav';
+
+// Every page, the home page included, links to the pages; the current one is marked.
+const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.pathname) }));
+---
+
+<header class="site-header">
+  <div class="wrap head">
+    <a class="lockup" href="/">
+      <img class="lockup-kcd logo-on-light" src="/brand/kcd-logo-black.svg" width="870" height="280" alt="Kubernetes Community Days" />
+      <img class="lockup-kcd logo-on-dark" src="/brand/kcd-logo-white.svg" width="870" height="280" alt="Kubernetes Community Days" />
+      <span class="lockup-rule" aria-hidden="true"></span>
+      <Image class="lockup-badge" src={badge} quality={70} widths={[240, 600]} sizes="64px" alt="KCD Texas 2027 badge, Dallas" loading="eager" />
+    </a>
+    <nav class="nav" aria-label="Main">
+      <ul>
+        {links.map((l) => <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
+      </ul>
+    </nav>
+    <div class="head-end">
+      <a class="btn btn--sm head-cta" href={cfpPath}>Submit a talk</a>
+      <ThemeSwitch />
+      <details class="menu">
+        <summary><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></summary>
+        <nav class="menu-panel" aria-label="Main, phone">
+          <ul>
+            {links.map((l) => <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
+          </ul>
+        </nav>
+      </details>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,35 @@
+---
+import DateLine from './DateLine.astro';
+import Bill2027 from './Bill2027.astro';
+import Door from './Door.astro';
+import PhotoBand from './PhotoBand.astro';
+import { home } from '../data/home';
+import { contact, legal, prospectus } from '../data/site';
+import { cfpPath } from '../data/nav';
+import { edition2027 } from '../data/edition-2027';
+
+const h = home.hero;
+---
+
+<section class="hero" aria-labelledby="title">
+  <div class="wrap hero-grid">
+    <div class="hero-top">
+      <p class="eyebrow"><a href={legal.kcdProgramUrl}>Kubernetes Community Days</a></p>
+      <DateLine />
+    </div>
+    <h1 id="title" class="title">KCD Texas <span class="yr">{edition2027.year}</span></h1>
+    <Bill2027 />
+    <p class="promise">{h.promise}</p>
+    <div class="hero-act">
+      <div class="doors">
+        <Door href={cfpPath} label="Submit a talk" note={h.talkNote} />
+        <Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} />
+      </div>
+      <div class="ticket">
+        <a class="btn btn--line btn--sm" href={contact.chapterUrl}>Get ticket news</a>
+        <p class="ticket-note">{h.ticketNote} <i aria-hidden="true">·</i> <a href="#attend">{h.managerLink}</a></p>
+      </div>
+    </div>
+    <PhotoBand />
+  </div>
+</section>

@@ -1,0 +1,83 @@
+/* Header: the official lockup (KCD logo, rule, badge), the nav, the talk door and the theme switch. Stays on screen. */
+@layer components {
+  .site-header { position: sticky; top: 0; z-index: 30; background: var(--bg); border-bottom: 1px solid var(--fg); }
+  .head { display: flex; align-items: center; gap: 28px; min-height: var(--head-h); }
+  .lockup { display: flex; flex: none; align-items: center; gap: 16px; margin-right: auto; color: var(--fg); text-decoration: none; }
+  .lockup-kcd { height: 54px; width: auto; flex: none; }
+  .lockup-rule { display: block; width: 1px; height: 48px; background: currentColor; }
+  .lockup-badge { height: 62px; width: auto; flex: none; }
+  .head-cta { white-space: nowrap; }
+  /* One KCD logo per theme: black on paper, white on ink. */
+  .logo-on-dark { display: none; }
+  @media screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .logo-on-light { display: none; }
+    :root:not([data-theme="light"]) .logo-on-dark { display: block; }
+  }
+  @media screen {
+    :root[data-theme="dark"] .logo-on-light { display: none; }
+    :root[data-theme="dark"] .logo-on-dark { display: block; }
+  }
+  .nav ul { display: flex; gap: 28px; }
+  .nav a { display: block; padding: 12px 0; color: var(--fg); font-weight: 600; font-size: 16px; text-decoration: none; }
+  .nav a:hover { color: var(--fg); text-decoration: underline 2px var(--action); text-underline-offset: 0.35em; }
+  .nav a[aria-current="page"] { text-decoration: underline 3px var(--action); text-underline-offset: 0.35em; }
+  .head-end { display: flex; align-items: center; gap: 12px; }
+
+  /* The theme switch: hidden until /theme.js runs; without JavaScript the device setting decides. */
+  .theme {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; min-height: 44px; padding: 0 12px;
+    background: transparent; color: var(--fg); border: 2px solid var(--fg); border-radius: 0; cursor: pointer;
+    font-family: var(--font-sans); font-weight: 700; font-size: 16px; line-height: 1;
+  }
+  .theme:hover { background: var(--fg); color: var(--bg); }
+  .theme svg { width: 18px; height: 18px; flex: none; }
+  .theme[data-now="light"] .icon-sun, .theme[data-now="dark"] .icon-moon { display: none; }
+
+  .menu { display: none; position: relative; }
+  .menu summary {
+    display: flex; align-items: center; min-height: 44px; padding: 0 14px; border: 2px solid var(--fg); cursor: pointer; list-style: none;
+    font-weight: 700; font-size: 16px;
+  }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu-icon { display: none; width: 20px; height: 20px; }
+  .menu[open] summary { background: var(--fg); color: var(--bg); }
+  .menu-panel { position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: min(84vw, 320px); padding: 8px 20px 14px; background: var(--bg); border: 2px solid var(--fg); }
+  .menu-panel li a { display: block; padding: 13px 0; border-bottom: 1px solid var(--line); color: var(--fg); font-weight: 600; font-size: 20px; text-decoration: none; }
+  .menu-panel li:last-child a { border-bottom: 0; }
+  .menu-panel a[aria-current="page"] { text-decoration: underline 3px var(--action); text-underline-offset: 0.3em; }
+
+  @media (max-width: 1199px) {
+    .head { gap: 20px; }
+    .nav ul { gap: 20px; }
+  }
+  @media (max-width: 899px) {
+    .nav { display: none; }
+    .menu { display: block; }
+    .head { gap: 10px; }
+    .head-end { gap: 8px; }
+    .lockup-kcd { height: 40px; }
+    .lockup-rule { height: 36px; }
+    .lockup-badge { height: 48px; }
+  }
+  @media (max-width: 599px) {
+    .head { gap: 6px; }
+    .head-end { gap: 6px; }
+    .lockup { gap: 7px; }
+    .lockup-kcd { height: 26px; }
+    .lockup-rule { height: 26px; }
+    .lockup-badge { height: 34px; }
+    .head-cta { min-height: 44px; padding: 0 8px; font-size: 15px; }
+    /* Phones: the switch and the menu show icons; their words stay in the accessible names. */
+    .menu summary { justify-content: center; width: 44px; padding: 0; }
+    .menu-icon { display: block; }
+    .theme { padding: 0; width: 44px; }
+    .menu-word, .theme-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  }
+  @media (max-width: 379px) {
+    .lockup { gap: 5px; }
+    .lockup-kcd { height: 22px; }
+    .lockup-rule { height: 22px; }
+    .lockup-badge { height: 30px; }
+    .head-cta { padding: 0 7px; font-size: 14px; }
+  }
+}

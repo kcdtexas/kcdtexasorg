@@ -1,0 +1,28 @@
+/* Tailwind scans only the templates, so words in data and scripts (".filter(") never become utilities. */
+@import "tailwindcss" source(none);
+@import "../foundation/tokens.css";
+
+/*
+ * KCD Texas: The Lineup, in light and dark. The colors are the foundation's semantic tokens;
+ * these files hold the components, in the "components" layer so Tailwind utilities still win.
+ */
+@import "./components/base.css";
+@import "./components/header.css";
+@import "./components/hero.css";
+@import "./components/dates.css";
+@import "./components/wall.css";
+@import "./components/sections.css";
+@import "./components/stage.css";
+@import "./components/footer.css";
+@import "./components/cfp.css";
+@import "./components/page.css";
+@import "./components/sponsors.css";
+@import "./components/about.css";
+@import "./components/conduct.css";
+@import "./components/editions.css";
+@import "./components/program.css";
+@import "./components/info.css";
+
+@source "../pages";
+@source "../components";
+@source "../layouts";

@@ -1,0 +1,87 @@
+---
+// The 2026 Edition, a Past Edition: its figures, keynotes, the full public program, sponsors and partners.
+import { Image } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import SponsorTiers from '../../components/SponsorTiers.astro';
+import { page2026 as p } from '../../data/page-2026';
+import { edition2026, youtube } from '../../data/edition-2026';
+import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../../data/program-2026';
+import { keynotePhotos } from '../../lib/images';
+
+const keynotes = keynotes2026.map((k) => ({ ...k, photo: edition2026.keynotes.find((s) => s.name === k.name)! }));
+const recorded = speakers2026.filter((s) => s.youtube);
+const others = speakers2026.filter((s) => !s.youtube);
+---
+
+<Base title={p.title} description={p.description}>
+  <article class="page wrap">
+    <PageHead kicker={p.kicker} title={p.heading} lead={p.lead} />
+    <dl class="page-facts">
+      {p.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
+    </dl>
+    <p class="pg-src">{p.factsSource} <a href={edition2026.reportUrl}>{p.factsLink}</a></p>
+
+    <section class="page-sec" aria-labelledby="keynotes">
+      <h2 id="keynotes" class="page-h2">{p.keynotes.title}</h2>
+      <ul class="pg-keynotes">
+        {keynotes.map((k, i) => (
+          <li>
+            {/* The first keynote photo is the desktop LCP element, so it loads first rather than lazily. */}
+            <Image class="pg-kn-photo" src={keynotePhotos[k.photo.photo]} quality={65} widths={[400, 640]} sizes="(min-width: 1000px) 300px, (min-width: 600px) 30vw, 38vw" alt={k.photo.alt} loading={i === 0 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} />
+            <h3 class="pg-kn-name">{k.name}</h3>
+            <p class="pg-aff">{asPrinted(k)}</p>
+            {k.title ? <p class="pg-title">{k.title}</p> : <p class="pg-none">{p.keynotes.noRecording}</p>}
+            {k.youtube && <a class="watch" href={youtube(k.youtube)}>{p.program.watch}<span class="sr-only">: {k.title}</span></a>}
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="program">
+      <h2 id="program" class="page-h2">{p.program.title}</h2>
+      <p>{p.program.intro}</p>
+      <h3 class="page-h3">{p.program.recordedTitle}</h3>
+      <ul class="pg-talks">
+        {recorded.map((s) => (
+          <li>
+            <p class="pg-title">{s.title}</p>
+            <p class="pg-who"><b>{s.name}</b>{s.printed.length > 0 && <span class="pg-aff">{asPrinted(s)}</span>}</p>
+            <a class="watch" href={youtube(s.youtube!)}>{p.program.watch}<span class="sr-only">: {s.title}</span></a>
+          </li>
+        ))}
+      </ul>
+      <h3 class="page-h3">{p.program.otherTitle}</h3>
+      <p class="pg-note">{p.program.otherNote}</p>
+      <ul class="pg-people">
+        {others.map((s) => <li><b>{s.name}</b>{s.printed.length > 0 && <span class="pg-aff">{asPrinted(s)}</span>}</li>)}
+      </ul>
+      <h3 class="page-h3">{p.program.hostsTitle}</h3>
+      <ul class="pg-people">
+        {hosts2026.map((s) => <li><b>{s.name}</b><span class="pg-aff">{asPrinted(s)}</span></li>)}
+      </ul>
+      <p class="pg-src">{p.program.asPrinted}</p>
+      <ul class="pg-more">
+        <li><a href={edition2026.talksUrl}>{p.program.allTalks}</a></li>
+        <li><a href={edition2026.recapUrl}>{p.program.recap}</a></li>
+      </ul>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="sponsors">
+      <h2 id="sponsors" class="page-h2">{p.sponsors.title}</h2>
+      <SponsorTiers />
+      <p class="pg-addons">{p.sponsors.addOnsLabel} {edition2026.addOns.map((a) => `${a.name} (${a.item})`).join(', ')}.</p>
+      <h3 class="page-h3">{p.sponsors.partnersTitle}</h3>
+      <dl class="pg-partners">
+        {edition2026.partnerGroups.map((g) => <div><dt>{g.type}</dt><dd>{g.names.join(', ')}</dd></div>)}
+      </dl>
+    </section>
+
+    <section class="page-sec" aria-labelledby="look-back">
+      <h2 id="look-back" class="page-h2">{p.lookBack.title}</h2>
+      <ul class="page-list">
+        {p.lookBack.links.map((l) => <li><a href={l.href}>{l.text}</a> <span class="pg-aff">{l.note}</span></li>)}
+      </ul>
+    </section>
+  </article>
+</Base>

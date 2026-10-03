@@ -1,0 +1,22 @@
+/* The 2027 CFP page, on the inner-page shell (page.css). */
+@layer components {
+  .cfp-callout b { margin-right: 4px; }
+  .cfp-pair { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--gutter) calc(2 * var(--gutter)); }
+  .cfp-pair p + p { margin-top: 12px; }
+  .cfp-employer { font-weight: 700; }
+  .cfp-first { padding-left: var(--gutter); border-left: 3px solid var(--fg); }
+  .cfp-first-text { font-stretch: 68%; font-weight: 800; font-size: clamp(24px, 2.2vw, 30px); line-height: 1.15; text-wrap: balance; }
+
+  @media (max-width: 799px) {
+    .cfp-pair { grid-template-columns: 1fr; }
+    .cfp-first { padding: 20px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+  }
+
+  /* The older one-column classes. The 404 page still uses .cfp, .cfp-title and .cfp-lead. */
+  .cfp { max-width: 980px; padding-block: 56px var(--sec); }
+  .cfp-title { font-stretch: 62%; font-weight: 900; font-size: clamp(56px, 8vw, 112px); line-height: 0.9; text-transform: uppercase; text-wrap: balance; }
+  .cfp-lead { margin-top: 24px; }
+  @media (max-width: 599px) {
+    .cfp { padding-top: 36px; }
+  }
+}

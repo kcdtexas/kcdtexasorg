@@ -1,0 +1,179 @@
+/*
+ * Shared design foundation (ADR 0006): fonts and the color tokens for both themes.
+ * Nothing site-specific lives here; the build fails if this folder mentions a specific site.
+ *
+ * Templates use only these semantic tokens. Light values sit on the root. Dark values apply
+ * when the device prefers dark (unless the visitor chose light) or when the visitor chose dark
+ * (the html element's data-theme, set by /theme.js). Print always uses light: the dark blocks
+ * are screen-only. scripts/check-contrast.mjs reads both token sets, and theme-color.json must
+ * match --bg.
+ */
+
+/* Archivo: grotesque with a width axis (wdth 62-125, wght 100-900). SIL Open Font License 1.1. */
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo/archivo-latin-wdth-normal.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Clarity City: SIL Open Font License 1.1. */
+@font-face {
+  font-family: "Clarity City";
+  src: url("/fonts/clarity-city/ClarityCity-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Clarity City";
+  src: url("/fonts/clarity-city/ClarityCity-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Clarity City";
+  src: url("/fonts/clarity-city/ClarityCity-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Light: white paper, black ink, one magenta action color. */
+:root {
+  color-scheme: light;
+  --gold: #ebb64f;
+
+  --bg: #ffffff;              /* the page */
+  --fg: #121412;              /* text, 3 px rules and hairlines */
+  --muted: #595c59;
+  --line: #d5d7d4;            /* faint dividers */
+  --surface: #f3f4f2;
+
+  --action: #a3174e;          /* buttons, doors, open slots */
+  --action-hover: #7c0f3a;
+  --on-action: #ffffff;
+  --link: #a3174e;
+  --link-hover: #7c0f3a;
+  --link-underline: currentColor;
+
+  /* The speak band: the one reversed panel. */
+  --band: #121412;
+  --band-fg: #ffffff;
+  --band-muted: #c3c6c3;
+  --band-line: rgba(255, 255, 255, 0.26);
+  --band-action: #d6336f;
+  --band-action-hover: #b02a5c;
+  --band-link: #ffffff;
+
+  /* The footer. */
+  --foot: #121412;
+  --foot-fg: #ffffff;
+  --foot-muted: #c3c6c3;
+  --foot-line: rgba(255, 255, 255, 0.26);
+  --foot-edge: #121412;       /* the full-width rule on top */
+
+  /* Gold: highlights in dark; in light, fills only. */
+  --year: #121412;            /* "2027" in the title */
+  --dateline: #121412;
+  --figure: #121412;          /* verified figures */
+  /* Gold fills in light (the Marketing Committee's OK pending). To remove them, delete this one line: */
+  --signal: var(--gold); --on-signal: #121412;
+  --track-tickets: #8a8d8a;   /* the tickets bar on the key dates */
+
+  --tile: transparent;        /* behind sponsor logos */
+  --focus: #121412;
+}
+
+/* Dark: The Lineup's ink as the page, white text, magenta lightened for buttons, gold for highlights. */
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121412;
+    --fg: #ffffff;
+    --muted: #c3c6c3;
+    --line: rgba(255, 255, 255, 0.16);
+    --surface: #1f231f;
+    --action: #d6336f;
+    --action-hover: #b02a5c;
+    --on-action: #ffffff;
+    --link: #ffffff;
+    --link-hover: #ffffff;
+    --link-underline: #f27aa5;
+    --band: #f4f3ef;
+    --band-fg: #121412;
+    --band-muted: #555855;
+    --band-line: rgba(18, 20, 18, 0.2);
+    --band-action: #a3174e;
+    --band-action-hover: #7c0f3a;
+    --band-link: #121412;
+    --foot: #222622;
+    --foot-fg: #ffffff;
+    --foot-muted: #c3c6c3;
+    --foot-line: rgba(255, 255, 255, 0.2);
+    --foot-edge: #ffffff;
+    --year: #ebb64f;
+    --dateline: #ebb64f;
+    --figure: #ebb64f;
+    --signal: #ebb64f;
+    --on-signal: #121412;
+    --track-tickets: #8a8d8a;
+    --tile: #f4f3ef;
+    --focus: #ffffff;
+  }
+}
+
+@media screen {
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121412;
+    --fg: #ffffff;
+    --muted: #c3c6c3;
+    --line: rgba(255, 255, 255, 0.16);
+    --surface: #1f231f;
+    --action: #d6336f;
+    --action-hover: #b02a5c;
+    --on-action: #ffffff;
+    --link: #ffffff;
+    --link-hover: #ffffff;
+    --link-underline: #f27aa5;
+    --band: #f4f3ef;
+    --band-fg: #121412;
+    --band-muted: #555855;
+    --band-line: rgba(18, 20, 18, 0.2);
+    --band-action: #a3174e;
+    --band-action-hover: #7c0f3a;
+    --band-link: #121412;
+    --foot: #222622;
+    --foot-fg: #ffffff;
+    --foot-muted: #c3c6c3;
+    --foot-line: rgba(255, 255, 255, 0.2);
+    --foot-edge: #ffffff;
+    --year: #ebb64f;
+    --dateline: #ebb64f;
+    --figure: #ebb64f;
+    --signal: #ebb64f;
+    --on-signal: #121412;
+    --track-tickets: #8a8d8a;
+    --tile: #f4f3ef;
+    --focus: #ffffff;
+  }
+}
+
+@theme inline {
+  --font-sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-brand: "Clarity City", ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-action: var(--action);
+  --color-on-action: var(--on-action);
+  --color-link: var(--link);
+}

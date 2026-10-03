@@ -1,0 +1,35 @@
+---
+// /2027/schedule/: when the Schedule and the Speakers come out (Session Committee).
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { schedule as s } from '../../data/schedule';
+import { paths } from '../../data/nav';
+import { edition2026 } from '../../data/edition-2026';
+---
+
+<Base title={`${s.title} · KCD Texas`} description={s.description}>
+  <article class="page wrap">
+    <PageHead kicker={s.kicker} title={s.title} lead={s.lead}>
+      <dl class="page-facts">
+        {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
+      </dl>
+    </PageHead>
+
+    <section class="page-sec" aria-labelledby="speak">
+      <h2 id="speak" class="page-h2">{s.speak.title}</h2>
+      <p>{s.speak.text}</p>
+      <div class="actions">
+        <a class="btn" href={paths.cfp}>{s.speak.link}</a>
+      </div>
+    </section>
+
+    <section class="page-sec" aria-labelledby="past">
+      <h2 id="past" class="page-h2">{s.past.title}</h2>
+      <p>{s.past.text}</p>
+      <div class="actions">
+        <a class="btn btn--line" href={paths.edition2026}>{s.past.link}</a>
+        <a class="info-link" href={edition2026.talksUrl}>{s.past.talks}</a>
+      </div>
+    </section>
+  </article>
+</Base>

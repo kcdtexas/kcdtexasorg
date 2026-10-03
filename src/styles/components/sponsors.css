@@ -1,0 +1,43 @@
+/* The 2027 sponsors page: the figures, the quote, the wall inside the page column, and the doors. */
+@layer components {
+  .sp-door { max-width: 460px; margin-top: 28px; }
+  .sp-muted { font-weight: 400; color: var(--muted); }
+
+  .sp-figs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); gap: var(--gutter) calc(2 * var(--gutter)); margin-top: 8px; }
+  .sp-fig--verified { padding-top: 12px; border-top: 3px solid var(--fg); }
+  .sp-num { font-stretch: 62%; font-weight: 900; font-size: clamp(64px, 7vw, 96px); line-height: 0.9; color: var(--figure); }
+  .sp-num--sm { font-size: clamp(40px, 4vw, 56px); }
+  .sp-num sup { font-size: 0.35em; vertical-align: 1.4em; }
+  .sp-about { font-size: 0.5em; font-weight: 800; }
+  .sp-lbl { margin-top: 6px; font-size: 16px; line-height: 1.35; }
+  .sp-fig .src { margin-top: 10px; }
+  .sp-survey { padding-top: 12px; border-top: 1px solid var(--fg); }
+  .sp-survey-title { margin-top: 0; }
+  .sp-survey-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px var(--gutter); margin-top: 8px; }
+  .sp-survey .src { margin-top: 18px; }
+
+  .sp-quote { margin-top: 40px; max-width: 40em; padding-left: var(--gutter); border-left: 3px solid var(--action); }
+  .sp-quote blockquote { margin: 0; }
+  .sp-quote p { font-stretch: 75%; font-weight: 700; font-size: clamp(22px, 2vw, 28px); line-height: 1.25; text-wrap: balance; }
+  .sp-quote figcaption { margin-top: 8px; }
+
+  .sp-dallas { margin-top: 32px; max-width: 40em; }
+  .sp-dallas .page-h3 { margin-top: 0; }
+  .sp-dallas .src { margin-top: 6px; }
+
+  /* The wall sits in the page column: left-aligned title, no top padding of its own. */
+  .page > .sp-wall { max-width: none; }
+  .wall--bare { padding-top: 0; }
+  .wall--bare .wall-title { text-align: left; font-size: clamp(28px, 3vw, 40px); }
+
+  .sp-note { margin-top: 12px; font-size: 16px; color: var(--muted); }
+  .sp-pdf { margin-top: 14px; }
+
+  @media (max-width: 899px) {
+    .sp-figs { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 599px) {
+    .sp-survey-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sp-door { max-width: none; }
+  }
+}

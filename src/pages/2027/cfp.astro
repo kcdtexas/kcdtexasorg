@@ -1,0 +1,69 @@
+---
+// The 2027 CFP page (Session Committee). Words in src/data/cfp.ts, dates in the Edition file.
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { cfp } from '../../data/cfp';
+import { cfpStatus } from '../../data/edition-2027';
+import { edition2026 } from '../../data/edition-2026';
+import { paths } from '../../data/nav';
+import { contact, legal } from '../../data/site';
+
+const status = cfpStatus();
+// The "call for proposals is open" card only once it is open; the rebuild on the opening day switches it.
+const card = status === 'Open now' ? 'cfp' : 'default';
+// A real button only when the call is open and the Session Committee has sent the link.
+const canSubmit = status === 'Open now' && cfp.sessionizeUrl !== '';
+---
+
+<Base title={`${cfp.title} · KCD Texas`} description={cfp.description} card={card}>
+  <article class="page wrap cfp-page">
+    <PageHead kicker={cfp.kicker} title={cfp.title} lead={cfp.lead}>
+      <dl class="page-facts cfp-facts">
+        {cfp.dates.map((d) => <div><dt>{d.term}</dt><dd>{d.text}</dd></div>)}
+      </dl>
+      {canSubmit ? (
+        <div class="actions"><a class="btn" href={cfp.sessionizeUrl}>{cfp.submitButton}</a></div>
+      ) : (
+        <p class="page-callout cfp-callout">
+          <b>{status}.</b> {status === 'Closed' ? cfp.closed : cfp.submit}
+          {status !== 'Closed' && <span>{status === 'Open now' ? cfp.openNoLink : cfp.submitNote}</span>}
+        </p>
+      )}
+    </PageHead>
+
+    <section class="page-sec" aria-labelledby="look">
+      <h2 id="look" class="page-h2">{cfp.lookFor.title}</h2>
+      <p>{cfp.lookFor.intro}</p>
+      <ul class="page-list">{cfp.lookFor.points.map((p) => <li>{p}</li>)}</ul>
+    </section>
+
+    <div class="page-sec cfp-pair">
+      <section aria-labelledby="end-user">
+        <h2 id="end-user" class="page-h2">{cfp.endUser.title}</h2>
+        <p>{cfp.endUser.text}</p>
+        <p class="cfp-employer">{cfp.endUser.employer}</p>
+      </section>
+      <section class="cfp-first" aria-labelledby="first-time">
+        <h2 id="first-time" class="page-h2">{cfp.firstTime.title}</h2>
+        <p class="cfp-first-text">{cfp.firstTime.text}</p>
+      </section>
+    </div>
+
+    <section class="page-sec" aria-labelledby="writing">
+      <h2 id="writing" class="page-h2">{cfp.writing.title}</h2>
+      <ul class="page-list">{cfp.writing.points.map((p) => <li>{p}</li>)}</ul>
+    </section>
+
+    <section class="page-sec" aria-labelledby="choose">
+      <h2 id="choose" class="page-h2">{cfp.choose.title}</h2>
+      <p>{cfp.choose.text}</p>
+      <p>{cfp.choose.proposals} <a class="src" href={edition2026.report2025Url}>{cfp.choose.proposalsSource}</a></p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="conduct">
+      <h2 id="conduct" class="page-h2">{cfp.conduct.title}</h2>
+      <p>{cfp.conduct.before} <a href={legal.codeOfConductUrl}>{cfp.conduct.cncf}</a>. <a href={paths.conduct}>{cfp.conduct.page}</a></p>
+      <p>{cfp.questions} <a href={`mailto:${contact.email}`}>{contact.email}</a>.</p>
+    </section>
+  </article>
+</Base>

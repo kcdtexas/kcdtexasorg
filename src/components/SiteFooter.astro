@@ -1,0 +1,93 @@
+---
+// The footer: about, contact, community, past Editions, sources, the 2026 Organizers and the privacy line.
+import { Image } from 'astro:assets';
+import { edition2026, dallasMetro, drives, pastEditions } from '../data/edition-2026';
+import { contact, currentEdition, legal, privacyLine } from '../data/site';
+import { badge } from '../lib/images';
+import { footerNav, paths } from '../data/nav';
+
+const sources = [
+  { text: 'CNCF transparency report, 2026', href: edition2026.reportUrl },
+  { text: 'CNCF transparency report, 2025', href: edition2026.report2025Url },
+  { text: 'The 2026 Event Page', href: edition2026.eventPageUrl },
+  { text: 'The 2026 YouTube playlist', href: edition2026.talksUrl },
+  { text: `The public 2026 sponsorship prospectus (PDF, ${edition2026.prospectusPdf.size})`, href: edition2026.prospectusPdf.url },
+  { text: dallasMetro.sourceLong },
+  { text: `${drives.source.replace(/\.$/, '')}, for the drive times` },
+];
+---
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-lockup">
+        <img class="foot-kcd" src="/brand/kcd-logo-white.svg" width="870" height="280" alt="Kubernetes Community Days" loading="lazy" />
+        <span class="lockup-rule" aria-hidden="true"></span>
+        <Image class="foot-badge" src={badge} quality={70} widths={[240, 600]} sizes="72px" alt="KCD Texas 2027 badge, Dallas" />
+      </div>
+      <div class="foot-about">
+        <p>KCD Texas is a Kubernetes Community Day: a local, volunteer-run conference supported by the Cloud Native Computing Foundation.</p>
+        <p class="foot-program"><a href={legal.kcdProgramUrl}>Part of the CNCF Kubernetes Community Days program</a></p>
+      </div>
+    </div>
+    <div class="foot-cols">
+      <div>
+        <h2>Contact</h2>
+        <ul>
+          <li><a href={`mailto:${contact.email}`}>{contact.email}</a></li>
+          {contact.social.map((s) => <li><a href={s.url}>{s.label === 'LinkedIn' ? s.label : `${s.label} ${s.handle}`}</a></li>)}
+        </ul>
+      </div>
+      <div>
+        <h2>Community</h2>
+        <ul>
+          <li><a href={contact.chapterUrl}>KCD Texas chapter</a></li>
+          <li><a href={contact.communityUrl}>Cloud Native Texas</a></li>
+          <li><a href={contact.githubUrl}>GitHub</a></li>
+          <li><a href={edition2026.photosUrl}>2026 photos</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>KCD Texas {currentEdition.year}</h2>
+        <ul>
+          {footerNav.event.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+        </ul>
+      </div>
+      <div>
+        <h2>About</h2>
+        <ul>
+          {footerNav.about.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+        </ul>
+      </div>
+      <div>
+        <h2>Code of Conduct</h2>
+        <ul>
+          <li><a href={paths.conduct}>Our Code of Conduct page</a></li>
+          <li><a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a></li>
+          <li>Report a problem: <a href={`mailto:${contact.email}`}>{contact.email}</a> or <a href={`mailto:${contact.conductEmail}`}>{contact.conductEmail}</a>.</li>
+        </ul>
+      </div>
+      <div>
+        <h2>Past editions</h2>
+        <ul>
+          {pastEditions.map((p) => <li>{p.href ? <a href={p.href}>{p.year}</a> : p.year}, {p.label}</li>)}
+        </ul>
+      </div>
+      <div class="foot-sources">
+        <h2>Sources</h2>
+        <ul>
+          {sources.map((s) => <li>{s.href ? <a href={s.href}>{s.text}</a> : s.text}</li>)}
+        </ul>
+      </div>
+    </div>
+    <div class="foot-team">
+      <h2>The 2026 Organizers</h2>
+      <ul class="team">{edition2026.organizers.map((n) => <li><span>{n}</span></li>)}</ul>
+      <p class="foot-note">{edition2026.organizers.length} Organizers. The 2027 team is announced later.</p>
+    </div>
+    <div class="foot-base">
+      <p>{privacyLine}</p>
+      <p>Kubernetes and CNCF are trademarks of The Linux Foundation. <a href={legal.lfTrademarksUrl}>Trademark usage</a></p>
+    </div>
+  </div>
+</footer>

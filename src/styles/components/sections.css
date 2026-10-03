@@ -1,0 +1,147 @@
+/* The numbers band, the sponsor block, the speak block, the photo band and the attend block. */
+@layer components {
+  /* The numbers band: who was in the room in 2026. Verified figures in --figure; survey figures in text color. */
+  .room { padding-top: 80px; }
+  .figs { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto auto; column-gap: var(--gutter); margin-top: 36px; }
+  .fig-set { display: grid; grid-row: span 2; grid-template-rows: subgrid; column-gap: var(--gutter); }
+  .fig-set--report { grid-column: 1 / span 2; }
+  .fig-set--survey { grid-column: 3 / -1; grid-template-columns: 2fr 2fr 3fr 3fr; }
+  .fig { display: flex; flex-direction: column; padding-top: 16px; border-top: 3px solid var(--fg); }
+  .num { font-stretch: 62%; font-weight: 900; font-size: clamp(60px, 6.6vw, 96px); line-height: 0.8; letter-spacing: -0.005em; white-space: nowrap; text-box: trim-both cap alphabetic; }
+  .num--verified { color: var(--figure); }
+  .num sup { font-stretch: 100%; font-weight: 700; font-size: 0.26em; vertical-align: 2.3em; }
+  .num .about { font-stretch: 100%; font-weight: 700; font-size: 16px; letter-spacing: 0; }
+  .lbl { margin-top: 14px; max-width: 17em; font-size: 17px; line-height: 1.4; text-wrap: pretty; }
+  .fig-set .src { grid-column: 1 / -1; grid-row: 2; margin-top: 20px; padding-top: 8px; border-top: 1px solid var(--fg); color: var(--fg); font-weight: 600; }
+  .room .more { margin-top: 28px; }
+
+  /* Sponsor block */
+  .sponsor { padding-top: var(--sec); }
+  .sponsor > .wrap, .attend > .wrap, .day > .wrap { border-top: 3px solid var(--fg); padding-top: 28px; }
+  .sponsor-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 36px; align-items: start; }
+  .sponsor-head { grid-column: 1 / span 8; }
+  .sponsor-main { grid-column: 1 / span 6; }
+  .sponsor-side { grid-column: 7 / -1; }
+  .dallas { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); column-gap: 20px; align-items: baseline; margin-top: 32px; padding: 16px 0 18px; border-block: 1px solid var(--fg); }
+  .dallas-label { font-weight: 700; font-size: 18px; line-height: 1.4; }
+  .dallas-text { font-size: 18px; line-height: 1.5; }
+  .dallas .src { margin-top: 6px; }
+  .sponsor-main .h3 { margin-top: 36px; }
+  .rows { margin-top: 12px; }
+  .rows li { padding: 11px 0; border-top: 1px solid var(--line); font-size: 17px; line-height: 1.4; }
+  .rows li:last-child { border-bottom: 1px solid var(--line); }
+  .tiers-note { margin-top: 16px; font-size: 16px; line-height: 1.5; color: var(--muted); max-width: 38em; }
+  .offer { margin-top: 28px; }
+  .offer-mail { margin-top: 10px; font-size: 16px; color: var(--muted); }
+  .coc { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 16px; }
+
+  /* Speak block: the one reversed panel (ink on the light page, paper on the dark one). */
+  .speak { margin-top: var(--sec); padding-block: var(--sec); background: var(--band); color: var(--band-fg); }
+  .speak :focus-visible { outline-color: var(--band-fg); }
+  .speak a:not(.btn) { color: var(--band-link); text-decoration-color: currentColor; }
+  .speak .btn { background: var(--band-action); border-color: var(--band-action); color: var(--on-action); }
+  .speak .btn:hover { background: var(--band-action-hover); border-color: var(--band-action-hover); }
+  .speak .btn--line { background: transparent; color: var(--band-fg); border-color: var(--band-fg); }
+  .speak .btn--line:hover { background: var(--band-fg); border-color: var(--band-fg); color: var(--band); }
+  .speak-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 40px; align-items: start; }
+  .speak-main { grid-column: 1 / span 7; }
+  .speak .lead { margin-top: 24px; }
+  .employer { margin-top: 20px; max-width: 38em; font-size: 16px; line-height: 1.5; color: var(--band-muted); }
+  .facts { margin-top: 28px; }
+  .facts > div { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); column-gap: 20px; padding: 12px 0; border-top: 1px solid var(--band-line); font-size: 17px; line-height: 1.45; }
+  .facts > div:last-child { border-bottom: 1px solid var(--band-line); }
+  .facts dt { font-weight: 700; color: var(--band-muted); }
+  .speak-photo { grid-column: 9 / -1; justify-self: end; width: min(100%, 360px); }
+  .speak-photo img { aspect-ratio: 2 / 3; object-fit: cover; }
+  .speak .photo figcaption { color: var(--band-muted); }
+  .speak .photo figcaption b { color: var(--band-fg); }
+  .speak .photo .watch { margin: 0 0 0 4px; padding: 0; font-size: 15px; }
+
+  /* The photo band: a day at KCD Texas 2026 */
+  .day { padding-top: var(--sec); }
+  .day .h2 { margin-bottom: 32px; }
+  .day-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px var(--gutter); }
+  .day-grid img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+  .day-grid figure:nth-child(3) img { object-position: 50% 0%; }
+  .day-grid figcaption { margin-top: 10px; font-size: 15px; line-height: 1.4; color: var(--muted); }
+  .day-grid figcaption b { margin-right: 4px; color: var(--fg); font-stretch: 75%; font-weight: 800; }
+
+  /* Attend block */
+  .attend { padding-block: var(--sec); }
+  .attend-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 40px; align-items: start; }
+  .attend-main { grid-column: 1 / span 6; }
+  .attend-main .lead { margin-top: 24px; }
+  .letter { margin-top: 28px; max-width: 34em; font-size: 17px; line-height: 1.5; }
+  .letter b { font-weight: 700; }
+  .drive { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--fg); }
+  .drive-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--gutter); margin-top: 14px; }
+  .drive-list dt { font-size: 15px; color: var(--muted); }
+  .drive-list dd { margin-top: 4px; }
+  .drive-mi { display: block; font-stretch: 62%; font-weight: 900; font-size: 40px; line-height: 1; }
+  .drive-h { display: block; margin-top: 4px; font-size: 15px; color: var(--muted); }
+  .drive-local { margin-top: 18px; font-weight: 700; font-size: 17px; }
+  .drive .src { margin-top: 4px; }
+  .meetups { margin-top: 24px; font-size: 16px; }
+  .attend-photo { grid-column: 8 / -1; }
+  .attend-photo img { aspect-ratio: 3 / 2; object-fit: cover; }
+
+  @media (max-width: 1099px) {
+    .figs { row-gap: 40px; grid-template-rows: none; }
+    .fig-set { grid-row: auto; grid-template-rows: none; }
+    .fig-set .src { grid-row: auto; }
+    .fig-set--report { grid-column: 1 / span 3; }
+    .fig-set--survey { grid-column: 4 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; }
+    .sponsor-head, .sponsor-main { grid-column: 1 / span 7; }
+    .sponsor-side { grid-column: 8 / -1; grid-row: 2; }
+    .speak-main { grid-column: 1 / span 8; }
+    .speak-photo { grid-column: 9 / -1; }
+  }
+  @media (max-width: 899px) {
+    .fig-set--report, .fig-set--survey { grid-column: 1 / -1; }
+    .sponsor-head, .sponsor-main, .sponsor-side { grid-column: 1 / -1; grid-row: auto; }
+    .speak-main, .attend-main, .attend-photo { grid-column: 1 / -1; }
+    .speak-photo { grid-column: 1 / span 6; justify-self: start; }
+  }
+  @media (max-width: 599px) {
+    .room { padding-top: 72px; }
+    .figs { row-gap: 28px; margin-top: 24px; }
+    .fig-set--survey { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 24px; }
+    .fig-set--survey .fig:nth-child(n + 3) { grid-column: 1 / -1; }
+    .fig-set--report .fig { flex-direction: row; align-items: flex-end; gap: 16px; }
+    .fig-set--report .lbl { margin: 0; }
+    .num { font-size: 56px; }
+    .lbl { margin-top: 10px; font-size: 16px; }
+    .fig-set .src { margin-top: 14px; }
+    .sponsor .lead, .speak .lead, .attend .lead { font-size: 17px; }
+    .dallas { grid-template-columns: 1fr; row-gap: 4px; margin-top: 24px; }
+    .dallas-text { font-size: 17px; }
+    .rows li { padding: 9px 0; font-size: 16px; }
+    .sponsor-main .h3 { margin-top: 28px; }
+    .sponsor-grid { row-gap: 28px; }
+    .offer .btn { width: 100%; }
+    .facts { margin-top: 22px; }
+    .facts > div { grid-template-columns: 6em minmax(0, 1fr); column-gap: 12px; padding: 8px 0; font-size: 15.5px; line-height: 1.4; }
+    .speak { margin-top: 56px; padding-block: 56px; }
+    .speak .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 24px; }
+    .speak .actions .btn { padding: 0 8px; font-size: 16px; }
+    .speak-photo { grid-column: 1 / -1; width: 100%; display: grid; grid-template-columns: 40% minmax(0, 1fr); column-gap: 14px; align-items: end; }
+    .speak-photo figcaption { margin-top: 0; font-size: 14px; }
+    .day .h2 { margin-bottom: 20px; }
+    .day-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; }
+    .day-grid figure:first-child { grid-column: 1 / -1; }
+    .day-grid figure:first-child img { aspect-ratio: 16 / 9; }
+    .day-grid figcaption { margin-top: 6px; font-size: 13px; line-height: 1.35; }
+    .drive-list { grid-template-columns: 1fr; margin-top: 8px; }
+    .drive-list > div { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+    .drive-list dt { font-size: 16px; }
+    .drive-list dd { display: flex; align-items: baseline; gap: 10px; margin-top: 0; }
+    .drive-mi { font-size: 30px; }
+    .drive-h { margin-top: 0; font-size: 14px; }
+    .attend-photo { display: none; }
+
+    /* During the CFP Phase, phones put the speak block above the sponsor pitch; the wall stays where it is. */
+    .main--cfp { display: flex; flex-direction: column; }
+    .main--cfp > .speak { order: 1; }
+    .main--cfp > .speak ~ *, .main--cfp > .sponsor { order: 2; }
+  }
+}

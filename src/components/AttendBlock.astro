@@ -1,0 +1,38 @@
+---
+// The attend block: when tickets go on sale, the manager letter and how far Dallas is.
+import { Image } from 'astro:assets';
+import { home } from '../data/home';
+import { drives } from '../data/edition-2026';
+import { contact } from '../data/site';
+import { photos } from '../lib/images';
+
+const a = home.attend;
+---
+
+<section id="attend" class="attend" aria-labelledby="attend-title">
+  <div class="wrap attend-grid">
+    <div class="attend-main">
+      <p class="kicker">{a.kicker}</p>
+      <h2 id="attend-title" class="h2">{a.title}</h2>
+      <p class="lead">{a.lead}</p>
+      <div class="actions">
+        <a class="btn" href={contact.chapterUrl}>Join the chapter</a>
+        <p class="btn-note">Free CNCF community account</p>
+      </div>
+      <p class="letter"><b>Need your manager’s OK?</b> {a.letter}</p>
+      <div class="drive">
+        <h3 class="h3">Getting to Dallas</h3>
+        <dl class="drive-list">
+          {drives.rows.map((d) => <div><dt>From {d.from}</dt><dd><span class="drive-mi">{d.distance}</span> <span class="drive-h">{d.time}</span></dd></div>)}
+        </dl>
+        <p class="drive-local">{drives.local}</p>
+        <p class="src">{drives.source}</p>
+      </div>
+      <p class="meetups">Meet the community before April at <a href={contact.communityUrl}>Cloud Native Texas meetups</a>.</p>
+    </div>
+    <figure class="photo attend-photo">
+      <Image src={photos['110']} quality={70} widths={[1000, 2000]} sizes="(min-width: 1100px) 40vw, 100vw" alt={a.photoAlt} />
+      <figcaption><b>KCD Texas 2026 · {a.photoTime}</b> {a.photoCaption}</figcaption>
+    </figure>
+  </div>
+</section>

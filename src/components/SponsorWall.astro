@@ -1,0 +1,37 @@
+---
+// The sponsor wall by tier: equal cells per tier, each logo centered in its cell (see wall.css).
+// The home page uses the defaults; the sponsors page passes its own title, a year before each
+// tier name, and leaves out the open slot (it has its own prospectus door).
+import SponsorTiers from './SponsorTiers.astro';
+import { home } from '../data/home';
+import { edition2026 } from '../data/edition-2026';
+import { contact, prospectus } from '../data/site';
+
+interface Props {
+  title?: string;
+  /** Put before each tier name, such as "2026". */
+  tierPrefix?: string;
+  /** Show the "Your logo here" slot and the reply line. */
+  next?: boolean;
+  /** Drop the full-width wrapper, for use inside a page column. */
+  bare?: boolean;
+}
+const { title = home.wall.title, tierPrefix, next = true, bare = false } = Astro.props;
+---
+
+<section class:list={['wall', { 'wall--bare': bare }]} aria-labelledby="wall-title">
+  <div class:list={{ wrap: !bare }}>
+    <h2 id="wall-title" class="wall-title">{title}</h2>
+    <SponsorTiers tierPrefix={tierPrefix} />
+    <p class="partners">{edition2026.partners}</p>
+    {next && (
+      <div class="wall-next">
+        <a class="slot slot--logo" href={prospectus.href}><span class="slot-label">{home.wall.slot}</span><span class="slot-sub">{prospectus.label}<span class="arrow" aria-hidden="true">→</span></span></a>
+        <div class="wall-links">
+          <p>{prospectus.reply}</p>
+          <p>Or write to {contact.email}.</p>
+        </div>
+      </div>
+    )}
+  </div>
+</section>

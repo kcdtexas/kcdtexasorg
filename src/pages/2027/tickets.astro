@@ -1,0 +1,39 @@
+---
+// /2027/tickets/: when tickets go on sale, where, and the diversity tickets (Core Event Committee).
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { tickets as t } from '../../data/tickets';
+import { contact } from '../../data/site';
+---
+
+<Base title={`${t.title} · KCD Texas`} description={t.description}>
+  <article class="page wrap">
+    <PageHead kicker={t.kicker} title={t.title} lead={t.lead}>
+      <dl class="page-facts">
+        {t.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
+      </dl>
+      <div class="actions">
+        <a class="btn" href={contact.chapterUrl}>{t.chapter.button}</a>
+        <p class="btn-note">{t.chapter.note}</p>
+      </div>
+      <p class="info-note">{t.chapter.text}</p>
+    </PageHead>
+
+    <section class="page-sec" aria-labelledby="prices">
+      <h2 id="prices" class="page-h2">{t.prices.title}</h2>
+      <p>{t.prices.text}</p>
+      <p class="info-past">{t.prices.past}</p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="diversity">
+      <h2 id="diversity" class="page-h2">{t.diversity.title}</h2>
+      <p>{t.diversity.text}</p>
+      {t.diversity.details ? <p>{t.diversity.details}</p> : <p class="page-soon">{t.diversity.soon}</p>}
+    </section>
+
+    <section class="page-sec" aria-labelledby="manager">
+      <h2 id="manager" class="page-h2">{t.manager.title}</h2>
+      <p>{t.manager.text}</p>
+    </section>
+  </article>
+</Base>

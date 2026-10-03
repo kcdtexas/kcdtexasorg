@@ -1,0 +1,26 @@
+---
+// The numbers band: the verified check-in figure, then the survey figures, each labeled by source.
+import { home } from '../data/home';
+import { edition2026 } from '../data/edition-2026';
+
+const r = home.room;
+---
+
+<section class="room" aria-labelledby="room-title">
+  <div class="wrap">
+    <h2 id="room-title" class="h2">{r.title}</h2>
+    <div class="figs">
+      <div class="fig-set fig-set--report">
+        <div class="fig"><p class="num num--verified">{edition2026.checkedIn}</p><p class="lbl">{r.checkedInLabel}</p></div>
+        <p class="src">{r.reportSource}</p>
+      </div>
+      <div class="fig-set fig-set--survey">
+        {edition2026.survey.map((f) => (
+          <div class="fig"><p class="num">{'about' in f && <span class="about">About </span>}{f.value}<sup>1</sup></p><p class="lbl">{f.label}</p></div>
+        ))}
+        <p class="src"><sup>1</sup> {r.surveySource}</p>
+      </div>
+    </div>
+    <p class="more"><a href={edition2026.reportUrl}>{r.more}</a></p>
+  </div>
+</section>

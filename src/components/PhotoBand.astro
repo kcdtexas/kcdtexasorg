@@ -1,0 +1,38 @@
+---
+// The 2026 photo band under the hero: 2026's verified numbers, then two photos, each with its
+// caption under it, in the same style as every other photo caption (.photo in base.css).
+// Phones show only the photo that has a phone crop: the afternoon session, cropped tighter.
+import { getImage } from 'astro:assets';
+import { home } from '../data/home';
+import { edition2026 } from '../data/edition-2026';
+import { photos } from '../lib/images';
+
+const h = home.hero;
+const shots = await Promise.all(h.band.map(async (b) => {
+  const wide = photos[b.photo];
+  const phone = b.phone ? photos[b.phone] : undefined;
+  const [w1, w2, p1, p2] = await Promise.all([
+    getImage({ src: wide, width: 668, format: 'webp', quality: 70 }),
+    getImage({ src: wide, width: 1336, format: 'webp', quality: 70 }),
+    phone && getImage({ src: phone, width: 780, format: 'webp', quality: 70 }),
+    phone && getImage({ src: phone, width: 964, format: 'webp', quality: 70 }),
+  ]);
+  return { ...b, wide, phone, w1, w2, p1, p2 };
+}));
+---
+
+<div class="band">
+  <p class="proof"><strong>{h.proofLead}</strong> <span><b>{edition2026.checkedIn}</b> checked in</span> <i aria-hidden="true">·</i> <span><b>{edition2026.speakers}</b> Speakers</span> <i aria-hidden="true">·</i> <span><b>{edition2026.sponsorCount}</b> sponsors</span> <i aria-hidden="true">·</i> <span>{edition2026.recordings} talks on YouTube</span></p>
+  <div class="shots">
+    {shots.map((s) => (
+      <figure class:list={['photo', 'shot', { 'shot--wide': !s.phone }]}>
+        <picture>
+          {s.phone && s.p1 && s.p2 && <source media="(max-width: 599px)" srcset={`${s.p1.src} 780w, ${s.p2.src} 964w`} sizes="100vw" width={s.phone.width} height={s.phone.height} />}
+          {/* Phones never show the wide-only photo, so it loads lazily and they skip it. */}
+          <img src={s.w1.src} srcset={`${s.w1.src} 668w, ${s.w2.src} 1336w`} sizes="(min-width: 1440px) 668px, 47vw" width={s.wide.width} height={s.wide.height} alt={s.alt} decoding="async" loading={s.phone ? undefined : 'lazy'} fetchpriority={s.phone ? 'high' : undefined} />
+        </picture>
+        <figcaption><b>{s.lead}</b> {s.text}</figcaption>
+      </figure>
+    ))}
+  </div>
+</div>
