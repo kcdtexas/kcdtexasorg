@@ -4,11 +4,11 @@ import { contact } from '../data/site';
 ---
 
 <Base title="Page not found · KCD Texas" description="This page doesn't exist on kcdtexas.org.">
-  <section class="mx-auto max-w-5xl px-6 pt-20 pb-16">
-    <h1 class="text-4xl font-bold tracking-tight">This page doesn't exist</h1>
-    <p class="mt-4 max-w-2xl text-lg text-muted">
-      It may have moved. Try the <a class="text-accent underline underline-offset-4" href="/">homepage</a>, or email
-      <a class="text-accent underline underline-offset-4" href={`mailto:${contact.email}`}>{contact.email}</a> and we'll point you to it.
+  <section class="cfp wrap">
+    <h1 class="cfp-title">This page doesn't exist</h1>
+    <p class="lead cfp-lead">
+      It may have moved. Try the <a href="/">homepage</a>, or email
+      <a href={`mailto:${contact.email}`}>{contact.email}</a> and we'll point you to it.
     </p>
   </section>
 </Base>

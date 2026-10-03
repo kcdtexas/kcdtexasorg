@@ -1,47 +1,21 @@
-@import "tailwindcss";
+/* Tailwind scans only the templates, so words in data and scripts (".filter(") never become utilities. */
+@import "tailwindcss" source(none);
 @import "../foundation/tokens.css";
 
 /*
- * KCD Texas palette: prickly pear, the Texas state plant.
- * Magenta fruit (accent, echoes CNCF pink), cactus-pad green (bands),
- * yellow flower (small highlights only; never text on light backgrounds).
- * Every text pair meets WCAG AA; see scripts/check-contrast.mjs.
+ * KCD Texas: The Lineup, in light and dark. The colors are the foundation's semantic tokens;
+ * these files hold the components, in the "components" layer so Tailwind utilities still win.
  */
-:root {
-  --bg: #fcfbf8;
-  --fg: #1b1a17;
-  --muted: #57534c;
-  --line: #e6e0d6;
-  --surface: #f4f0e8;
-  --accent: #a3174e;
-  --accent-contrast: #ffffff;
-  --band: #1f4a38;
-  --band-fg: #f7f3ea;
-  --band-muted: #c9d6cc;
-  --highlight: #f2c230;
-}
+@import "./components/base.css";
+@import "./components/header.css";
+@import "./components/hero.css";
+@import "./components/dates.css";
+@import "./components/wall.css";
+@import "./components/sections.css";
+@import "./components/stage.css";
+@import "./components/footer.css";
+@import "./components/cfp.css";
 
-/*
- * One palette in every color scheme, matching the Prickly Pear prototypes:
- * this later :root rule also wins over the foundation's dark defaults.
- */
-
-html {
-  color-scheme: light;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  -webkit-text-size-adjust: 100%;
-}
-
-:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
-}
+@source "../pages";
+@source "../components";
+@source "../layouts";

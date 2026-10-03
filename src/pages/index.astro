@@ -1,76 +1,26 @@
 ---
 import Base from '../layouts/Base.astro';
-import { contact, currentEdition, edition2026 } from '../data/site';
-
-const title = `KCD Texas ${currentEdition.year} · ${currentEdition.city} · ${currentEdition.when}`;
-const description = `Kubernetes Community Days Texas comes to ${currentEdition.city} on ${currentEdition.when}. Talks and hands-on workshops from people who run cloud native in production, organized by volunteers from the Texas community.`;
-const sponsorMail = `mailto:${contact.email}?subject=${encodeURIComponent(`Sponsoring KCD Texas ${currentEdition.year}`)}`;
+import Hero from '../components/Hero.astro';
+import KeyDates from '../components/KeyDates.astro';
+import SponsorWall from '../components/SponsorWall.astro';
+import NumbersBand from '../components/NumbersBand.astro';
+import SponsorBlock from '../components/SponsorBlock.astro';
+import SpeakBlock from '../components/SpeakBlock.astro';
+import KeynoteStage from '../components/KeynoteStage.astro';
+import DayPhotos from '../components/DayPhotos.astro';
+import AttendBlock from '../components/AttendBlock.astro';
+import { home } from '../data/home';
+import { phase } from '../data/edition-2027';
 ---
 
-<Base title={title} description={description}>
-  <section class="mx-auto max-w-5xl px-6 pt-20 pb-16 sm:pt-28">
-    <p class="text-base font-semibold text-fg"><a class="underline decoration-line underline-offset-4 hover:decoration-fg" href="https://www.cncf.io/kcds/">Kubernetes Community Days</a></p>
-    <h1 class="mt-3 text-6xl font-bold tracking-tight sm:text-8xl">KCD Texas <span class="font-normal">{currentEdition.year}</span></h1>
-    <p class="mt-5 text-2xl font-semibold sm:text-4xl">{currentEdition.city} · <time datetime={currentEdition.date}>{currentEdition.when}</time></p>
-    <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-      Talks and hands-on workshops from people who run cloud native in production, organized by volunteers from the Texas community.
-    </p>
-
-    <div class="mt-10 flex flex-wrap gap-4">
-      <a href={sponsorMail} class="bg-accent px-6 py-3 text-base font-semibold text-accent-contrast hover:opacity-90">
-        Sponsor KCD Texas {currentEdition.year}
-      </a>
-      <a href={contact.chapterUrl} class="border border-fg px-6 py-3 text-base font-semibold hover:bg-surface">
-        Get notified
-      </a>
-    </div>
-    <p class="mt-6 max-w-2xl text-muted">
-      The call for proposals opens this fall. Join the KCD Texas chapter on the CNCF community site and you'll hear when it does.
-    </p>
-  </section>
-
-  <section class="bg-band text-band-fg" aria-labelledby="numbers">
-    <div class="mx-auto max-w-5xl px-6 py-16">
-      <h2 id="numbers" class="text-2xl font-bold tracking-tight">KCD Texas 2026 in numbers</h2>
-      <dl class="mt-8 grid grid-cols-2 gap-8 sm:grid-cols-4">
-        {edition2026.stats.map((s) => (
-          <div class="flex flex-col border-l-4 border-highlight pl-4">
-            <dt class="text-sm text-band-muted">{s.label}</dt>
-            <dd class="order-first text-5xl font-normal tracking-tight sm:text-6xl">{s.value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p class="mt-8 text-sm text-band-muted">
-        Austin, May 15, 2026. Source: the <a class="underline decoration-highlight underline-offset-4 hover:text-band-fg" href={edition2026.reportUrl}>KCD Texas 2026 transparency report</a>.
-      </p>
-      <ul class="mt-6 flex flex-wrap gap-x-8 gap-y-2 font-semibold">
-        <li><a class="underline decoration-highlight decoration-2 underline-offset-4" href={edition2026.talksUrl}>Watch the 2026 talks</a></li>
-        <li><a class="underline decoration-highlight decoration-2 underline-offset-4" href={edition2026.photosUrl}>See the 2026 photos</a></li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="mx-auto max-w-5xl px-6 py-16" aria-labelledby="sponsor">
-    <h2 id="sponsor" class="text-2xl font-bold tracking-tight">Sponsor KCD Texas {currentEdition.year}</h2>
-    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-muted">
-      Sponsors meet the platform engineers, SREs and architects who build on Kubernetes across Texas.
-      Among 2026 pre-registration survey respondents:
-    </p>
-    <dl class="mt-8 grid grid-cols-2 gap-8 sm:grid-cols-4">
-      {edition2026.audience.map((a) => (
-        <div class="flex flex-col">
-          <dt class="text-sm text-muted">{a.label}</dt>
-          <dd class="order-first text-4xl font-normal tracking-tight">{a.value}</dd>
-        </div>
-      ))}
-    </dl>
-    <p class="mt-8 max-w-2xl text-muted">
-      2026 sponsors: {edition2026.sponsors.join(', ')}.
-    </p>
-    <p class="mt-8">
-      <a href={sponsorMail} class="inline-block bg-accent px-6 py-3 font-semibold text-accent-contrast hover:opacity-90">
-        Ask for the sponsor prospectus
-      </a>
-    </p>
-  </section>
+<Base title={home.title} description={home.description} mainClass={phase === 'cfp' ? 'main--cfp' : undefined}>
+  <Hero />
+  <KeyDates />
+  <SponsorWall />
+  <NumbersBand />
+  <SponsorBlock />
+  <SpeakBlock />
+  <KeynoteStage />
+  <DayPhotos />
+  <AttendBlock />
 </Base>

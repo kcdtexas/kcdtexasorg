@@ -1,0 +1,27 @@
+/* The 2027 CFP page: one column of text under a condensed title. */
+@layer components {
+  .cfp { max-width: 980px; padding-block: 56px var(--sec); }
+  .cfp-title { font-stretch: 62%; font-weight: 900; font-size: clamp(56px, 8vw, 112px); line-height: 0.9; text-transform: uppercase; text-wrap: balance; }
+  .cfp-lead { margin-top: 24px; }
+  .cfp-dates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--gutter); margin-top: 32px; border-top: 3px solid var(--fg); }
+  .cfp-dates > div { padding-top: 12px; }
+  .cfp-dates dt { font-weight: 700; font-size: 15px; color: var(--muted); }
+  .cfp-dates dd { margin-top: 4px; font-stretch: 62%; font-weight: 800; font-size: 28px; line-height: 1.1; }
+  .cfp-submit { margin-top: 28px; padding: 16px 20px; border: 3px solid var(--action); font-weight: 700; font-size: 20px; }
+  .cfp-submit span { display: block; margin-top: 4px; font-weight: 400; font-size: 16px; color: var(--muted); }
+  .cfp-sec { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--fg); max-width: 40em; }
+  .cfp-sec p + p { margin-top: 12px; }
+  .cfp-h2 { margin-bottom: 12px; font-stretch: 68%; font-weight: 800; font-size: 32px; line-height: 1.1; }
+  .cfp-list { margin-top: 12px; }
+  .cfp-list li { padding: 10px 0; border-top: 1px solid var(--line); }
+  .cfp-list li:last-child { border-bottom: 1px solid var(--line); }
+  .cfp-employer { font-weight: 700; }
+
+  @media (max-width: 599px) {
+    .cfp { padding-top: 36px; }
+    .cfp-dates { grid-template-columns: 1fr; }
+    .cfp-dates > div { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .cfp-dates dd { margin-top: 0; font-size: 22px; text-align: right; }
+    .cfp-submit { font-size: 18px; }
+  }
+}

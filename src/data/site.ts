@@ -1,7 +1,9 @@
 // Facts shown on the site. Every number needs a public source (see CLAUDE.md).
+import { edition2027, longDate } from './edition-2027';
 
 export const contact = {
   email: 'organizers@kcdtexas.org',
+  conductEmail: 'conduct@cncf.io',
   chapterUrl: 'https://community2.cncf.io/kcd-texas/',
   communityUrl: 'https://cloudnativetexas.com',
   githubUrl: 'https://github.com/kcdtexas',
@@ -13,38 +15,31 @@ export const contact = {
 } as const;
 
 export const currentEdition = {
-  year: 2027,
-  city: 'Dallas',
-  date: '2027-04-23', // Event Day (Central time)
-  when: 'April 23, 2027',
+  year: edition2027.year,
+  city: edition2027.city,
+  date: edition2027.eventDay, // Event Day (Central time)
+  when: longDate(edition2027.eventDay),
 } as const;
 
 export const legal = {
   codeOfConductUrl: 'https://www.cncf.io/conduct/',
+  kcdProgramUrl: 'https://www.cncf.io/kcds/',
   lfTrademarksUrl: 'https://www.linuxfoundation.org/legal/trademark-usage',
 } as const;
 
-// Source: KCD Texas 2026 transparency report (CNCF), published June 2026.
-export const edition2026 = {
-  reportUrl: 'https://www.cncf.io/reports/kcd-texas-2026/',
-  talksUrl: 'https://www.youtube.com/playlist?list=PL4UW_RgvzVcgZfg1SBz6_J6L8jchHvoX7',
-  photosUrl: 'https://photos.kcdtexas.org/',
-  stats: [
-    { value: '207', label: 'attendees checked in' },
-    { value: '27', label: 'speakers' },
-    { value: '3', label: 'hands-on workshops' },
-    { value: '14', label: 'sponsors' },
-  ],
-  // Pre-registration survey respondents, same report.
-  audience: [
-    { value: '26%', label: 'DevOps, SRE and sysadmins' },
-    { value: '23%', label: 'developers' },
-    { value: '20%', label: 'architects' },
-    { value: '79%', label: 'based in Texas' },
-  ],
-  sponsors: [
-    'Solo.io', 'vCluster', 'WSO2',
-    'Chainguard', 'CloudBolt', 'Diagrid', 'Elastic', 'Grafana Labs', 'Isovalent', 'Plural', 'Teleport',
-    'Akamai', 'Komodor', 'Synadia',
-  ],
+// The sponsor door: one email with the fields the Sponsor Committee needs.
+export const prospectus = {
+  href: `mailto:${contact.email}?subject=${encodeURIComponent(`KCD Texas ${edition2027.year} sponsor prospectus`)}&body=${encodeURIComponent('Company: \r\nName: \r\nSponsor Tier of interest: ')}`,
+  label: `Email us for the ${edition2027.year} prospectus`,
+  reply: 'We reply within two business days.',
 } as const;
+
+// Umami, the one analytics exception to zero data (ADR 0007). Off until the host sets ANALYTICS=umami;
+// the footer's privacy line follows this setting so it stays true.
+export const analytics = {
+  enabled: import.meta.env.ANALYTICS === 'umami',
+} as const;
+
+export const privacyLine = analytics.enabled
+  ? 'This website sets no cookies. Its cookieless analytics run on kcdtexas.org.'
+  : 'This website sets no cookies and loads nothing from other companies’ servers.';

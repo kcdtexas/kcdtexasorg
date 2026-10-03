@@ -1,0 +1,75 @@
+/* The sponsor wall by tier. Every tier is a grid of equal cells with each logo centered in its cell;
+   in dark the cells are off-white tiles so logos keep their own colors.
+   Rows never strand a single logo: Gold runs 8 across, then 4 + 4, then 2 per row on phones.
+   Logo sizes are optical: a logo with aspect ratio --ar gets height --logo-size / sqrt(--ar), so every
+   logo in a tier covers the same area. Platinum is 1.5x Gold's size (2.25x its area), Silver 0.75x. */
+@layer components {
+  .wall { padding-top: 64px; text-align: center; }
+  .wall-title { font-stretch: 68%; font-weight: 800; font-size: clamp(30px, 2.8vw, 40px); line-height: 1.05; text-wrap: balance; }
+  .tiers {
+    container-type: inline-size;
+    --gap: 14px;
+    --gold-cols: 8;
+    --gold-cell: calc((100cqi - (var(--gold-cols) - 1) * var(--gap)) / var(--gold-cols));
+    /* The widest Gold logo (Chainguard, 6.5:1) is 2.55 sizes wide, plus the cell's side padding. */
+    --gold-size: min(64px, calc((var(--gold-cell) - 24px) / 2.6));
+    --plat-cols: 3;
+    --plat-cell: min(calc(2 * var(--gold-cell) + var(--gap)), calc((100cqi - (var(--plat-cols) - 1) * var(--gap)) / var(--plat-cols)));
+    --silver-cols: 3;
+    --silver-cell: var(--gold-cell);
+  }
+  .tier { margin-top: 22px; }
+  .tier-name { display: flex; align-items: center; gap: 20px; font-weight: 700; font-size: 15px; line-height: 1.2; }
+  .tier-name::before, .tier-name::after { content: ""; flex: 1; height: 1px; background: var(--fg); }
+  .logos { display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); justify-content: center; gap: var(--gap); margin-top: 16px; }
+  .logos > li { display: flex; align-items: center; justify-content: center; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
+  .tier--platinum .logos { --cols: var(--plat-cols); --cell: var(--plat-cell); --logo-size: calc(1.5 * var(--gold-size)); --cell-h: calc(1.5 * var(--gold-size) + 40px); }
+  .tier--gold .logos { --cols: var(--gold-cols); --cell: var(--gold-cell); --logo-size: var(--gold-size); --cell-h: calc(1.12 * var(--gold-size) + 28px); }
+  .tier--silver .logos { --cols: var(--silver-cols); --cell: var(--silver-cell); --logo-size: min(calc(0.75 * var(--gold-size)), calc((var(--silver-cell) - 20px) / 2.8)); --cell-h: calc(0.75 * var(--gold-size) + 26px); }
+
+  .sp-logo { --ar: 3; --boost: 1; height: calc(var(--logo-size) * var(--boost) / sqrt(var(--ar))); width: auto; max-width: 100%; object-fit: contain; display: block; }
+  .sp-logo[data-logo="akamai"] { --ar: 2.426; }
+  .sp-logo[data-logo="chainguard"] { --ar: 6.481; }
+  .sp-logo[data-logo="cloudbolt"] { --ar: 4.469; }
+  .sp-logo[data-logo="diagrid"] { --ar: 3.365; }
+  .sp-logo[data-logo="elastic"] { --ar: 2.874; }
+  /* Grafana Labs' square mark reads small next to wordmarks: a little larger, optically. */
+  .sp-logo[data-logo="grafana"] { --ar: 1.048; --boost: 1.15; }
+  .sp-logo[data-logo="isovalent"] { --ar: 4.498; }
+  .sp-logo[data-logo="komodor"] { --ar: 7.584; }
+  .sp-logo[data-logo="plural"] { --ar: 0.812; }
+  .sp-logo[data-logo="solo"] { --ar: 4.54; }
+  .sp-logo[data-logo="synadia"] { --ar: 4.362; }
+  .sp-logo[data-logo="teleport"] { --ar: 4.516; }
+  .sp-logo[data-logo="vcluster"] { --ar: 1.049; }
+  .sp-logo[data-logo="wso2"] { --ar: 2.517; }
+
+  .partners { max-width: 60em; margin: 22px auto 0; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
+  .wall-next { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 24px; }
+  .slot--logo { align-items: baseline; gap: 18px; padding: 12px 20px 11px; font-size: 30px; text-align: left; }
+  .slot-sub { display: inline-flex; align-items: baseline; gap: 8px; color: var(--fg); font-stretch: 100%; font-weight: 700; font-size: 16px; text-transform: none; text-decoration: underline; text-decoration-color: var(--link-underline); text-underline-offset: 0.2em; }
+  .slot:hover .slot-sub { color: var(--on-action); }
+  .wall-links { text-align: left; font-size: 15px; line-height: 1.5; color: var(--muted); }
+
+  @media (max-width: 1099px) {
+    .tiers { --gold-cols: 4; }
+  }
+  @media (max-width: 599px) {
+    .tiers {
+      --gap: 10px;
+      --gold-cols: 2;
+      --gold-size: min(56px, calc((var(--gold-cell) - 20px) / 2.6));
+      /* Platinum: one tile per row, about 200 px wide. */
+      --plat-cols: 1;
+      --plat-cell: min(100cqi, 204px);
+      --silver-cols: 3;
+      --silver-cell: calc((100cqi - 2 * var(--gap)) / 3);
+    }
+    .logos > li { padding: 0 8px; }
+    .tier--platinum .logos { --logo-size: min(calc(1.5 * var(--gold-size)), calc((var(--plat-cell) - 16px) / 2.16)); --cell-h: calc(1.5 * var(--gold-size) + 24px); }
+    .tier--silver .logos { --logo-size: min(calc(0.75 * var(--gold-size)), calc((var(--silver-cell) - 16px) / 2.8)); }
+    .slot--logo { width: 100%; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; font-size: 27px; white-space: normal; }
+    .slot-sub { white-space: normal; }
+    .wall-links { width: 100%; text-align: center; }
+  }
+}

@@ -1,0 +1,40 @@
+---
+// The sponsor wall by tier: equal cells per tier, each logo centered in its cell (see wall.css).
+import { Image } from 'astro:assets';
+import { home } from '../data/home';
+import { edition2026 } from '../data/edition-2026';
+import { contact, prospectus } from '../data/site';
+import { logos } from '../lib/images';
+
+const tiers = [
+  { key: 'platinum', name: 'Platinum', sponsors: edition2026.sponsors.platinum },
+  { key: 'gold', name: 'Gold', sponsors: edition2026.sponsors.gold },
+  { key: 'silver', name: 'Silver', sponsors: edition2026.sponsors.silver },
+];
+---
+
+<section class="wall" aria-labelledby="wall-title">
+  <div class="wrap">
+    <h2 id="wall-title" class="wall-title">{home.wall.title}</h2>
+    <div class="tiers">
+      {tiers.map((t) => (
+        <div class={`tier tier--${t.key}`}>
+          <h3 class="tier-name">{t.name}</h3>
+          <ul class="logos">
+            {t.sponsors.map((s) => (
+              <li><Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /></li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+    <p class="partners">{edition2026.partners}</p>
+    <div class="wall-next">
+      <a class="slot slot--logo" href={prospectus.href}><span class="slot-label">{home.wall.slot}</span><span class="slot-sub">{prospectus.label}<span class="arrow" aria-hidden="true">→</span></span></a>
+      <div class="wall-links">
+        <p>{prospectus.reply}</p>
+        <p>Or write to {contact.email}.</p>
+      </div>
+    </div>
+  </div>
+</section>

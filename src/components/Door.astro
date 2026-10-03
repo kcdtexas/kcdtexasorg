@@ -1,0 +1,14 @@
+---
+// A door: one big action button with a short note under it.
+interface Props {
+  href: string;
+  label: string;
+  note?: string;
+}
+const { href, label, note } = Astro.props;
+---
+
+<div class="door">
+  <a class="btn btn--door" href={href}>{label}</a>
+  {note && <p class="door-note">{note}</p>}
+</div>

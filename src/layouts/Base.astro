@@ -1,13 +1,17 @@
 ---
 import '../styles/global.css';
-import { contact, legal } from '../data/site';
+import themeColor from '../foundation/theme-color.json';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 
 interface Props {
   title: string;
   description: string;
+  /** The page's main element class, for page-level layout such as the CFP Phase order. */
+  mainClass?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, mainClass } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -20,60 +24,24 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href="/fonts/clarity-city/ClarityCity-Regular.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/clarity-city/ClarityCity-Bold.woff2" as="font" type="font/woff2" crossorigin />
-    <meta name="color-scheme" content="light" />
+    <link rel="preload" href="/fonts/archivo/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content={themeColor.light} media="(prefers-color-scheme: light)" data-for="light" data-light={themeColor.light} data-dark={themeColor.dark} />
+    <meta name="theme-color" content={themeColor.dark} media="(prefers-color-scheme: dark)" data-for="dark" data-light={themeColor.light} data-dark={themeColor.dark} />
+    <!-- Applies a remembered theme before the first paint. Same-origin, so the CSP needs no inline code. -->
+    <script is:inline src="/theme.js"></script>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KCD Texas" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
   </head>
-  <body class="bg-bg text-fg antialiased">
-    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-contrast">
-      Skip to content
-    </a>
-
-    <header class="mx-auto flex max-w-5xl items-center gap-3 px-6 pt-8">
-      <a href="/" class="flex items-center gap-3" aria-label="KCD Texas home">
-        <img src="/brand/kcd-logo-color.svg" alt="" width="156" height="50" />
-      </a>
-    </header>
-
-    <main id="main">
+  <body id="top">
+    <a class="skip" href="#main">Skip to content</a>
+    <SiteHeader />
+    <main id="main" class={mainClass}>
       <slot />
     </main>
-
-    <footer class="mt-24 border-t border-line">
-      <div class="mx-auto grid max-w-5xl gap-8 px-6 py-12 text-sm text-muted sm:grid-cols-3">
-        <div>
-          <p class="font-semibold text-fg">Contact</p>
-          <p class="mt-2"><a class="underline underline-offset-4 hover:text-fg" href={`mailto:${contact.email}`}>{contact.email}</a></p>
-          <ul class="mt-2 space-y-1">
-            {contact.social.map((s) => (
-              <li><a class="underline underline-offset-4 hover:text-fg" href={s.url} rel="noopener">{s.label}: {s.handle}</a></li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p class="font-semibold text-fg">Community</p>
-          <ul class="mt-2 space-y-1">
-            <li><a class="underline underline-offset-4 hover:text-fg" href={legal.codeOfConductUrl}>Code of Conduct</a></li>
-            <li><a class="underline underline-offset-4 hover:text-fg" href={contact.chapterUrl}>KCD Texas chapter on the CNCF community site</a></li>
-            <li><a class="underline underline-offset-4 hover:text-fg" href={contact.communityUrl}>Cloud Native Texas</a></li>
-            <li><a class="underline underline-offset-4 hover:text-fg" href={contact.githubUrl}>KCD Texas on GitHub</a></li>
-          </ul>
-        </div>
-        <div class="space-y-2">
-          <p class="font-semibold text-fg">About this site</p>
-          <p>This site sets no cookies and collects no personal data.</p>
-          <p>
-            KCD Texas is a community-organized Kubernetes Community Day supported by the Cloud Native Computing Foundation.
-            CNCF and the CNCF logo design are registered trademarks of the Cloud Native Computing Foundation.
-            For Linux Foundation trademarks, see the <a class="underline underline-offset-4 hover:text-fg" href={legal.lfTrademarksUrl}>Trademark Usage page</a>.
-          </p>
-        </div>
-      </div>
-    </footer>
+    <SiteFooter />
   </body>
 </html>
