@@ -25,9 +25,10 @@ const others = speakers2026.filter((s) => !s.youtube);
     <section class="page-sec" aria-labelledby="keynotes">
       <h2 id="keynotes" class="page-h2">{p.keynotes.title}</h2>
       <ul class="pg-keynotes">
-        {keynotes.map((k) => (
+        {keynotes.map((k, i) => (
           <li>
-            <Image class="pg-kn-photo" src={keynotePhotos[k.photo.photo]} quality={65} widths={[400, 640]} sizes="(min-width: 1000px) 300px, (min-width: 600px) 30vw, 38vw" alt={k.photo.alt} />
+            {/* The first keynote photo is the desktop LCP element, so it loads first rather than lazily. */}
+            <Image class="pg-kn-photo" src={keynotePhotos[k.photo.photo]} quality={65} widths={[400, 640]} sizes="(min-width: 1000px) 300px, (min-width: 600px) 30vw, 38vw" alt={k.photo.alt} loading={i === 0 ? 'eager' : 'lazy'} fetchpriority={i === 0 ? 'high' : undefined} />
             <h3 class="pg-kn-name">{k.name}</h3>
             <p class="pg-aff">{asPrinted(k)}</p>
             {k.title ? <p class="pg-title">{k.title}</p> : <p class="pg-none">{p.keynotes.noRecording}</p>}
