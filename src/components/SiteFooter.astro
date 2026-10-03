@@ -2,10 +2,10 @@
 // The footer: about, contact, community, past Editions, sources, the 2026 Organizers and the privacy line.
 import { Image } from 'astro:assets';
 import { edition2026, dallasMetro, drives, pastEditions } from '../data/edition-2026';
-import { contact, legal, privacyLine } from '../data/site';
+import { contact, currentEdition, legal, privacyLine } from '../data/site';
 import { badge } from '../lib/images';
+import { footerNav, paths } from '../data/nav';
 
-const onHome = Astro.url.pathname === '/';
 const sources = [
   { text: 'CNCF transparency report, 2026', href: edition2026.reportUrl },
   { text: 'CNCF transparency report, 2025', href: edition2026.report2025Url },
@@ -17,7 +17,7 @@ const sources = [
 ];
 ---
 
-<footer id="about" class="site-footer">
+<footer class="site-footer">
   <div class="wrap">
     <div class="foot-top">
       <div class="foot-lockup">
@@ -48,16 +48,21 @@ const sources = [
         </ul>
       </div>
       <div>
+        <h2>KCD Texas {currentEdition.year}</h2>
+        <ul>
+          {footerNav.event.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+        </ul>
+      </div>
+      <div>
         <h2>About</h2>
         <ul>
-          <li><a href="#about">Organizers</a></li>
-          <li><a href="#about">Privacy</a></li>
-          <li><a href="#about">Accessibility</a></li>
+          {footerNav.about.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
         </ul>
       </div>
       <div>
         <h2>Code of Conduct</h2>
         <ul>
+          <li><a href={paths.conduct}>Our Code of Conduct page</a></li>
           <li><a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a></li>
           <li>Report a problem: <a href={`mailto:${contact.email}`}>{contact.email}</a> or <a href={`mailto:${contact.conductEmail}`}>{contact.conductEmail}</a>.</li>
         </ul>
@@ -65,7 +70,7 @@ const sources = [
       <div>
         <h2>Past editions</h2>
         <ul>
-          {pastEditions.map((p) => <li>{p.href ? <a href={onHome ? p.href : `/${p.href}`}>{p.year}</a> : p.year}, {p.label}</li>)}
+          {pastEditions.map((p) => <li>{p.href ? <a href={p.href}>{p.year}</a> : p.year}, {p.label}</li>)}
         </ul>
       </div>
       <div class="foot-sources">

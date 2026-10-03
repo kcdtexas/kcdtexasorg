@@ -1,0 +1,16 @@
+---
+// The top of an inner page: a kicker, the one h1 in condensed capitals, and a lead paragraph.
+interface Props {
+  kicker?: string;
+  title: string;
+  lead?: string;
+}
+const { kicker, title, lead } = Astro.props;
+---
+
+<header class="page-head">
+  {kicker && <p class="kicker">{kicker}</p>}
+  <h1 class="page-title">{title}</h1>
+  {lead && <p class="lead page-lead">{lead}</p>}
+  <slot />
+</header>

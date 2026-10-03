@@ -2,17 +2,10 @@
 import { Image } from 'astro:assets';
 import ThemeSwitch from './ThemeSwitch.astro';
 import { badge } from '../lib/images';
-import { cfpPath } from '../data/nav';
+import { cfpPath, mainNav, isCurrent } from '../data/nav';
 
-// On the home page the nav jumps within the page; elsewhere it goes to the home page's sections.
-const here = Astro.url.pathname === '/' ? '' : '/';
-const links = [
-  { href: `${here}#speak`, label: 'Speak' },
-  { href: `${here}#sponsor`, label: 'Sponsor' },
-  { href: `${here}#attend`, label: 'Attend' },
-  { href: `${here}#last-year`, label: '2026 talks' },
-  { href: `${here}#about`, label: 'About' },
-];
+// Every page, the home page included, links to the pages; the current one is marked.
+const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.pathname) }));
 ---
 
 <header class="site-header">
@@ -25,7 +18,7 @@ const links = [
     </a>
     <nav class="nav" aria-label="Main">
       <ul>
-        {links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+        {links.map((l) => <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
       </ul>
     </nav>
     <div class="head-end">
@@ -35,7 +28,7 @@ const links = [
         <summary><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></summary>
         <nav class="menu-panel" aria-label="Main, phone">
           <ul>
-            {links.map((l) => <li><a href={l.href}>{l.label}</a></li>)}
+            {links.map((l) => <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
           </ul>
         </nav>
       </details>

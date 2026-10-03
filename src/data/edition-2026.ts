@@ -120,7 +120,7 @@ export const drives = {
 };
 
 export const pastEditions = [
-  { year: 2026, label: 'Austin', href: '#last-year' },
+  { year: 2026, label: 'Austin', href: '/2026/' },
   { year: 2025, label: 'Austin' },
   { year: 2024, label: 'Austin, with Texas Linux Fest' },
 ];

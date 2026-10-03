@@ -15,6 +15,13 @@
 @import "./components/stage.css";
 @import "./components/footer.css";
 @import "./components/cfp.css";
+@import "./components/page.css";
+@import "./components/sponsors.css";
+@import "./components/about.css";
+@import "./components/conduct.css";
+@import "./components/editions.css";
+@import "./components/program.css";
+@import "./components/info.css";
 
 @source "../pages";
 @source "../components";

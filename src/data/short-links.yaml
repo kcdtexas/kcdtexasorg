@@ -17,7 +17,7 @@
 - { from: /talks,           to: "https://github.com/kcdtexas/talks",                 code: 302, mode: follows-current }
 - { from: /workshops,       to: "https://github.com/kcdtexas/workshop-materials",    code: 302, mode: follows-current }
 - { from: /code-of-conduct, to: "https://github.com/kcdtexas/code-of-conduct",       code: 302, mode: replaced-by-page }
-- { from: /coc,             to: "https://github.com/kcdtexas/code-of-conduct",       code: 302, mode: follows-current }
+- { from: /coc,             to: "/code-of-conduct/",                                 code: 302, mode: follows-current }
 - { from: /committees,      to: "https://github.com/kcdtexas/committees",            code: 302, mode: evergreen }
 - { from: /github,          to: "https://github.com/kcdtexas",                       code: 302, mode: evergreen }
 - { from: /cntx,            to: "https://cloudnativetexas.com",                      code: 302, mode: evergreen }

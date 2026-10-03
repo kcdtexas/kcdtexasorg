@@ -11,10 +11,13 @@
   .foot-badge { height: 72px; width: auto; }
   .foot-about { grid-column: 7 / -1; font-size: 20px; line-height: 1.45; }
   .foot-program { margin-top: 12px; font-weight: 700; font-size: 16px; }
-  .foot-cols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(0, 1.7fr); column-gap: var(--gutter); row-gap: 32px; padding-block: 40px; border-bottom: 1px solid var(--foot-line); }
+  .foot-cols { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 32px; padding-block: 40px; border-bottom: 1px solid var(--foot-line); }
   .foot-cols h2, .foot-team h2 { margin-bottom: 12px; font-weight: 700; font-size: 15px; color: var(--foot-muted); }
   .foot-cols li { padding: 4px 0; font-size: 16px; line-height: 1.45; }
-  .foot-sources li { font-size: 15px; }
+  .foot-sources { grid-column: 1 / -1; }
+  .foot-sources li { display: inline; padding: 0; font-size: 15px; line-height: 1.6; }
+  .foot-sources li::after { content: " · "; color: var(--foot-muted); }
+  .foot-sources li:last-child::after { content: none; }
   .foot-team { padding-block: 36px; border-bottom: 1px solid var(--foot-line); }
   /* Names break between each other; the dot is drawn on the space, so a line break removes it. */
   .team { font-size: 18px; line-height: 1.7; word-spacing: 0.9em; color: var(--foot-muted); }
@@ -41,10 +44,7 @@
     .foot-cols { column-gap: 16px; row-gap: 24px; padding-block: 28px; grid-auto-flow: dense; }
     .foot-cols li { padding: 3px 0; font-size: 15px; line-height: 1.4; }
     .foot-cols h2, .foot-team h2 { margin-bottom: 8px; }
-    .foot-cols > div:nth-child(4), .foot-sources { grid-column: 1 / -1; }
-    .foot-sources li { display: inline; padding: 0; line-height: 1.6; }
-    .foot-sources li::after { content: " · "; color: var(--foot-muted); }
-    .foot-sources li:last-child::after { content: none; }
+    .foot-cols > div:nth-child(5) { grid-column: 1 / -1; }
     .foot-team { padding-block: 28px; }
     .team { font-size: 15px; line-height: 1.6; }
     .foot-base { flex-direction: column; }
