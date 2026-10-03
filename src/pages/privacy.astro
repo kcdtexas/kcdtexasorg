@@ -1,0 +1,19 @@
+---
+// The privacy page. Its analytics section follows the analytics setting (src/data/site.ts).
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { privacy as p } from '../data/privacy';
+---
+
+<Base title={`${p.title} · KCD Texas`} description={p.description}>
+  <article class="page wrap">
+    <PageHead kicker={p.kicker} title={p.title} lead={p.lead} />
+    {p.sections.map((s) => (
+      <section class="page-sec" aria-labelledby={s.id}>
+        <h2 id={s.id} class="page-h2">{s.title}</h2>
+        {s.text.map((t) => <p>{t}</p>)}
+      </section>
+    ))}
+    <div class="page-col"><p class="page-callout">{p.questions} <a href={`mailto:${p.email}`}>{p.email}</a></p></div>
+  </article>
+</Base>

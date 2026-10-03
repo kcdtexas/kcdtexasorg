@@ -1,0 +1,32 @@
+---
+// The accessibility page. The WCAG claim shows only while wcagClaim is on; the event list only once support is confirmed.
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { accessibility as a } from '../data/accessibility';
+
+const w = a.website;
+const ev = a.event;
+const mail = `mailto:${a.email}`;
+---
+
+<Base title={`${a.title} · KCD Texas`} description={a.description}>
+  <article class="page wrap">
+    <PageHead kicker={a.kicker} title={a.title} lead={a.lead} />
+
+    <section class="page-sec" aria-labelledby="website">
+      <h2 id="website" class="page-h2">{w.title}</h2>
+      {w.wcagClaim && <p><strong>{w.claim}</strong></p>}
+      {w.checks.map((c) => <p>{c}</p>)}
+      <p>{w.limits} <a href={mail}>{a.email}</a></p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="event">
+      <h2 id="event" class="page-h2">{ev.title}</h2>
+      {ev.eventSupport.length > 0
+        ? <ul class="page-bullets">{ev.eventSupport.map((s) => <li>{s}</li>)}</ul>
+        : <p class="page-soon">{ev.meanwhile}</p>}
+    </section>
+
+    <div class="page-col"><p class="page-callout">{ev.ask} <a href={mail}>{a.email}</a></p></div>
+  </article>
+</Base>
