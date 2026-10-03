@@ -276,8 +276,10 @@ try {
     //     body content can ever render without it. Mutation records arrive in
     //     order, so we watch both the attribute and the insertion and compare.
     //   - the background at the first animation frame (just before first paint;
-    //     Chromium holds frames until render-blocking CSS has loaded) and at
-    //     DOMContentLoaded is already the stored theme's.
+    //     Chromium holds frames until render-blocking CSS has loaded) is already
+    //     the stored theme's, and data-theme is set at DOMContentLoaded. (Over a
+    //     real network DOMContentLoaded can fire before the stylesheet arrives, so
+    //     the background there may still be unstyled; nothing paints until then.)
     for (const [device, stored, expected] of [['light', 'dark', DARK_BG], ['dark', 'light', LIGHT_BG]]) {
       const label = `switch ${width} first paint, ${device} device, stored ${stored}`;
       const context = await browser.newContext({ ...options, colorScheme: device });
@@ -298,13 +300,13 @@ try {
           }
         }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-theme'] });
         requestAnimationFrame(() => { paint.firstFrame = background(); });
-        document.addEventListener('DOMContentLoaded', () => { paint.domReady = background(); });
+        document.addEventListener('DOMContentLoaded', () => { paint.domReady = document.documentElement.dataset.theme; });
       });
       await tab.goto(base + '/', { waitUntil: 'networkidle' });
       const paint = await tab.evaluate(() => window.__paint);
       expect(paint.themedBeforeBody === true, `${label}: <body> was parsed before data-theme was set`);
       expect(paint.firstFrame === expected, `${label}: first frame background ${paint.firstFrame}, expected ${expected}`);
-      expect(paint.domReady === expected, `${label}: background at DOMContentLoaded ${paint.domReady}, expected ${expected}`);
+      expect(paint.domReady === stored, `${label}: data-theme at DOMContentLoaded is ${paint.domReady}, expected ${stored}`);
       await context.close();
     }
 
