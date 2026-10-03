@@ -39,13 +39,24 @@
 
   /* The room: the 2026 photo band, captioned with 2026's verified numbers */
   .band { margin-top: 26px; }
-  .band figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; padding: 10px 0; border-top: 3px solid var(--fg); font-size: 15px; line-height: 1.4; }
+  .band .proof { padding: 10px 0; border-top: 3px solid var(--fg); font-size: 15px; line-height: 1.4; }
   .proof strong { font-weight: 700; }
   .proof span { white-space: nowrap; }
   .proof b { color: var(--figure); font-stretch: 75%; font-weight: 800; font-size: 17px; }
-  .band .cap { color: var(--muted); }
-  .band .cap b { margin-right: 4px; color: var(--fg); font-stretch: 75%; font-weight: 800; }
-  .band img { width: 100%; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .shot { position: relative; margin: 0; }
+  .band img { display: block; width: 100%; height: auto; }
+  /* The broadcast kit's lower third: a gold label and a dark plate at the photo's bottom left.
+     Without gold in light (the --signal line removed), the label joins the plate. */
+  .lt { position: absolute; left: 12px; bottom: 12px; display: flex; align-items: stretch; max-width: calc(100% - 24px); }
+  .lt-label {
+    display: flex; align-items: center; padding: 0 10px; background: var(--signal, var(--plate)); color: var(--on-signal, var(--on-plate));
+    font-stretch: 75%; font-weight: 800; font-size: 14px; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .lt-title {
+    padding: 8px 12px 9px; background: var(--plate); color: var(--on-plate);
+    font-stretch: 75%; font-weight: 800; font-size: clamp(15px, 1.4vw, 19px); line-height: 1.1; letter-spacing: 0.04em; text-transform: uppercase;
+  }
 
   @media (max-width: 1299px) { .doors { grid-template-columns: 1fr; gap: 12px; } }
   @media (max-width: 1099px) {
@@ -85,8 +96,10 @@
     .ticket-note i { display: none; }
     .ticket-note a { display: block; }
     .band { order: 1; margin-top: 18px; margin-inline: calc(-1 * var(--pad)); }
-    .band figcaption { flex-direction: column; gap: 0; padding: 8px var(--pad); font-size: 14px; }
-    .band .cap { display: none; }
+    .band .proof { padding: 8px var(--pad); font-size: 14px; }
+    .shots { grid-template-columns: 1fr; }
+    .shot--wide { display: none; }
+    .lt { left: var(--pad); bottom: 10px; }
     .proof b { font-size: 16px; }
     .band img { height: auto; }
   }

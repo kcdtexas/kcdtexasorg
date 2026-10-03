@@ -1,29 +1,38 @@
 ---
-// The 2026 photo band under the hero, captioned with 2026's verified numbers.
-// Phones get a tighter crop of the afternoon session.
+// The 2026 photo band under the hero: 2026's verified numbers, then two photos, each captioned on
+// the photo itself (the broadcast kit's lower third: a gold label and a dark plate).
+// Phones show only the photo that has a phone crop: the afternoon session, cropped tighter.
 import { getImage } from 'astro:assets';
 import { home } from '../data/home';
 import { edition2026 } from '../data/edition-2026';
 import { photos } from '../lib/images';
 
 const h = home.hero;
-const wide = photos['band-043-171'];
-const phone = photos['band-171-phone'];
-const [w1, w2, p1, p2] = await Promise.all([
-  getImage({ src: wide, width: 1344, format: 'webp', quality: 70 }),
-  getImage({ src: wide, width: 2688, format: 'webp', quality: 70 }),
-  getImage({ src: phone, width: 780, format: 'webp', quality: 70 }),
-  getImage({ src: phone, width: 964, format: 'webp', quality: 70 }),
-]);
+const shots = await Promise.all(h.band.map(async (b) => {
+  const wide = photos[b.photo];
+  const phone = b.phone ? photos[b.phone] : undefined;
+  const [w1, w2, p1, p2] = await Promise.all([
+    getImage({ src: wide, width: 668, format: 'webp', quality: 70 }),
+    getImage({ src: wide, width: 1336, format: 'webp', quality: 70 }),
+    phone && getImage({ src: phone, width: 780, format: 'webp', quality: 70 }),
+    phone && getImage({ src: phone, width: 964, format: 'webp', quality: 70 }),
+  ]);
+  return { ...b, wide, phone, w1, w2, p1, p2 };
+}));
 ---
 
-<figure class="band">
-  <figcaption>
-    <p class="proof"><strong>{h.proofLead}</strong> <span><b>{edition2026.checkedIn}</b> checked in</span> <i aria-hidden="true">·</i> <span><b>{edition2026.speakers}</b> Speakers</span> <i aria-hidden="true">·</i> <span><b>{edition2026.sponsorCount}</b> sponsors</span> <i aria-hidden="true">·</i> <span>{edition2026.recordings} talks on YouTube</span></p>
-    <p class="cap">{h.caption.map((c, i) => <>{i > 0 && ' · '}{c.time && <b>{c.time}</b>}{c.time && ' '}{c.text}</>)}</p>
-  </figcaption>
-  <picture>
-    <source media="(max-width: 599px)" srcset={`${p1.src} 780w, ${p2.src} 964w`} sizes="100vw" width={phone.width} height={phone.height} />
-    <img src={w1.src} srcset={`${w1.src} 1344w, ${w2.src} 2688w`} sizes="(min-width: 1440px) 1344px, 94vw" width={wide.width} height={wide.height} alt={h.bandAlt} decoding="async" fetchpriority="high" />
-  </picture>
-</figure>
+<div class="band">
+  <p class="proof"><strong>{h.proofLead}</strong> <span><b>{edition2026.checkedIn}</b> checked in</span> <i aria-hidden="true">·</i> <span><b>{edition2026.speakers}</b> Speakers</span> <i aria-hidden="true">·</i> <span><b>{edition2026.sponsorCount}</b> sponsors</span> <i aria-hidden="true">·</i> <span>{edition2026.recordings} talks on YouTube</span></p>
+  <div class="shots">
+    {shots.map((s) => (
+      <figure class:list={['shot', { 'shot--wide': !s.phone }]}>
+        <picture>
+          {s.phone && s.p1 && s.p2 && <source media="(max-width: 599px)" srcset={`${s.p1.src} 780w, ${s.p2.src} 964w`} sizes="100vw" width={s.phone.width} height={s.phone.height} />}
+          {/* Phones never show the wide-only photo, so it loads lazily and they skip it. */}
+          <img src={s.w1.src} srcset={`${s.w1.src} 668w, ${s.w2.src} 1336w`} sizes="(min-width: 1440px) 668px, 47vw" width={s.wide.width} height={s.wide.height} alt={s.alt} decoding="async" loading={s.phone ? undefined : 'lazy'} fetchpriority={s.phone ? 'high' : undefined} />
+        </picture>
+        <figcaption class="lt"><span class="lt-label">{s.label}</span><span class="lt-title">{s.title}</span></figcaption>
+      </figure>
+    ))}
+  </div>
+</div>
