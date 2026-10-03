@@ -1,3 +1,23 @@
-/* about pages. */
+/* The About page: the not-for-profit line, the timeline by year and the Committees. */
 @layer components {
+  .ab-money { margin-top: 20px; max-width: 34em; font-weight: 700; font-size: 19px; }
+  .ab-link { margin-top: 10px; font-size: 16px; }
+
+  .ab-timeline { margin-top: 8px; border-top: 3px solid var(--fg); }
+  .ab-row { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--gutter); align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .ab-year { font-stretch: 62%; font-weight: 900; font-size: clamp(32px, 3.4vw, 44px); line-height: 1; }
+  .ab-text { max-width: 40em; }
+  .ab-row--now .ab-year { color: var(--action); }
+  .ab-row--now .ab-text { font-weight: 700; }
+  .ab-src { margin-top: 12px; }
+
+  .ab-committees { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 var(--gutter); margin-top: 20px; border-top: 3px solid var(--fg); }
+  .ab-committees > div { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .ab-committees dt { font-stretch: 68%; font-weight: 800; font-size: 24px; line-height: 1.1; }
+  .ab-committees dd { margin-top: 4px; font-size: 16px; color: var(--muted); }
+
+  @media (max-width: 599px) {
+    .ab-row { grid-template-columns: 4.5rem minmax(0, 1fr); gap: 12px; }
+    .ab-year { font-size: 30px; }
+  }
 }

@@ -1,0 +1,57 @@
+---
+// The About page (Core Event Committee). Words in src/data/about.ts.
+import Base from '../layouts/Base.astro';
+import PageHead from '../components/PageHead.astro';
+import { about as a } from '../data/about';
+import { paths } from '../data/nav';
+import { contact, legal } from '../data/site';
+---
+
+<Base title={`${a.title} · KCD Texas`} description={a.description}>
+  <article class="page wrap ab-page">
+    <PageHead kicker={a.kicker} title={a.title} lead={a.lead}>
+      <p class="ab-money">{a.money}</p>
+      <p class="ab-link"><a href={legal.kcdProgramUrl}>{a.kcdLink}</a></p>
+    </PageHead>
+
+    <section class="page-sec" aria-labelledby="timeline">
+      <h2 id="timeline" class="page-h2">{a.timeline.title}</h2>
+      <ol class="ab-timeline">
+        {a.timeline.rows.map((r) => (
+          <li class:list={['ab-row', { 'ab-row--now': 'current' in r }]}>
+            <span class="ab-year">{r.year}</span>
+            <span class="ab-text">{r.text}</span>
+          </li>
+        ))}
+      </ol>
+      <p class="src ab-src">{a.timeline.source} {a.timeline.sources.map((x, i) => <>{i > 0 && a.timeline.joiner}<a href={x.href}>{x.label}</a></>)}</p>
+      <p class="more"><a href={paths.edition2026}>{a.timeline.more}</a></p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="committees">
+      <h2 id="committees" class="page-h2">{a.committees.title}</h2>
+      <p>{a.committees.intro}</p>
+      <dl class="ab-committees">
+        {a.committees.list.map((c) => <div><dt>{c.name}</dt><dd>{c.text}</dd></div>)}
+      </dl>
+    </section>
+
+    <section class="page-sec" aria-labelledby="organizers">
+      <h2 id="organizers" class="page-h2">{a.organizers.title}</h2>
+      {a.organizers2027.length === 0 ? (
+        <p class="page-soon">{a.organizers.soon}</p>
+      ) : (
+        <ul class="page-list">{a.organizers2027.map((o) => <li><b>{o.name}</b>, {o.employer}. {o.role}</li>)}</ul>
+      )}
+    </section>
+
+    <section class="page-sec" aria-labelledby="involved">
+      <h2 id="involved" class="page-h2">{a.involved.title}</h2>
+      <ul class="page-list">
+        <li><a href={contact.chapterUrl}>{a.involved.chapter}</a> {a.involved.chapterNote}</li>
+        <li><a href={contact.communityUrl}>{a.involved.community}</a> {a.involved.communityNote}</li>
+        <li>{a.involved.help} <a href={`mailto:${contact.email}`}>{contact.email}</a>.</li>
+      </ul>
+    </section>
+  </article>
+</Base>
