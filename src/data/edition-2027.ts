@@ -26,9 +26,16 @@ export type Phase = 'cfp' | 'countdown' | 'event-day' | 'recap';
 
 const ZONE = 'America/Chicago';
 
-/** Today's date in Central time, as YYYY-MM-DD. */
-export function todayCentral(now = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+/** Today's date in Central time, as YYYY-MM-DD. `scripts/build.sh --now YYYY-MM-DD` sets KCD_BUILD_DAY to
+ *  build as if that day were today (tests/time-machine.mjs); production builds never set it. */
+export function todayCentral(now?: Date): string {
+  // "?." so plain Node can import this file too (scripts/rebuild-dates.mjs, the tests).
+  const override = import.meta.env?.KCD_BUILD_DAY;
+  if (!now && override) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(override)) throw new Error(`KCD_BUILD_DAY must be YYYY-MM-DD, not ${override}`);
+    return override;
+  }
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now ?? new Date());
 }
 
 /** The Phase on a given day (CONTEXT.md): CFP Phase until the CFP closes, then Countdown, Event Day, Recap. */
@@ -63,6 +70,16 @@ export function cfpSentence(day = asOfDay): string {
   if (day < edition2027.cfp.opens) return `opens ${shortDate(edition2027.cfp.opens)}`;
   if (day <= edition2027.cfp.closes) return 'is open now';
   return 'is closed';
+}
+
+/** "On sale Feb 1" or "On sale now", for tickets on the build day. */
+export function ticketsStatus(day = asOfDay): string {
+  return day < edition2027.tickets.onSale ? `On sale ${shortDate(edition2027.tickets.onSale)}` : 'On sale now';
+}
+
+/** "Apr 23 · Dallas", or "Today · Dallas" on Event Day, for the Edition on the build day. */
+export function eventStatus(day = asOfDay): string {
+  return `${day === edition2027.eventDay ? 'Today' : shortDate(edition2027.eventDay)} · ${edition2027.city}`;
 }
 
 /** Where "Now" sits on the key-dates strip, which runs from Oct 1, 2026 to Apr 30, 2027. */

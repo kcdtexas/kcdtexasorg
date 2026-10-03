@@ -1,6 +1,6 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
-import { cfpSentence, cfpStatus, edition2027, longDate, shortDate, shortDateYear } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -35,9 +35,9 @@ export const home = {
     items: [
       { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: { text: 'Email us for the prospectus', href: 'prospectus' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
-      { key: 'tix', name: 'Tickets', status: `On sale ${shortDate(e.tickets.onSale)}`, detail: { text: 'Chapter members hear first', href: 'chapter' } },
+      { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: { text: 'Chapter members hear first', href: 'chapter' } },
       { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: `Speakers announced in ${e.speakersAnnounced}` } },
-      { key: 'event', name: `KCD Texas ${e.year}`, status: `${shortDate(e.eventDay)} · ${e.city}`, detail: { text: e.eventNote } },
+      { key: 'event', name: `KCD Texas ${e.year}`, status: eventStatus(), detail: { text: e.eventNote } },
     ],
   },
 

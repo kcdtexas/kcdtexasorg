@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Builds kcdtexas.org. The same script runs locally and in CI.
 #
-# Usage: scripts/build.sh [--zip] [--serve] [--skip-install]
+# Usage: scripts/build.sh [--zip] [--serve] [--skip-install] [--now YYYY-MM-DD]
 #   --zip           also write out/kcdtexas-<commit>.zip (for Cloudflare Pages
 #                   dashboard uploads; Netlify drag-and-drop takes the dist/ folder)
 #   --serve         preview the built site at http://127.0.0.1:4321
 #   --skip-install  reuse node_modules instead of running npm ci
+#   --now DAY       build as if DAY were today in Central time, to test date-driven text
+#                   (tests/time-machine.mjs). Never in production: the build refuses it there.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -16,16 +18,30 @@ export ASTRO_TELEMETRY_DISABLED=1
 zip=false
 serve=false
 install=true
-for arg in "$@"; do
-  case "$arg" in
+# The build day comes only from --now, never from an inherited variable.
+unset KCD_BUILD_DAY
+while [ $# -gt 0 ]; do
+  case "$1" in
     --zip) zip=true ;;
     --serve) serve=true ;;
     --skip-install) install=false ;;
-    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+    --now)
+      [[ "${2:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "--now needs a date as YYYY-MM-DD" >&2; exit 2; }
+      # Netlify sets CONTEXT; a production deploy must describe the real day.
+      if [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; then
+        echo "--now is not allowed in a production build" >&2; exit 2
+      fi
+      export KCD_BUILD_DAY="$2"; shift ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
+  shift
 done
 
 step() { printf '\n==> %s\n' "$1"; }
+
+if [ -n "${KCD_BUILD_DAY:-}" ]; then
+  echo "Building as if today were $KCD_BUILD_DAY (Central time). Test builds only."
+fi
 
 step "Checking Node.js (needs 22.12 or newer)"
 node -e '
@@ -66,7 +82,7 @@ npx astro check
 step "Building the site"
 npx astro build
 
-step "Writing _redirects and _headers"
+step "Writing _redirects, _headers and sitemap.xml"
 node scripts/write-host-files.mjs
 
 step "Checking the build output"
