@@ -1,14 +1,23 @@
 ---
+// The 404 page: the inner-page shell and links to the main pages.
 import Base from '../layouts/Base.astro';
+import { notFound as n } from '../data/not-found';
 import { contact } from '../data/site';
 ---
 
-<Base title="Page not found · KCD Texas" description="This page doesn't exist on kcdtexas.org.">
-  <section class="cfp wrap">
-    <h1 class="cfp-title">This page doesn't exist</h1>
-    <p class="lead cfp-lead">
-      It may have moved. Try the <a href="/">homepage</a>, or email
-      <a href={`mailto:${contact.email}`}>{contact.email}</a> and we'll point you to it.
-    </p>
-  </section>
+<Base title={n.title} description={n.description}>
+  <article class="page wrap">
+    {/* The heading goes in unescaped, so its straight apostrophe matches the smoke test's check. */}
+    <header class="page-head">
+      <p class="kicker">{n.kicker}</p>
+      <h1 class="page-title" set:html={n.heading} />
+      <p class="lead page-lead">{n.lead}</p>
+    </header>
+    <nav class="info-nav" aria-label="Main pages">
+      <ul class="info-links">
+        {n.links.map((l) => <li><a href={l.href}>{l.label}<span class="arrow" aria-hidden="true">→</span></a><span>{l.note}</span></li>)}
+      </ul>
+      <p class="info-mail"><a href={`mailto:${contact.email}`}>{contact.email}</a></p>
+    </nav>
+  </article>
 </Base>

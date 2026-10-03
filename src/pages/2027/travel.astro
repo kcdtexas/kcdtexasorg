@@ -1,0 +1,34 @@
+---
+// /2027/travel/: the two airports and the drive to Dallas; the venue once announced (Venue Committee).
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import { travel as t } from '../../data/travel';
+import { drives } from '../../data/edition-2026';
+---
+
+<Base title={`${t.title} · KCD Texas`} description={t.description}>
+  <article class="page wrap">
+    <PageHead kicker={t.kicker} title={t.title} lead={t.lead} />
+
+    <section class="page-sec" aria-labelledby="venue">
+      <h2 id="venue" class="page-h2">{t.venue.title}</h2>
+      {t.venue.name ? <p>{t.venue.name}</p> : <p class="page-soon">{t.venue.soon}</p>}
+    </section>
+
+    <section class="page-sec" aria-labelledby="air">
+      <h2 id="air" class="page-h2">{t.air.title}</h2>
+      <ul class="info-airports">
+        {t.air.airports.map((a) => <li><span class="info-code">{a.code}</span> <span class="info-name">{a.name}</span></li>)}
+      </ul>
+    </section>
+
+    <section class="page-sec" aria-labelledby="car">
+      <h2 id="car" class="page-h2">{t.car.title}</h2>
+      <dl class="drive-list info-drive">
+        {drives.rows.map((d) => <div><dt>From {d.from}</dt><dd><span class="drive-mi">{d.distance}</span> <span class="drive-h">{d.time}</span></dd></div>)}
+      </dl>
+      <p class="drive-local">{drives.local}</p>
+      <p class="src">{drives.source}</p>
+    </section>
+  </article>
+</Base>
