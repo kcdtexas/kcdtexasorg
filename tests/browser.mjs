@@ -2,6 +2,8 @@
 // no third-party requests), no CSP violations or script errors, no
 // horizontal scrolling on phones, and no WCAG 2.2 AA violations (axe-core),
 // in light and dark mode on desktop and mobile. Saves full-page screenshots.
+// Then the theme switch: the visitor's stored choice wins over the device
+// scheme, is applied before first paint, and works by keyboard and without JS.
 //
 // Usage: node tests/browser.mjs [baseUrl] [--shots <dir>]
 // Browser: $CDP_URL if set, else Playwright's Chromium, else the snap Chromium.
@@ -22,7 +24,10 @@ const axeSource = readFileSync(createRequire(import.meta.url).resolve('axe-core/
 const PAGES = [
   { name: 'home', path: '/' },
   { name: '404', path: '/this-page-does-not-exist' },
+  { name: 'cfp', path: '/2027/cfp/' },
 ];
+const LIGHT_BG = 'rgb(255, 255, 255)';
+const DARK_BG = 'rgb(18, 20, 18)'; // #121412
 const MODES = [
   { name: 'desktop-light', viewport: { width: 1280, height: 900 }, colorScheme: 'light' },
   { name: 'desktop-dark', viewport: { width: 1280, height: 900 }, colorScheme: 'dark' },
@@ -78,6 +83,55 @@ async function getBrowser() {
 const failures = [];
 let checks = 0;
 const fail = (message) => failures.push(message);
+const expect = (ok, message) => { checks += 1; if (!ok) fail(message); };
+
+// Starts the browser with a theme already stored, the way a returning visitor
+// arrives. The init script runs before every navigation, so use it only for
+// visits where a reload must not change the stored value.
+const storeTheme = (theme) => { try { localStorage.setItem('theme', theme); } catch {} };
+
+// Runs axe-core on the open tab (its context must bypass the CSP).
+async function axe(tab) {
+  await tab.addScriptTag({ content: axeSource });
+  return tab.evaluate(async () => {
+    const result = await window.axe.run(document, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] },
+    });
+    return result.violations.map((v) => `${v.id} (${v.impact}, ${v.nodes.length}x): ${v.help}`);
+  });
+}
+
+// The color the visitor sees behind the page: body's background, or html's when
+// body is transparent.
+function pageBackground(tab) {
+  return tab.evaluate(() => {
+    const body = getComputedStyle(document.body).backgroundColor;
+    return body === 'rgba(0, 0, 0, 0)' ? getComputedStyle(document.documentElement).backgroundColor : body;
+  });
+}
+
+// Records CSP violations, console errors and script errors on a tab.
+async function watch(tab) {
+  const problems = [];
+  tab.on('console', (msg) => { if (msg.type() === 'error') problems.push(msg.text()); });
+  tab.on('pageerror', (err) => problems.push(err.message));
+  await tab.addInitScript(() => {
+    window.__csp = [];
+    document.addEventListener('securitypolicyviolation', (e) => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+  });
+  return async () => [...problems, ...(await tab.evaluate(() => window.__csp)).map((v) => `CSP ${v}`)];
+}
+
+// What the switch currently shows and what the page stores.
+function switchState(tab) {
+  return tab.evaluate(() => ({
+    attr: document.documentElement.getAttribute('data-theme'),
+    stored: localStorage.getItem('theme'),
+    word: document.querySelector('.theme-word').textContent.trim(),
+    now: document.querySelector('[data-theme-toggle]').dataset.now,
+    themeColor: [...document.querySelectorAll('meta[name=theme-color]')].map((m) => m.content),
+  }));
+}
 
 const { browser, stop } = await getBrowser();
 try {
@@ -130,16 +184,168 @@ try {
       const auditContext = await browser.newContext({ ...contextOptions, bypassCSP: true });
       const audit = await auditContext.newPage();
       await audit.goto(base + page.path, { waitUntil: 'networkidle' });
-      await audit.addScriptTag({ content: axeSource });
-      const violations = await audit.evaluate(async () => {
-        const result = await window.axe.run(document, {
-          runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] },
-        });
-        return result.violations.map((v) => `${v.id} (${v.impact}, ${v.nodes.length}x): ${v.help}`);
-      });
+      const violations = await axe(audit);
       checks += 1;
       if (violations.length) fail(`${label}: accessibility: ${violations.join(' | ')}`);
       await auditContext.close();
+    }
+  }
+
+  // Axe and contrast with the visitor's choice overriding the device: a stored
+  // theme puts data-theme on <html>, a different CSS path from the media query.
+  for (const page of PAGES) {
+    for (const [device, stored] of [['light', 'dark'], ['dark', 'light']]) {
+      for (const mode of MODES.filter((m) => m.colorScheme === device)) {
+        const label = `${page.name} ${mode.name}, stored ${stored}`;
+        const context = await browser.newContext({ viewport: mode.viewport, colorScheme: device, isMobile: mode.isMobile ?? false, bypassCSP: true });
+        await context.addInitScript(storeTheme, stored);
+        const tab = await context.newPage();
+        await tab.goto(base + page.path, { waitUntil: 'networkidle' });
+        expect(await pageBackground(tab) === (stored === 'dark' ? DARK_BG : LIGHT_BG), `${label}: stored theme not applied`);
+        const violations = await axe(tab);
+        expect(!violations.length, `${label}: accessibility: ${violations.join(' | ')}`);
+        await context.close();
+      }
+    }
+  }
+
+  // The theme switch, on the home page at both widths.
+  for (const mode of MODES.filter((m) => m.colorScheme === 'light')) {
+    const width = mode.name.split('-')[0];
+    const options = { viewport: mode.viewport, isMobile: mode.isMobile ?? false };
+    const home = base + '/';
+
+    // a, b, g, h. It toggles, remembers the choice, and stays clean.
+    {
+      const label = `switch ${width}`;
+      const context = await browser.newContext({ ...options, colorScheme: 'light' });
+      const tab = await context.newPage();
+      const problems = await watch(tab);
+      await tab.goto(home, { waitUntil: 'networkidle' });
+      const button = tab.locator('[data-theme-toggle]');
+
+      await button.click();
+      let state = await switchState(tab);
+      expect(state.attr === 'dark' && state.stored === 'dark', `${label}: choosing dark gave data-theme=${state.attr}, stored=${state.stored}`);
+      expect(await pageBackground(tab) === DARK_BG, `${label}: background not dark after choosing dark`);
+      expect(state.word === 'Light' && state.now === 'dark', `${label}: switch says "${state.word}" (now=${state.now}) after choosing dark`);
+      expect(state.themeColor.every((c) => c === '#121412'), `${label}: theme-color not dark: ${state.themeColor}`);
+      expect(await tab.locator('.theme-status').textContent() === 'Dark theme on', `${label}: status not announced`);
+
+      await tab.reload({ waitUntil: 'networkidle' });
+      state = await switchState(tab);
+      expect(state.attr === 'dark' && await pageBackground(tab) === DARK_BG, `${label}: dark not remembered after reload`);
+
+      // Back to light, which is the device's own scheme: nothing should stay stored.
+      await button.click();
+      state = await switchState(tab);
+      expect(state.attr === null && state.stored === null, `${label}: choosing the device scheme left data-theme=${state.attr}, stored=${state.stored}`);
+      expect(await pageBackground(tab) === LIGHT_BG, `${label}: background not light after switching back`);
+      expect(state.word === 'Dark', `${label}: switch says "${state.word}" after switching back`);
+
+      const footer = await tab.locator('footer').innerText();
+      expect(/sets no cookies/.test(footer), `${label}: footer no longer says it sets no cookies`);
+      expect(!(await context.cookies()).length, `${label}: cookies set after toggling`);
+      const seen = await problems();
+      expect(!seen.length, `${label}: errors or CSP violations: ${seen.join(' | ')}`);
+      await context.close();
+    }
+
+    // c. With nothing stored it follows the device, live.
+    {
+      const label = `switch ${width} follows device`;
+      const context = await browser.newContext({ ...options, colorScheme: 'dark' });
+      const tab = await context.newPage();
+      await tab.goto(home, { waitUntil: 'networkidle' });
+      let state = await switchState(tab);
+      expect(await pageBackground(tab) === DARK_BG && state.attr === null, `${label}: dark device gave data-theme=${state.attr}, background ${await pageBackground(tab)}`);
+      expect(state.word === 'Light', `${label}: switch says "${state.word}" on a dark device`);
+      await tab.emulateMedia({ colorScheme: 'light' });
+      // CSS follows at once, but the media "change" event that updates the label
+      // fires in the next rendering step, so give it a moment.
+      await tab.waitForFunction(() => document.querySelector('.theme-word').textContent.trim() === 'Dark', null, { timeout: 2000 }).catch(() => {});
+      state = await switchState(tab);
+      expect(await pageBackground(tab) === LIGHT_BG, `${label}: background did not follow the device to light`);
+      expect(state.word === 'Dark' && state.now === 'light', `${label}: switch says "${state.word}" after the device turned light`);
+      await context.close();
+    }
+
+    // d. No flash of the wrong theme. Two checks, because the stylesheet may not
+    // have loaded when the first nodes are parsed:
+    //   - data-theme must already be on <html> when <body> is inserted, so no
+    //     body content can ever render without it. Mutation records arrive in
+    //     order, so we watch both the attribute and the insertion and compare.
+    //   - the background at the first animation frame (just before first paint;
+    //     Chromium holds frames until render-blocking CSS has loaded) and at
+    //     DOMContentLoaded is already the stored theme's.
+    for (const [device, stored, expected] of [['light', 'dark', DARK_BG], ['dark', 'light', LIGHT_BG]]) {
+      const label = `switch ${width} first paint, ${device} device, stored ${stored}`;
+      const context = await browser.newContext({ ...options, colorScheme: device });
+      await context.addInitScript(storeTheme, stored);
+      const tab = await context.newPage();
+      await tab.addInitScript(() => {
+        const paint = (window.__paint = {});
+        const background = () => getComputedStyle(document.body ?? document.documentElement).backgroundColor;
+        let themed = false;
+        new MutationObserver((records, observer) => {
+          for (const r of records) {
+            if (r.type === 'attributes' && r.target === document.documentElement && r.target.hasAttribute('data-theme')) themed = true;
+            if (r.type === 'childList' && [...r.addedNodes].some((n) => n.nodeName === 'BODY')) {
+              paint.themedBeforeBody = themed;
+              observer.disconnect();
+              return;
+            }
+          }
+        }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-theme'] });
+        requestAnimationFrame(() => { paint.firstFrame = background(); });
+        document.addEventListener('DOMContentLoaded', () => { paint.domReady = background(); });
+      });
+      await tab.goto(base + '/', { waitUntil: 'networkidle' });
+      const paint = await tab.evaluate(() => window.__paint);
+      expect(paint.themedBeforeBody === true, `${label}: <body> was parsed before data-theme was set`);
+      expect(paint.firstFrame === expected, `${label}: first frame background ${paint.firstFrame}, expected ${expected}`);
+      expect(paint.domReady === expected, `${label}: background at DOMContentLoaded ${paint.domReady}, expected ${expected}`);
+      await context.close();
+    }
+
+    // e. Keyboard: reachable with Tab, toggles with Enter and Space, named by its
+    // visible word, and a 44x44 px target (WCAG 2.5.5 / 2.5.8).
+    {
+      const label = `switch ${width} keyboard`;
+      const context = await browser.newContext({ ...options, colorScheme: 'light' });
+      const tab = await context.newPage();
+      await tab.goto(home, { waitUntil: 'networkidle' });
+      let reached = false;
+      for (let i = 0; i < 40 && !reached; i += 1) {
+        await tab.keyboard.press('Tab');
+        reached = await tab.evaluate(() => document.activeElement?.matches('[data-theme-toggle]') ?? false);
+      }
+      expect(reached, `${label}: not reachable with Tab`);
+      if (reached) {
+        await tab.keyboard.press('Enter');
+        expect((await switchState(tab)).attr === 'dark', `${label}: Enter did not switch to dark`);
+        await tab.keyboard.press('Space');
+        expect((await switchState(tab)).attr === null, `${label}: Space did not switch back`);
+      }
+      const button = tab.locator('[data-theme-toggle]');
+      const word = (await tab.locator('.theme-word').textContent()).trim();
+      const name = (await button.ariaSnapshot()).match(/button "(.*)"/)?.[1] ?? '';
+      expect(name.includes(word), `${label}: accessible name "${name}" lacks the visible word "${word}"`);
+      const box = await button.boundingBox();
+      expect(box && box.width >= 44 && box.height >= 44, `${label}: target is ${box?.width}x${box?.height} px`);
+      await context.close();
+    }
+
+    // f. Without JavaScript the switch can't work, so it stays hidden, and the
+    // CSS alone still follows the device.
+    {
+      const label = `switch ${width} without JavaScript`;
+      const context = await browser.newContext({ ...options, colorScheme: 'dark', javaScriptEnabled: false });
+      const tab = await context.newPage();
+      await tab.goto(home, { waitUntil: 'networkidle' });
+      expect(!(await tab.locator('[data-theme-toggle]').isVisible()), `${label}: switch is visible`);
+      expect(await pageBackground(tab) === DARK_BG, `${label}: dark device got background ${await pageBackground(tab)}`);
+      await context.close();
     }
   }
 } finally {

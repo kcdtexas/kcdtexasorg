@@ -16,9 +16,7 @@ async function get(path, init = {}) {
   return fetch(base + path, { redirect: 'manual', ...init });
 }
 
-// 1. Home page: status, security headers, no cookies.
-const home = await get('/');
-expect(home.status === 200, `/ returned ${home.status}`);
+// 1. Pages: status, security headers, no cookies.
 const REQUIRED_HEADERS = {
   'content-security-policy': /default-src 'self'/,
   'strict-transport-security': /max-age=31536000/,
@@ -27,13 +25,26 @@ const REQUIRED_HEADERS = {
   'referrer-policy': /strict-origin-when-cross-origin/,
   'permissions-policy': /camera=\(\)/,
 };
-for (const [name, pattern] of Object.entries(REQUIRED_HEADERS)) {
-  expect(pattern.test(home.headers.get(name) ?? ''), `/ header ${name} missing or wrong: ${home.headers.get(name)}`);
+const PAGES = ['/', '/2027/cfp/'];
+const pageHtml = {};
+for (const path of PAGES) {
+  const res = await get(path);
+  expect(res.status === 200, `${path} returned ${res.status}`);
+  for (const [name, pattern] of Object.entries(REQUIRED_HEADERS)) {
+    expect(pattern.test(res.headers.get(name) ?? ''), `${path} header ${name} missing or wrong: ${res.headers.get(name)}`);
+  }
+  expect(!res.headers.get('set-cookie'), `${path} sets a cookie`);
+  // upgrade-insecure-requests breaks any plain-HTTP preview (see write-host-files.mjs).
+  expect(!/upgrade-insecure-requests/.test(res.headers.get('content-security-policy') ?? ''), `${path} CSP contains upgrade-insecure-requests`);
+  pageHtml[path] = await res.text();
 }
-expect(!home.headers.get('set-cookie'), '/ sets a cookie');
-// upgrade-insecure-requests breaks any plain-HTTP preview (see write-host-files.mjs).
-expect(!/upgrade-insecure-requests/.test(home.headers.get('content-security-policy') ?? ''), 'CSP contains upgrade-insecure-requests');
-const homeHtml = await home.text();
+
+// The theme script blocks rendering in <head> on every page, so it must stay tiny.
+const theme = await get('/theme.js');
+expect(theme.status === 200, `/theme.js returned ${theme.status}`);
+expect(/javascript/.test(theme.headers.get('content-type') ?? ''), `/theme.js content type is ${theme.headers.get('content-type')}`);
+const themeBytes = (await theme.arrayBuffer()).byteLength;
+expect(themeBytes < 1024, `/theme.js is ${themeBytes} bytes, budget is under 1024`);
 
 // 2. Unknown paths get the real 404 page.
 const missing = await get('/this-page-does-not-exist');
@@ -57,9 +68,9 @@ for (const { from, to, code } of links) {
   }
 }
 
-// 4. Every same-site asset the home page references loads, with the right type and caching.
-const assets = [...homeHtml.matchAll(/(?:href|src|srcset)="(\/[^"#?]*)"/g)]
-  .map((m) => m[1])
+// 4. Every same-site asset the pages reference loads, with the right type and caching.
+const assets = Object.values(pageHtml)
+  .flatMap((html) => [...html.matchAll(/(?:href|src|srcset)="(\/[^"#?]*)"/g)].map((m) => m[1]))
   .filter((p) => /\.(css|js|woff2|svg|png|jpg|webp|avif|ico)$/.test(p));
 for (const path of new Set(assets)) {
   const res = await get(path);
