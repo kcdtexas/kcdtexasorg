@@ -13,21 +13,20 @@ import { parse } from 'yaml';
 // Pages that must be built, as URL paths: a path ending in "/" is that folder's index.html,
 // anything else is the file itself. tests/smoke.mjs treats a link to a v1 page that isn't
 // listed here yet as pending (a notice, not a failure); once listed, a broken link fails.
-// After the Pages A merge, uncomment the v1 pages below.
 export const REQUIRED_PAGES = [
   '/',
   '/404.html',
   '/2027/cfp/',
-  // '/2027/sponsors/',
-  // '/2027/tickets/',
-  // '/2027/travel/',
-  // '/2027/schedule/',
-  // '/2026/',
-  // '/editions/',
-  // '/about/',
-  // '/code-of-conduct/',
-  // '/privacy/',
-  // '/accessibility/',
+  '/2027/sponsors/',
+  '/2027/tickets/',
+  '/2027/travel/',
+  '/2027/schedule/',
+  '/2026/',
+  '/editions/',
+  '/about/',
+  '/code-of-conduct/',
+  '/privacy/',
+  '/accessibility/',
 ];
 
 // Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template
@@ -48,8 +47,8 @@ export const findDraftMarkers = (html) =>
 const KB = 1024;
 const BUDGETS = {
   home: { bytes: 1024 * KB, label: 'home' },
-  photos: { bytes: 500 * KB, label: 'photos' },
-  plain: { bytes: 150 * KB, label: 'no photos' },
+  photos: { bytes: 500 * KB, label: 'images' },
+  plain: { bytes: 150 * KB, label: 'no images' },
 };
 
 const DIST = 'dist';
@@ -122,7 +121,7 @@ function check() {
   //
   // A page "has photos" when an <img> or <source> on it references a raster image (.webp, .avif,
   // .jpg, .jpeg, .png) under /_astro/, other than the KCD Texas badge in the header and footer
-  // (/_astro/badge-*). Logos and other SVGs don't count as photos.
+  // (/_astro/badge-*), or a sponsor logo (img.sp-logo): a logo wall is image content, like photos.
   // Budgets: the home page under 1 MB (v1 has photos on every screen), other pages with photos
   // under 500 KB, pages without photos under 150 KB.
   const weights = new Map();
@@ -146,6 +145,7 @@ function check() {
         .filter((c) => c?.startsWith('/'));
       if (!candidates.length) continue;
       if (candidates.some((c) => /^\/_astro\/(?!badge-)[^/]+\.(?:webp|avif|jpe?g|png)$/i.test(c))) photos = true;
+      if (/\bclass="sp-logo"/.test(tag)) photos = true;
       // A <picture>'s <img> fallback is only fetched where no <source> matches; count every candidate set once.
       files.add(candidates.reduce((a, b) => (wire(b) < wire(a) ? b : a)));
     }
@@ -156,7 +156,7 @@ function check() {
     if (!ok) failures.push(`${path} weighs ${(bytes / KB).toFixed(0)} KB on a phone (budget under ${budget.bytes / KB} KB, ${budget.label})`);
   }
 
-  const cols = [['Page', 'path'], ['KB', 'kb'], ['Photos', 'photos'], ['Budget', 'budget']];
+  const cols = [['Page', 'path'], ['KB', 'kb'], ['Images', 'photos'], ['Budget', 'budget']];
   const widths = cols.map(([h, k]) => Math.max(h.length, ...rows.map((r) => String(r[k]).length)));
   const line = (cells) => cells.map((c, i) => (i === 1 ? String(c).padStart(widths[i]) : String(c).padEnd(widths[i]))).join('  ');
   console.log('Phone first-load weight (text gzipped, each file once):');
