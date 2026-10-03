@@ -1,8 +1,7 @@
 // The 2027 schedule page's words (Session Committee). Dates come from the Edition file.
-import { cfpStatus, edition2027, longDate, shortDate, shortDateYear } from './edition-2027';
+import { cfpSentence, edition2027, longDate, shortDate, shortDateYear } from './edition-2027';
 
 const e = edition2027;
-const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
 
 export const schedule = {
   title: `The KCD Texas ${e.year} Schedule`,
@@ -17,7 +16,7 @@ export const schedule = {
   ],
   speak: {
     title: 'Want to speak?',
-    text: `The call for proposals ${lowerFirst(cfpStatus())}. Submit a talk or a hands-on workshop, and mark it as an End-User Story if your organization runs cloud native for its own business.`,
+    text: `The call for proposals ${cfpSentence()}. Submit a talk or a hands-on workshop, and mark it as an End-User Story if your organization runs cloud native for its own business.`,
     link: 'Read the CFP guide',
   },
   past: {

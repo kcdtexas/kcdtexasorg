@@ -58,6 +58,13 @@ export function cfpStatus(day = asOfDay): string {
   return 'Closed';
 }
 
+/** "opens Nov 1", "is open now" or "is closed": the CFP status to end "The call for proposals …". */
+export function cfpSentence(day = asOfDay): string {
+  if (day < edition2027.cfp.opens) return `opens ${shortDate(edition2027.cfp.opens)}`;
+  if (day <= edition2027.cfp.closes) return 'is open now';
+  return 'is closed';
+}
+
 /** Where "Now" sits on the key-dates strip, which runs from Oct 1, 2026 to Apr 30, 2027. */
 export const timeline = { start: '2026-10-01', end: '2027-05-01' } as const;
 export function timelinePercent(day: string): number {

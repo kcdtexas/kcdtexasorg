@@ -47,7 +47,7 @@ export const sponsors = {
   money: {
     title: 'Where the money goes',
     text: 'KCD Texas is not-for-profit: sponsorship and tickets pay for the event.',
-    report: `CNCF publishes a transparency report after each Edition.`,
+    report: 'CNCF published transparency reports on the 2025 and 2026 Editions.',
     reportLink: `Read the ${edition2026.year} report`,
   },
 

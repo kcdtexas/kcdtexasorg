@@ -13,7 +13,7 @@ export const travel = {
     title: 'The venue',
     // The venue's name and address (Venue Committee). Empty until announced.
     name: '',
-    soon: 'Venue announced soon. Directions and hotels come with it.',
+    soon: 'Venue announced soon. Directions come with it.',
   },
   air: {
     title: 'By air',

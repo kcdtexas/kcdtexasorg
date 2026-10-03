@@ -41,7 +41,7 @@ export const editions = {
       facts: [
         '213 Attendees checked in',
         '29 Speakers on 3 stages',
-        `${e.proposals2025} proposals to the call for proposals`,
+        `${e.proposals2025} proposals submitted`,
         'Keynotes by Chris Aniszczyk (CNCF) and Ricardo Rocha (CERN)',
       ],
       link: null,

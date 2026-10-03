@@ -1,13 +1,13 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
-import { cfpStatus, edition2027, longDate, shortDate, shortDateYear } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, longDate, shortDate, shortDateYear } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
 
 export const home = {
   title: `KCD Texas ${e.year} · ${e.city} · ${longDate(e.eventDay)}`,
-  description: `KCD Texas ${e.year}: one day of Kubernetes and cloud native talks and hands-on workshops in ${e.city} on ${longDate(e.eventDay)}. The call for proposals ${lowerFirst(cfpStatus())}.`,
+  description: `KCD Texas ${e.year}: one day of Kubernetes and cloud native talks and hands-on workshops in ${e.city} on ${longDate(e.eventDay)}. The call for proposals ${cfpSentence()}.`,
 
   hero: {
     promise: 'One day of Kubernetes and cloud native talks and hands-on workshops, for the platform, SRE and DevOps engineers who run production across Texas. Organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF).',

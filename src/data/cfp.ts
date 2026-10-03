@@ -6,9 +6,9 @@ const e = edition2027;
 
 export const cfp = {
   title: `Speak at KCD Texas ${e.year}`,
-  description: `The KCD Texas ${e.year} call for proposals opens ${shortDateYear(e.cfp.opens)} and closes ${shortDateYear(e.cfp.closes)}. What we look for, and how to submit.`,
+  description: `The KCD Texas ${e.year} call for proposals opens ${shortDateYear(e.cfp.opens)}, and closes ${shortDateYear(e.cfp.closes)}. What we look for, and how to submit.`,
   kicker: 'Call for proposals',
-  lead: `Tell us how your team runs Kubernetes and cloud native in production. The call for proposals runs from ${shortDateYear(e.cfp.opens)} to ${shortDateYear(e.cfp.closes)}.`,
+  lead: `Tell us how your team runs Kubernetes and cloud native in production. The call for proposals runs from ${shortDateYear(e.cfp.opens)}, to ${shortDateYear(e.cfp.closes)}.`,
   dates: [
     { term: 'Opens', text: shortDateYear(e.cfp.opens) },
     { term: 'Closes', text: `${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
@@ -55,7 +55,7 @@ export const cfp = {
   },
   choose: {
     title: 'How we choose',
-    text: `The Session Committee selects the sessions, and the selected Speakers are announced together in ${e.speakersAnnounced}.`,
+    text: `The Session Committee selects the Sessions, and the selected Speakers are announced together in ${e.speakersAnnounced}.`,
     proposals: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.`,
     proposalsSource: 'CNCF transparency report, 2025',
   },

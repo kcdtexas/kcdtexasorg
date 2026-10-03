@@ -6,9 +6,9 @@ const e = edition2027;
 
 export const tickets = {
   title: `Tickets for KCD Texas ${e.year}`,
-  description: `Tickets for KCD Texas ${e.year} in ${e.city} go on sale ${shortDateYear(e.tickets.onSale)} on the CNCF community site. Join the KCD Texas chapter to hear first.`,
+  description: `Tickets for KCD Texas ${e.year} in ${e.city} go on sale ${shortDateYear(e.tickets.onSale)}, on the CNCF community site. Join the KCD Texas chapter to hear first.`,
   kicker: 'Tickets',
-  lead: `Tickets go on sale ${shortDateYear(e.tickets.onSale)} on the CNCF community site. Members of the KCD Texas chapter there hear first.`,
+  lead: `Tickets go on sale ${shortDateYear(e.tickets.onSale)}, on the CNCF community site. Members of the KCD Texas chapter there hear first.`,
   facts: [
     { term: 'On sale', text: shortDateYear(e.tickets.onSale) },
     { term: 'Where', text: 'CNCF community site' },
