@@ -1,3 +1,17 @@
-/* conduct pages. */
+/* The Code of Conduct page: the link to CNCF's text, then the ways to report. */
 @layer components {
+  .coc-door { max-width: 460px; margin-top: 28px; }
+  .coc-danger { margin-top: 4px; padding: 16px 20px; border: 3px solid var(--fg); font-stretch: 75%; font-weight: 800; font-size: clamp(22px, 2.2vw, 30px); line-height: 1.15; }
+  .coc-ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 var(--gutter); margin-top: 32px; border-top: 3px solid var(--fg); }
+  .coc-ways > div { padding: 14px 0 18px; border-bottom: 1px solid var(--line); }
+  .coc-ways dt { font-weight: 700; font-size: 15px; color: var(--muted); }
+  .coc-ways dd { margin-top: 6px; font-weight: 700; font-size: 19px; line-height: 1.35; overflow-wrap: anywhere; }
+  .coc-soon { font-weight: 400; font-size: 17px; }
+
+  @media (max-width: 799px) {
+    .coc-ways { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 599px) {
+    .coc-door { max-width: none; }
+  }
 }
