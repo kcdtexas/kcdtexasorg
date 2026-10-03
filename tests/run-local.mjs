@@ -3,6 +3,7 @@
 // Usage: node tests/run-local.mjs [--shots <dir>]
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { networkInterfaces } from 'node:os';
 
 if (!existsSync('dist/index.html')) {
@@ -16,12 +17,21 @@ if (!existsSync('dist/index.html')) {
 // machine has no other IPv4 address.
 const host = Object.values(networkInterfaces()).flat()
   .find((a) => a && a.family === 'IPv4' && !a.internal)?.address ?? '127.0.0.1';
-const port = 8799;
+// A free port, so parallel runs (other worktrees) never test each other's server.
+const port = Number(process.env.PORT) || await new Promise((resolve, reject) => {
+  const probe = createServer().once('error', reject).listen(0, host, () => {
+    const { port: free } = probe.address();
+    probe.close(() => resolve(free));
+  });
+});
 const base = `http://${host}:${port}`;
 const server = spawn(process.execPath, ['scripts/serve.mjs', '--host', host, '--port', String(port)], { stdio: 'ignore' });
+let exited = false;
+server.on('exit', () => { exited = true; });
 
 async function ready() {
   for (let i = 0; i < 50; i += 1) {
+    if (exited) throw new Error(`Local server on port ${port} exited (port in use?)`);
     try {
       if ((await fetch(base + '/')).ok) return;
     } catch {}

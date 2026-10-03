@@ -1,18 +1,22 @@
-// Browser tests against a running site: zero data (no cookies, no storage,
-// no third-party requests), no CSP violations or script errors, no
-// horizontal scrolling on phones, and no WCAG 2.2 AA violations (axe-core),
-// in light and dark mode on desktop and mobile. Saves full-page screenshots.
-// Then the theme switch: the visitor's stored choice wins over the device
-// scheme, is applied before first paint, and works by keyboard and without JS.
+// Browser tests against a running site, on every page built in dist/ (each
+// index.html, plus the 404 page at a missing path): zero data (no cookies, no
+// storage, no third-party requests), no CSP violations or script errors, no
+// horizontal scrolling on phones 360 and 390 px wide, and no WCAG 2.2 AA
+// violations (axe-core), in light and dark mode on desktop and mobile, with
+// and without a stored theme. Saves full-page screenshots with --shots.
+// Then the theme switch on the home page: the visitor's stored choice wins over
+// the device scheme, is applied before first paint, and works by keyboard and
+// without JS.
 //
 // Usage: node tests/browser.mjs [baseUrl] [--shots <dir>]
+// Pages run in parallel, $BROWSER_JOBS at a time (default 4).
 // Browser: $CDP_URL if set, else Playwright's Chromium, else the snap Chromium.
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 
 const argv = process.argv.slice(2);
 const shotsIndex = argv.indexOf('--shots');
@@ -21,11 +25,19 @@ const base = (argv.find((a, i) => !a.startsWith('--') && argv[i - 1] !== '--shot
 const origin = new URL(base).origin;
 const axeSource = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
 
+// The pages: every index.html in dist/, plus the 404 page at a path that doesn't exist.
+const DIST = process.env.DIST ?? 'dist';
+const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
+if (!existsSync(join(DIST, 'index.html'))) throw new Error('dist/ is missing. Run scripts/build.sh first.');
 const PAGES = [
-  { name: 'home', path: '/' },
-  { name: '404', path: '/this-page-does-not-exist' },
-  { name: 'cfp', path: '/2027/cfp/' },
+  ...walk(DIST)
+    .filter((f) => f.endsWith(`${sep}index.html`) || f === join(DIST, 'index.html'))
+    .map((f) => '/' + relative(DIST, f).split(sep).slice(0, -1).map((p) => p + '/').join(''))
+    .sort()
+    .map((path) => ({ name: path === '/' ? 'home' : path.slice(1, -1).replaceAll('/', '-'), path })),
+  ...(existsSync(join(DIST, '404.html')) ? [{ name: '404', path: '/this-page-does-not-exist' }] : []),
 ];
+const JOBS = Math.max(1, Number(process.env.BROWSER_JOBS) || 4);
 const LIGHT_BG = 'rgb(255, 255, 255)';
 const DARK_BG = 'rgb(18, 20, 18)'; // #121412
 const MODES = [
@@ -90,9 +102,10 @@ const expect = (ok, message) => { checks += 1; if (!ok) fail(message); };
 // visits where a reload must not change the stored value.
 const storeTheme = (theme) => { try { localStorage.setItem('theme', theme); } catch {} };
 
-// Runs axe-core on the open tab (its context must bypass the CSP).
+// Runs axe-core on the open tab. It is evaluated through DevTools, which the
+// page's CSP doesn't block, so the audit runs on the page as visitors get it.
 async function axe(tab) {
-  await tab.addScriptTag({ content: axeSource });
+  await tab.evaluate(axeSource);
   return tab.evaluate(async () => {
     const result = await window.axe.run(document, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] },
@@ -137,13 +150,11 @@ const { browser, stop } = await getBrowser();
 try {
   if (shotsDir) mkdirSync(shotsDir, { recursive: true });
 
-  for (const page of PAGES) {
+  // Every page, $BROWSER_JOBS pages at a time. Each page's checks run in order.
+  async function checkPage(page) {
     for (const mode of MODES) {
       const label = `${page.name} ${mode.name}`;
-      const contextOptions = { viewport: mode.viewport, colorScheme: mode.colorScheme, isMobile: mode.isMobile ?? false };
-
-      // Strict pass: the page as visitors get it, with the CSP enforced.
-      const context = await browser.newContext(contextOptions);
+      const context = await browser.newContext({ viewport: mode.viewport, colorScheme: mode.colorScheme, isMobile: mode.isMobile ?? false });
       const tab = await context.newPage();
       const problems = [];
       const foreign = new Set();
@@ -175,29 +186,28 @@ try {
       if (state.csp.length) fail(`${label}: CSP violations: ${state.csp.join('; ')}`);
       if (problems.length) fail(`${label}: console errors: ${problems.join(' | ')}`);
       if (foreign.size) fail(`${label}: requests to other hosts: ${[...foreign].join(', ')}`);
-      if (state.overflow > 1) fail(`${label}: page scrolls sideways by ${state.overflow}px`);
+      if (state.overflow > 1) fail(`${label}: page scrolls sideways by ${state.overflow}px at ${mode.viewport.width}px`);
 
       if (shotsDir) writeFileSync(join(shotsDir, `${page.name}-${mode.name}.png`), await tab.screenshot({ fullPage: true }));
+
+      const violations = await axe(tab);
+      expect(!violations.length, `${label}: accessibility: ${violations.join(' | ')}`);
+
+      // Phones as narrow as 360 px (the modes above use 390 px).
+      if (mode.isMobile) {
+        await tab.setViewportSize({ width: 360, height: mode.viewport.height });
+        const overflow = await tab.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+        expect(overflow <= 1, `${label}: page scrolls sideways by ${overflow}px at 360px`);
+      }
       await context.close();
-
-      // Audit pass: axe-core needs to inject a script, so this context bypasses the CSP.
-      const auditContext = await browser.newContext({ ...contextOptions, bypassCSP: true });
-      const audit = await auditContext.newPage();
-      await audit.goto(base + page.path, { waitUntil: 'networkidle' });
-      const violations = await axe(audit);
-      checks += 1;
-      if (violations.length) fail(`${label}: accessibility: ${violations.join(' | ')}`);
-      await auditContext.close();
     }
-  }
 
-  // Axe and contrast with the visitor's choice overriding the device: a stored
-  // theme puts data-theme on <html>, a different CSS path from the media query.
-  for (const page of PAGES) {
+    // Axe and contrast with the visitor's choice overriding the device: a stored
+    // theme puts data-theme on <html>, a different CSS path from the media query.
     for (const [device, stored] of [['light', 'dark'], ['dark', 'light']]) {
       for (const mode of MODES.filter((m) => m.colorScheme === device)) {
         const label = `${page.name} ${mode.name}, stored ${stored}`;
-        const context = await browser.newContext({ viewport: mode.viewport, colorScheme: device, isMobile: mode.isMobile ?? false, bypassCSP: true });
+        const context = await browser.newContext({ viewport: mode.viewport, colorScheme: device, isMobile: mode.isMobile ?? false });
         await context.addInitScript(storeTheme, stored);
         const tab = await context.newPage();
         await tab.goto(base + page.path, { waitUntil: 'networkidle' });
@@ -208,6 +218,10 @@ try {
       }
     }
   }
+  const queue = [...PAGES];
+  await Promise.all(Array.from({ length: Math.min(JOBS, queue.length) }, async () => {
+    while (queue.length) await checkPage(queue.shift());
+  }));
 
   // The theme switch, on the home page at both widths.
   for (const mode of MODES.filter((m) => m.colorScheme === 'light')) {
@@ -356,7 +370,7 @@ try {
 }
 
 if (failures.length) {
-  console.error(`Browser tests failed (${failures.length} of ${checks} checks) against ${base}:\n  ` + failures.join('\n  '));
+  console.error(`Browser tests failed (${failures.length} of ${checks} checks) against ${base}:\n  ` + failures.sort().join('\n  '));
   process.exit(1);
 }
-console.log(`Browser tests passed: ${checks} checks against ${base}` + (shotsDir ? `, screenshots in ${shotsDir}` : '') + '.');
+console.log(`Browser tests passed: ${checks} checks on ${PAGES.length} pages (${PAGES.map((p) => p.path).join(' ')}) against ${base}` + (shotsDir ? `, screenshots in ${shotsDir}` : '') + '.');
