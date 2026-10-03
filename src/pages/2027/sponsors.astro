@@ -1,0 +1,77 @@
+---
+// The 2027 sponsors page (Sponsor Committee). Words in src/data/sponsors.ts, figures in the Edition files.
+import Base from '../../layouts/Base.astro';
+import PageHead from '../../components/PageHead.astro';
+import Door from '../../components/Door.astro';
+import SponsorWall from '../../components/SponsorWall.astro';
+import { sponsors as s } from '../../data/sponsors';
+import { edition2026, dallasMetro } from '../../data/edition-2026';
+import { contact, legal, prospectus } from '../../data/site';
+---
+
+<Base title={`${s.title} · KCD Texas`} description={s.description} card="sponsorships">
+  <article class="page wrap sp-page">
+    <PageHead kicker={s.kicker} title={s.title} lead={s.lead}>
+      <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} /></div>
+    </PageHead>
+
+    <section class="page-sec" aria-labelledby="meet">
+      <h2 id="meet" class="page-h2">{s.meet.title}</h2>
+      <div class="sp-figs">
+        <div class="sp-fig sp-fig--verified">
+          <p class="sp-num">{edition2026.checkedIn}</p>
+          <p class="sp-lbl">{s.meet.checkedInLabel}</p>
+          <p class="src"><a href={edition2026.reportUrl}>{s.meet.reportSource}</a></p>
+        </div>
+        <div class="sp-survey">
+          <h3 class="page-h3 sp-survey-title">{s.meet.surveyTitle}</h3>
+          <ul class="sp-survey-list">
+            {s.meet.survey.map((f) => (
+              <li><p class="sp-num sp-num--sm">{'about' in f && <span class="sp-about">About </span>}{f.value}<sup>1</sup></p><p class="sp-lbl">{f.label}</p></li>
+            ))}
+          </ul>
+          <p class="src"><sup>1</sup> {s.meet.surveySource}</p>
+        </div>
+      </div>
+      <figure class="sp-quote">
+        <blockquote><p>“{s.meet.quote}”</p></blockquote>
+        <figcaption class="src">{s.meet.quoteBy}</figcaption>
+      </figure>
+      <div class="sp-dallas">
+        <h3 class="page-h3">{s.meet.dallasTitle}</h3>
+        <p>{dallasMetro.text}</p>
+        <p class="src">{dallasMetro.source}</p>
+      </div>
+    </section>
+
+    <div class="page-sec sp-wall">
+      <SponsorWall title={s.wall.title} tierPrefix={s.wall.tierPrefix} next={false} bare />
+    </div>
+
+    <section class="page-sec" aria-labelledby="tiers">
+      <h2 id="tiers" class="page-h2">{s.tiers.title}</h2>
+      <h3 class="page-h3">{s.tiers.pastTitle} <span class="sp-muted">{s.tiers.pastSource}</span></h3>
+      <ul class="page-list">{s.tiers.past.map((t) => <li>{t}</li>)}</ul>
+      <p class="sp-note">{s.tiers.pastNote}</p>
+      {s.terms2027 === null ? (
+        <p class="page-soon">{s.tiers.soon}</p>
+      ) : (
+        <ul class="page-list">{s.terms2027.map((t) => <li><b>{t.name}</b> {t.price}: {t.benefits.join('; ')}</li>)}</ul>
+      )}
+      <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} /></div>
+      <p class="src sp-pdf">{s.tiers.sourceLabel} <a href={edition2026.prospectusPdf.url}>{s.tiers.pdfSource}</a></p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="money">
+      <h2 id="money" class="page-h2">{s.money.title}</h2>
+      <p>{s.money.text}</p>
+      <p>{s.money.report} <a href={edition2026.reportUrl}>{s.money.reportLink}</a>.</p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="questions">
+      <h2 id="questions" class="page-h2">{s.questions.title}</h2>
+      <p>{s.questions.email} <a href={`mailto:${contact.email}`}>{contact.email}</a>.</p>
+      <p>{s.questions.conduct} <a href={legal.codeOfConductUrl}>{s.questions.conductLink}</a>.</p>
+    </section>
+  </article>
+</Base>

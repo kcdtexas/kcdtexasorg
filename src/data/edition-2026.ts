@@ -22,6 +22,7 @@ export const edition2026 = {
   recordings: 18,
   // 2025 Edition, from the 2025 transparency report.
   proposals2025: '200+',
+  checkedIn2025: 213,
 
   // 2026 pre-registration survey: describes the people who answered it.
   survey: [
@@ -29,6 +30,12 @@ export const edition2026 = {
     { value: '70%', label: 'were at their first KCD Texas' },
     { about: true, value: '7 in 10', label: 'were DevOps, SRE and sysadmin staff, developers or architects' },
     { about: true, value: '1 in 4', label: 'worked at an End-User company, one that runs Kubernetes rather than sells it' },
+  ],
+  // The same survey's top three roles (26.0%, 22.8%, 20.1% in the report).
+  surveyRoles: [
+    { value: '26%', label: 'DevOps, SRE and sysadmin staff' },
+    { value: '23%', label: 'developers' },
+    { value: '20%', label: 'architects' },
   ],
 
   sponsors: {
