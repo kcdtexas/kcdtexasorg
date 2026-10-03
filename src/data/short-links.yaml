@@ -9,9 +9,9 @@
 #   evergreen         keeps its external target across Editions
 # Never add a catch-all (/*): unknown paths must show the 404 page.
 
-- { from: /cfp,             to: "https://github.com/kcdtexas/cfp",                   code: 302, mode: follows-current }
-- { from: /schedule,        to: "https://kcd-texas-2026.sessionize.com/",            code: 302, mode: follows-current }
-- { from: /sponsors,        to: "https://github.com/kcdtexas/sponsor-prospectus",    code: 302, mode: follows-current }
+- { from: /cfp,             to: "/2027/cfp/",                                        code: 302, mode: follows-current }
+- { from: /schedule,        to: "/2027/schedule/",                                   code: 302, mode: follows-current }
+- { from: /sponsors,        to: "/2027/sponsors/",                                   code: 302, mode: follows-current }
 - { from: /sponsor-guide,   to: "https://github.com/kcdtexas/sponsor-guide",         code: 302, mode: follows-current }
 - { from: /sponsor-faq,     to: "https://docs.google.com/presentation/d/1Vdvhhe7HbJgzsei4Zw_IEM-BudqrSnzS/edit?usp=sharing&ouid=111136301388613558226&rtpof=true&sd=true", code: 302, mode: follows-current }
 - { from: /talks,           to: "https://github.com/kcdtexas/talks",                 code: 302, mode: follows-current }
