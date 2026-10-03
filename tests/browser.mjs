@@ -365,10 +365,11 @@ try {
     }
   }
 
-  // The key dates follow today between builds (/now.js, the owner's A50), and "Now" goes once the
-  // strip ends (Apr 30). The clock is fixed at noon Central, so the expected day is unambiguous.
+  // "Now" on the key dates follows today between builds (/now.js, the owner's A50) and goes once the
+  // strip ends (Apr 30); "As of" keeps the build day. The clock is fixed at noon Central.
   const at = (day) => Date.parse(`${day}T12:00:00Z`);
-  for (const [day, asOf] of [['2026-11-15', 'As of Nov 15, 2026'], ['2027-05-02', 'As of May 2, 2027']]) {
+  const builtAsOf = (await (await fetch(base + '/')).text()).match(/As of [^<]+/)?.[0];
+  for (const day of ['2026-11-15', '2027-05-02']) {
     const label = `key dates on ${day}`;
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
     const tab = await context.newPage();
@@ -379,14 +380,14 @@ try {
       const tl = document.querySelector('[data-tl-start]');
       return {
         start: tl?.dataset.tlStart, end: tl?.dataset.tlEnd,
-        asOf: document.querySelector('[data-as-of]')?.textContent,
+        asOf: document.querySelector('.dates-title span')?.textContent,
         now: document.querySelector('.tl-now')?.getAttribute('x1') ?? null,
         label: document.querySelector('.tl-now-label')?.getAttribute('x') ?? null,
         past: document.querySelector('.tl-past')?.getAttribute('x2'),
       };
     });
     const pct = Math.min(100, Math.max(0, ((at(day) - at(state.start)) / (at(state.end) - at(state.start))) * 100)).toFixed(2) + '%';
-    expect(state.asOf === asOf, `${label}: "${state.asOf}", expected "${asOf}"`);
+    expect(builtAsOf && state.asOf === builtAsOf, `${label}: "${state.asOf}", expected the build day "${builtAsOf}"`);
     expect(state.past === pct, `${label}: the past track ends at ${state.past}, expected ${pct}`);
     if (day < state.end) {
       expect(state.now === pct && state.label === pct, `${label}: Now at ${state.now} (label ${state.label}), expected ${pct}`);

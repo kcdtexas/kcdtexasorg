@@ -1,7 +1,8 @@
 ---
 // Key dates: a tour strip from October to April. Every bar and mark sits at its date, computed at
-// build time from the Edition file. "Now" and "As of" start at the build day; /now.js moves them
-// to today between builds (the owner's A50). After the strip ends, there is no "Now" (owner, 2026-10-03).
+// build time from the Edition file. "As of" is the build day: the day the statuses were last checked.
+// "Now" starts there, and /now.js moves it to today between builds (the owner's A50). After the strip
+// ends, there is no "Now" (owner, 2026-10-03).
 import { home } from '../data/home';
 import { asOfDay, edition2027, shortDateYear, timeline, timelinePercent } from '../data/edition-2027';
 import { contact, prospectus } from '../data/site';
@@ -19,7 +20,7 @@ const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
 
 <section class="dates" aria-labelledby="dates-title">
   <div class="wrap">
-    <h2 id="dates-title" class="dates-title">Key dates <span data-as-of>As of {shortDateYear(asOfDay)}</span></h2>
+    <h2 id="dates-title" class="dates-title">Key dates <span>As of {shortDateYear(asOfDay)}</span></h2>
     <div class="tl" aria-hidden="true" data-tl-start={timeline.start} data-tl-end={timeline.end}>
       <div class="tl-months">{months.map((m) => m === 'Jan' ? <span>Jan <i>{e.year}</i></span> : <span>{m}</span>)}</div>
       <svg class="tl-track" focusable="false">
