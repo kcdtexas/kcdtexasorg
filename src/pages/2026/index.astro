@@ -37,7 +37,7 @@ const others = speakers2026.filter((s) => !s.youtube);
       </ul>
     </section>
 
-    <section class="page-sec" aria-labelledby="program">
+    <section class="page-sec page-wide" aria-labelledby="program">
       <h2 id="program" class="page-h2">{p.program.title}</h2>
       <p>{p.program.intro}</p>
       <h3 class="page-h3">{p.program.recordedTitle}</h3>
@@ -66,7 +66,7 @@ const others = speakers2026.filter((s) => !s.youtube);
       </ul>
     </section>
 
-    <section class="page-sec" aria-labelledby="sponsors">
+    <section class="page-sec page-wide" aria-labelledby="sponsors">
       <h2 id="sponsors" class="page-h2">{p.sponsors.title}</h2>
       <SponsorTiers />
       <p class="pg-addons">{p.sponsors.addOnsLabel} {edition2026.addOns.map((a) => `${a.name} (${a.item})`).join(', ')}.</p>

@@ -31,7 +31,15 @@
   .pg-partners dt { font-weight: 700; font-size: 15px; color: var(--muted); }
   .pg-partners dd { margin-top: 2px; }
 
+  /* The wide sections: more columns on big screens, text blocks kept to a reading width. */
+  .page-wide > p, .page-wide > .pg-src { max-width: 40em; }
+  .page-sec > .pg-talks, .page-sec > .pg-people, .page-sec > .pg-keynotes { max-width: none; }
+  @media (min-width: 1100px) {
+    .pg-talks { grid-template-columns: repeat(3, 1fr); }
+    .pg-people { grid-template-columns: repeat(4, 1fr); }
+  }
   @media (max-width: 899px) {
+    .pg-talks { grid-template-columns: repeat(2, 1fr); }
     .pg-people { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 599px) {
