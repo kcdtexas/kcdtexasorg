@@ -1,0 +1,36 @@
+---
+// A minimal 2027 CFP page, so every talk button has a real target. The full page comes with the v1 pages.
+import Base from '../../layouts/Base.astro';
+import { cfp } from '../../data/cfp';
+import { contact, legal } from '../../data/site';
+---
+
+<Base title={`${cfp.title} · KCD Texas`} description={cfp.description}>
+  <article class="cfp wrap">
+    <p class="kicker">Call for proposals</p>
+    <h1 class="cfp-title">{cfp.title}</h1>
+    <p class="lead cfp-lead">{cfp.lead}</p>
+    <dl class="cfp-dates">
+      {cfp.dates.map((d) => <div><dt>{d.term}</dt><dd>{d.text}</dd></div>)}
+    </dl>
+    <p class="cfp-submit">{cfp.submit} <span>{cfp.submitNote}</span></p>
+
+    <section class="cfp-sec" aria-labelledby="look">
+      <h2 id="look" class="cfp-h2">{cfp.lookFor.title}</h2>
+      <p>{cfp.lookFor.intro}</p>
+      <ul class="cfp-list">{cfp.lookFor.points.map((p) => <li>{p}</li>)}</ul>
+    </section>
+
+    <section class="cfp-sec" aria-labelledby="end-user">
+      <h2 id="end-user" class="cfp-h2">{cfp.endUser.title}</h2>
+      <p>{cfp.endUser.text}</p>
+      <p class="cfp-employer">{cfp.endUser.employer}</p>
+    </section>
+
+    <section class="cfp-sec" aria-labelledby="conduct">
+      <h2 id="conduct" class="cfp-h2">Code of Conduct</h2>
+      <p>{cfp.conduct} <a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a>.</p>
+      <p>{cfp.questions} <a href={`mailto:${contact.email}`}>{contact.email}</a>.</p>
+    </section>
+  </article>
+</Base>
