@@ -4,10 +4,12 @@ import Base from '../../layouts/Base.astro';
 import { cfp } from '../../data/cfp';
 import { cfpStatus } from '../../data/edition-2027';
 import { contact, legal } from '../../data/site';
+
+// The "call for proposals is open" card only once it is open; the rebuild on the opening day switches it.
+const card = cfpStatus() === 'Open now' ? 'cfp' : 'default';
 ---
 
-<!-- The "call for proposals is open" card only once it is open; the rebuild on the opening day switches it. -->
-<Base title={`${cfp.title} · KCD Texas`} description={cfp.description} card={cfpStatus() === 'Open now' ? 'cfp' : 'default'}>
+<Base title={`${cfp.title} · KCD Texas`} description={cfp.description} card={card}>
   <article class="cfp wrap">
     <p class="kicker">Call for proposals</p>
     <h1 class="cfp-title">{cfp.title}</h1>
