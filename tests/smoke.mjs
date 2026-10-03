@@ -83,7 +83,8 @@ for (const path of new Set(assets)) {
 // 5. Link previews: every page has the tags, and its card loads from our domain.
 // The social cards (src/lib/cards/cards.ts), each 1200 x 630 and under 300 KB.
 const CARDS = ['/cards/default.png', '/cards/sponsorships.png', '/cards/cfp.png'];
-const OUR_HOSTS = new Set(['kcdtexas.org', new URL(base).host]);
+// Preview builds point og:image at their own address (CARD_ORIGIN).
+const OUR_HOSTS = new Set(['kcdtexas.org', new URL(base).host, ...(process.env.CARD_ORIGIN ? [new URL(process.env.CARD_ORIGIN).host] : [])]);
 const meta = (html, key) =>
   html.match(new RegExp(`<meta (?:property|name)="${key.replace(/[:.]/g, '\\$&')}" content="([^"]*)"`))?.[1];
 const cardPaths = new Set(CARDS);
