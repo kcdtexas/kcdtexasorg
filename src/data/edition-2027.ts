@@ -39,8 +39,8 @@ export function phaseOn(day: string): Phase {
   return 'recap';
 }
 
-/** The day the build describes: today, but never before the announcement. */
-export const asOfDay = [todayCentral(), edition2027.announced].sort().at(-1)!;
+/** The day the build describes: the build day, in Central time. "Now" and "As of" on the key dates use it. */
+export const asOfDay = todayCentral();
 export const phase: Phase = phaseOn(asOfDay);
 
 const at = (day: string) => new Date(`${day}T12:00:00Z`);

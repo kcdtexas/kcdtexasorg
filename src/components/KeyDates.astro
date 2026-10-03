@@ -11,6 +11,8 @@ const width = (from: string, to: string) => `${(timelinePercent(to) - timelinePe
 const eventMonth = `${e.eventDay.slice(0, 8)}01`;
 const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl };
 const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+// "Now" sits left of its line, except near the strip's start, where it would run off the edge.
+const nowLeft = timelinePercent(asOfDay) > 6;
 ---
 
 <section class="dates" aria-labelledby="dates-title">
@@ -27,7 +29,7 @@ const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
         <rect class="tl-event" x={pct(eventMonth)} width={width(eventMonth, timeline.end)} y="0" height="34" />
         <text class="tl-event-label" x={`${((timelinePercent(eventMonth) + 100) / 2).toFixed(2)}%`} y="17" text-anchor="middle" dominant-baseline="central">{e.city}</text>
         <line class="tl-now" x1={pct(asOfDay)} x2={pct(asOfDay)} y1="-10" y2="44" />
-        <text class="tl-now-label" x={pct(asOfDay)} dx="-7" y="9" text-anchor="end" dominant-baseline="central">Now</text>
+        <text class="tl-now-label" x={pct(asOfDay)} dx={nowLeft ? -7 : 7} y="9" text-anchor={nowLeft ? 'end' : 'start'} dominant-baseline="central">Now</text>
       </svg>
     </div>
     <ol class="tl-list">
