@@ -80,7 +80,40 @@ for (const path of new Set(assets)) {
   }
 }
 
-// 5. Basics.
+// 5. Link previews: every page has the tags, and its card loads from our domain.
+// The social cards (src/lib/cards/cards.ts), each 1200 x 630 and under 300 KB.
+const CARDS = ['/cards/default.png', '/cards/sponsorships.png', '/cards/cfp.png'];
+const OUR_HOSTS = new Set(['kcdtexas.org', new URL(base).host]);
+const meta = (html, key) =>
+  html.match(new RegExp(`<meta (?:property|name)="${key.replace(/[:.]/g, '\\$&')}" content="([^"]*)"`))?.[1];
+const cardPaths = new Set(CARDS);
+for (const [path, html] of Object.entries(pageHtml)) {
+  for (const key of ['og:title', 'og:description', 'og:type', 'og:url', 'og:image', 'og:image:alt', 'og:image:width', 'og:image:height']) {
+    expect(meta(html, key), `${path} has no ${key}`);
+  }
+  expect(meta(html, 'og:site_name') === 'KCD Texas', `${path} og:site_name is ${meta(html, 'og:site_name')}`);
+  expect(meta(html, 'twitter:card') === 'summary_large_image', `${path} twitter:card is ${meta(html, 'twitter:card')}`);
+  expect(meta(html, 'og:image:width') === '1200' && meta(html, 'og:image:height') === '630', `${path} og:image size is not 1200 x 630`);
+  const image = meta(html, 'og:image') ?? '';
+  expect(/^https?:\/\//.test(image), `${path} og:image is not absolute: ${image}`);
+  if (/^https?:\/\//.test(image)) {
+    const url = new URL(image);
+    expect(OUR_HOSTS.has(url.host), `${path} og:image is not on our domain: ${image}`);
+    cardPaths.add(url.pathname);
+  }
+}
+for (const path of cardPaths) {
+  const res = await get(path);
+  expect(res.status === 200, `${path} returned ${res.status}`);
+  expect(res.headers.get('content-type') === 'image/png', `${path} content type is ${res.headers.get('content-type')}`);
+  const png = Buffer.from(await res.arrayBuffer());
+  expect(png.length < 300 * 1024, `${path} is ${Math.round(png.length / 1024)} KB, budget is under 300 KB`);
+  // The PNG header's IHDR chunk holds the width and height.
+  const size = png.length > 24 && png.toString('latin1', 12, 16) === 'IHDR' ? `${png.readUInt32BE(16)} x ${png.readUInt32BE(20)}` : 'not a PNG';
+  expect(size === '1200 x 630', `${path} is ${size}, expected 1200 x 630`);
+}
+
+// 6. Basics.
 expect((await get('/robots.txt')).status === 200, 'robots.txt missing');
 expect((await get('/favicon.svg')).status === 200, 'favicon.svg missing');
 

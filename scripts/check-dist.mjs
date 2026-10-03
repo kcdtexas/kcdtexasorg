@@ -42,6 +42,21 @@ for (const file of htmlFiles) {
   }
 }
 
+// The social cards: link previews need 1200 x 630 PNGs, and they stay small enough for every site that fetches them.
+const CARDS = ['default', 'sponsorships', 'cfp'];
+for (const name of CARDS) {
+  const file = join(DIST, 'cards', `${name}.png`);
+  if (!existsSync(file)) { failures.push(`missing dist/cards/${name}.png`); continue; }
+  const png = readFileSync(file);
+  if (png.length >= 300 * 1024) failures.push(`cards/${name}.png is ${Math.round(png.length / 1024)} KB (budget under 300 KB)`);
+  if (png.readUInt32BE(16) !== 1200 || png.readUInt32BE(20) !== 630) failures.push(`cards/${name}.png is not 1200 x 630`);
+}
+for (const file of htmlFiles) {
+  const image = readFileSync(file, 'utf8').match(/<meta property="og:image" content="([^"]+)"/)?.[1];
+  if (!image) failures.push(`${file}: no og:image`);
+  else if (!/^https:\/\/[^/]+\/cards\/[a-z-]+\.png$/.test(image)) failures.push(`${file}: og:image is not an absolute card URL: ${image}`);
+}
+
 // The theme script runs before the first paint, so it stays tiny.
 if (existsSync(join(DIST, 'theme.js')) && statSync(join(DIST, 'theme.js')).size >= 1024) failures.push('theme.js is 1 KB or larger');
 

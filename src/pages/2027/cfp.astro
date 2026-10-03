@@ -2,10 +2,12 @@
 // A minimal 2027 CFP page, so every talk button has a real target. The full page comes with the v1 pages.
 import Base from '../../layouts/Base.astro';
 import { cfp } from '../../data/cfp';
+import { cfpStatus } from '../../data/edition-2027';
 import { contact, legal } from '../../data/site';
 ---
 
-<Base title={`${cfp.title} · KCD Texas`} description={cfp.description}>
+<!-- The "call for proposals is open" card only once it is open; the rebuild on the opening day switches it. -->
+<Base title={`${cfp.title} · KCD Texas`} description={cfp.description} card={cfpStatus() === 'Open now' ? 'cfp' : 'default'}>
   <article class="cfp wrap">
     <p class="kicker">Call for proposals</p>
     <h1 class="cfp-title">{cfp.title}</h1>

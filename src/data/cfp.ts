@@ -28,6 +28,8 @@ export const cfp = {
     title: 'Your End-User Story',
     text: 'If your organization runs cloud native for its own business rather than selling it, tell us how. Mark your proposal as an End-User Story and it gets a label on the Schedule.',
     employer: 'You don’t have to name your employer’s systems. Ask us for help with your company’s review.',
+    // One line on the call-for-proposals social card.
+    cardLine: 'Run cloud native for your own business? Tell us your End-User Story.',
   },
   conduct: 'Speakers agree to the',
   questions: 'Questions? Email',
