@@ -104,7 +104,11 @@ function check() {
       if (!/rel="canonical"/.test(m[0])) failures.push(`${file}: <link> to another host: ${m[1]}`);
     }
     for (const marker of findDraftMarkers(html)) failures.push(`${file}: draft marker ${marker}`);
-    if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
+    if (/(^|\/)404\.html$/.test(file)) {
+      // The 404 page is served at any unknown address: no canonical address, and noindex.
+      if (/rel="canonical"/.test(html)) failures.push(`${file}: the 404 page has a canonical link`);
+      if (!/<meta name="robots" content="noindex">/.test(html)) failures.push(`${file}: the 404 page lacks noindex`);
+    } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
   }
 
   // The sitemap lists every page except the 404 page, at absolute kcdtexas.org addresses, and robots.txt names it.

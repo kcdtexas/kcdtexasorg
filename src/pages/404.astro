@@ -5,7 +5,7 @@ import { notFound as n } from '../data/not-found';
 import { contact } from '../data/site';
 ---
 
-<Base title={n.title} description={n.description}>
+<Base title={n.title} description={n.description} notFound>
   <article class="page wrap">
     {/* The heading goes in unescaped, so its straight apostrophe matches the smoke test's check. */}
     <header class="page-head">

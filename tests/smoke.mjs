@@ -236,9 +236,12 @@ expect(!ldProblems.length, `home page JSON-LD: ${ldProblems.join('; ')}`);
 for (const [, url] of (pageHtml['/'] ?? '').matchAll(/"(?:logo|image)":"(https:\/\/kcdtexas\.org\/[^"]+)"/g)) {
   expect((await get(new URL(url).pathname)).status === 200, `JSON-LD file ${url} does not load here`);
 }
-for (const path of PAGES) {
+for (const path of PAGES.filter((p) => p !== MISSING)) {
   expect(/<link rel="canonical" href="https:\/\/kcdtexas\.org\//.test(pageHtml[path]), `${path} has no canonical kcdtexas.org link`);
 }
+// The 404 page answers at any unknown address, so it names no canonical address and stays out of search results.
+expect(!/rel="canonical"/.test(pageHtml[MISSING] ?? ''), 'the 404 page has a canonical link');
+expect(/<meta name="robots" content="noindex">/.test(pageHtml[MISSING] ?? ''), 'the 404 page lacks noindex');
 
 console.log(`Smoke pages: ${Object.keys(pageHtml).sort().join(' ')}`);
 if (notices.length) console.log(`Smoke notice: links to v1 pages not built yet (pending until listed in REQUIRED_PAGES): ${notices.sort().join(' ')}`);
