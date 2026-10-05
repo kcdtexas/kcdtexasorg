@@ -39,7 +39,7 @@ import { contact, legal } from '../data/site';
     <section class="page-sec" aria-labelledby="organizers">
       <h2 id="organizers" class="page-h2">{a.organizers.title}</h2>
       {a.organizers2027.length === 0 ? (
-        <p class="page-soon">{a.organizers.soon}</p>
+        <p class="page-soon">{a.organizers.soon} <a href={a.organizers.past.href}>{a.organizers.past.text}</a></p>
       ) : (
         <ul class="page-list">{a.organizers2027.map((o) => <li><b>{o.name}</b>, {o.employer}. {o.role}</li>)}</ul>
       )}

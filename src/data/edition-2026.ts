@@ -118,9 +118,23 @@ export const edition2026 = {
     hosts: ['Lisa-Marie Namphy', 'Hanna Busekrus', 'Nicole Pletka'],
   },
 
+  // The 2026 Organizers: name, company and title as printed on the 2026 Event Page's organizer cards
+  // (checked 2026-10-05), in its order; photos from the same cards (src/assets/organizers). The footer
+  // lists the names, and /2026/ shows the cards (the owner's decision, 2026-10-05).
   organizers: [
-    'Richard Boyd II', 'Harsha Thirimanna', 'Eddie Wassef', 'Mara Ruvalcaba', 'Cristobal Nevares', 'Srihari Nagaram', 'Jamie Prince',
-    'Chad Crowell', 'Mars Toktonaliev', 'Rafael Brito', 'Cristher Castro', 'Vishwa Gandhi', 'Joel Hernandez',
+    { name: 'Chad Crowell', company: 'Akamai', title: '2023 CNCF Ambassador', photo: 'chad-crowell' },
+    { name: 'Mars Toktonaliev', company: '', title: 'Senior System Engineer at KGPCo', photo: 'mars-toktonaliev' },
+    { name: 'Rafael Brito', company: 'Broadcom', title: 'Staff Engineer', photo: 'rafael-brito' },
+    { name: 'Jamie Prince', company: 'Red Hat', title: 'Product Manager', photo: 'jamie-prince' },
+    { name: 'Richard Boyd II', company: 'Liatrio', title: 'Principal DevOps Engineer', photo: 'richard-boyd-ii' },
+    { name: 'Harsha Thirimanna', company: 'WSO2 LLC', title: 'Head of IAM CS | US & LATAM', photo: 'harsha-thirimanna' },
+    { name: 'Eddie Wassef', company: 'Archetypical Software', title: 'Founder, CTO', photo: 'eddie-wassef' },
+    { name: 'Cristher Castro', company: 'Cuemby', title: 'COO', photo: 'cristher-castro' },
+    { name: 'Mara Ruvalcaba', company: 'Software Guru', title: 'Marketing', photo: 'mara-ruvalcaba' },
+    { name: 'Cristobal Nicolas Nevares', company: 'Zynga', title: 'Senior Software Engineer 2', photo: 'cristobal-nicolas-nevares' },
+    { name: 'Srihari Nagaram', company: 'Doma TechCo', title: 'Sr. Platform engineer', photo: 'srihari-nagaram' },
+    { name: 'Vishwa Hiren Gandhi', company: 'oracle', title: 'software engineer', photo: 'vishwa-hiren-gandhi' },
+    { name: 'Joel Hernandez', company: '', title: 'Senior Technical Account Manager', photo: 'joel-hernandez' },
   ],
 } as const;
 

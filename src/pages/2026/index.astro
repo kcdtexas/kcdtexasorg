@@ -7,7 +7,7 @@ import SponsorTiers from '../../components/SponsorTiers.astro';
 import { page2026 as p } from '../../data/page-2026';
 import { edition2026, youtube } from '../../data/edition-2026';
 import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../../data/program-2026';
-import { keynotePhotos } from '../../lib/images';
+import { keynotePhotos, organizerPhotos } from '../../lib/images';
 
 const keynotes = keynotes2026.map((k) => ({ ...k, photo: edition2026.keynotes.find((s) => s.name === k.name)! }));
 const recorded = speakers2026.filter((s) => s.youtube);
@@ -75,6 +75,20 @@ const others = speakers2026.filter((s) => !s.youtube);
       <dl class="pg-partners">
         {edition2026.partnerGroups.map((g) => <div><dt>{g.type}</dt><dd>{g.names.join(', ')}</dd></div>)}
       </dl>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="organizers">
+      <h2 id="organizers" class="page-h2">{p.organizers.title}</h2>
+      <ul class="pg-org">
+        {edition2026.organizers.map((o) => (
+          <li>
+            <Image class="pg-org-photo" src={organizerPhotos[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt={o.name} loading="lazy" />
+            <b>{o.name}</b>
+            <span class="pg-aff">{[o.company, o.title].filter(Boolean).join(' · ')}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="pg-src">{p.organizers.asPrinted}</p>
     </section>
 
     <section class="page-sec" aria-labelledby="look-back">
