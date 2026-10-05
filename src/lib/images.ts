@@ -9,6 +9,7 @@ const byName = (files: Glob) =>
 export const photos = byName(import.meta.glob('../assets/photos/*.jpg', { eager: true }));
 export const keynotePhotos = byName(import.meta.glob('../assets/keynotes/*.jpg', { eager: true }));
 export const faces = byName(import.meta.glob('../assets/faces/*.jpg', { eager: true }));
+export const organizerPhotos = byName(import.meta.glob('../assets/organizers/*.jpg', { eager: true }));
 export const logos = byName(import.meta.glob('../assets/logos/*.svg', { eager: true }));
 export { default as badge } from '../assets/brand/badge-2027-600.png';
 export { default as recapPoster } from '../assets/video/recap-poster.jpg';

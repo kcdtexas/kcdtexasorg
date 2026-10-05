@@ -45,6 +45,11 @@ export const page2026 = {
     partnersTitle: 'Partners',
   },
 
+  organizers: {
+    title: 'The 2026 Organizers',
+    asPrinted: 'Names, companies and titles as printed on the 2026 Event Page.',
+  },
+
   lookBack: {
     title: 'Look back',
     links: [

@@ -48,6 +48,7 @@ export const about = {
   organizers: {
     title: 'Organizers',
     soon: `The ${e.year} Organizers, with their employers, are listed here soon.`,
+    past: { text: 'Meet the 2026 Organizers', href: '/2026/#organizers' },
   },
   // The 2027 Organizer roster. Empty until the roster form comes back with each person's consent (A28);
   // while empty, the page shows the "soon" line above.

@@ -15,9 +15,11 @@ interface Props {
   card?: CardId;
   /** Structured data for search engines, as a JSON-LD object (src/lib/structured-data.ts). */
   jsonLd?: object;
+  /** The 404 page: no canonical address of its own (hosts serve it at many), and kept out of search results. */
+  notFound?: boolean;
 }
 
-const { title, description, mainClass, card = 'default', jsonLd } = Astro.props;
+const { title, description, mainClass, card = 'default', jsonLd, notFound = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 // Link previews need an absolute image URL. Preview builds set CARD_ORIGIN to their own address.
 const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Astro.site);
@@ -30,7 +32,7 @@ const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Ast
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
+    {notFound ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/archivo/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="color-scheme" content="light dark" />
@@ -42,7 +44,7 @@ const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Ast
     <meta property="og:site_name" content="KCD Texas" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
+    <meta property="og:url" content={notFound ? new URL('/', Astro.site) : canonical} />
     <meta property="og:image" content={cardUrl} />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content={String(CARD.width)} />
