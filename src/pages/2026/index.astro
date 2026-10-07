@@ -82,7 +82,7 @@ const others = speakers2026.filter((s) => !s.youtube);
       <ul class="pg-org">
         {edition2026.organizers.map((o) => (
           <li>
-            <Image class="pg-org-photo" src={organizerPhotos[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt={o.name} loading="lazy" />
+            <Image class="pg-org-photo" src={organizerPhotos[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt="" loading="lazy" />
             <b>{o.name}</b>
             <span class="pg-aff">{[o.company, o.title].filter(Boolean).join(' · ')}</span>
           </li>
