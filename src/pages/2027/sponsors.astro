@@ -12,7 +12,11 @@ import { contact, legal, prospectus } from '../../data/site';
 <Base title={`${s.title} · KCD Texas`} description={s.description} card="sponsorships">
   <article class="page wrap sp-page">
     <PageHead kicker={s.kicker} title={s.title} lead={s.lead}>
-      <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} /></div>
+      {prospectus.url ? (
+        <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.note} /></div>
+      ) : (
+        <p class="page-callout"><b>{s.prospectusSoon.lead}</b> <span>{s.prospectusSoon.before} <a href="#tiers">{s.prospectusSoon.link}</a>.</span></p>
+      )}
     </PageHead>
 
     <section class="page-sec" aria-labelledby="meet">
@@ -58,7 +62,7 @@ import { contact, legal, prospectus } from '../../data/site';
       ) : (
         <ul class="page-list">{s.terms2027.map((t) => <li><b>{t.name}</b> {t.price}: {t.benefits.join('; ')}</li>)}</ul>
       )}
-      <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} /></div>
+      {prospectus.url && <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.note} /></div>}
       <p class="src sp-pdf">{s.tiers.sourceLabel} <a href={edition2026.prospectusPdf.url}>{s.tiers.pdfSource}</a></p>
     </section>
 

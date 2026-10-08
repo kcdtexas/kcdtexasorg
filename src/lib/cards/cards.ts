@@ -60,7 +60,7 @@ function sponsorCard(): Node {
       h('div', { fontSize: 76, ...type.display, lineHeight: 0.9 }, 'Sponsorships are open'),
     ),
     h('div', { marginTop: 18, alignItems: 'center', justifyContent: 'space-between' },
-      door('Sponsors', prospectus.label, 26),
+      door('Sponsors', prospectus.url ? prospectus.label : prospectus.note, 26),
       h('div', { fontSize: 28, ...type.bold }, domain),
     ),
     h('div', { marginTop: 26, fontSize: 28, ...type.head }, `${edition2026.sponsorCount} companies backed KCD Texas ${edition2026.year}`),

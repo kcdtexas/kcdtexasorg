@@ -1,5 +1,6 @@
 // Facts shown on the site. Every number needs a public source (see CLAUDE.md).
 import { edition2027, longDate } from './edition-2027';
+import { paths } from './nav';
 
 export const contact = {
   email: 'organizers@kcdtexas.org',
@@ -27,11 +28,18 @@ export const legal = {
   lfTrademarksUrl: 'https://www.linuxfoundation.org/legal/trademark-usage',
 } as const;
 
-// The sponsor door: one email with the fields the Sponsor Committee needs.
+// The 2027 prospectus (Sponsor Committee): a PDF the committee puts on GitHub and links directly, so no
+// one has to email for it. Until its link is in, the sponsor doors open the sponsors page and say it's
+// coming soon (a Co-Organizer, 2026-10-08). Put the direct link in `url` to switch every door to it.
+const prospectusUrl: string = '';
 export const prospectus = {
-  href: `mailto:${contact.email}?subject=${encodeURIComponent(`KCD Texas ${edition2027.year} sponsor prospectus`)}&body=${encodeURIComponent('Company: \r\nName: \r\nSponsor Tier of interest: ')}`,
-  label: `Email us for the ${edition2027.year} prospectus`,
-  reply: 'We reply within two business days.',
+  url: prospectusUrl,
+  href: prospectusUrl || paths.sponsors,
+  // The doors: the hero, the home sponsor block and the sponsors link card.
+  label: prospectusUrl ? `Download the ${edition2027.year} prospectus` : `Sponsor KCD Texas ${edition2027.year}`,
+  // The open slot on the home page's sponsor wall, next to "Your logo here".
+  slot: prospectusUrl ? `Download the ${edition2027.year} prospectus` : 'How to sponsor',
+  note: prospectusUrl ? 'PDF on GitHub' : `${edition2027.year} prospectus coming soon`,
 } as const;
 
 // Umami, the one analytics exception to zero data (ADR 0007). Off until the host sets ANALYTICS=umami;

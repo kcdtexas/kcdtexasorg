@@ -3,7 +3,7 @@
 import { Image } from 'astro:assets';
 import { home } from '../data/home';
 import { dallasMetro } from '../data/edition-2026';
-import { contact, legal, prospectus } from '../data/site';
+import { legal, prospectus } from '../data/site';
 import { photos } from '../lib/images';
 
 const s = home.sponsor;
@@ -35,7 +35,7 @@ const s = home.sponsor;
       </figure>
       <div class="offer">
         <a class="btn btn--wide" href={prospectus.href}>{prospectus.label}</a>
-        <p class="offer-mail">{prospectus.reply} Or write to {contact.email}.</p>
+        <p class="offer-mail">{prospectus.note}.</p>
       </div>
       <p class="coc">Sponsors agree to the <a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a>.</p>
     </div>

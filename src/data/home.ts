@@ -1,5 +1,6 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
+import { prospectus } from './site';
 import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
@@ -33,7 +34,7 @@ export const home = {
 
   dates: {
     items: [
-      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: { text: 'Email us for the prospectus', href: 'prospectus' } },
+      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'Prospectus coming soon' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
       { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: { text: 'Chapter members hear first', href: 'chapter' } },
       { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: 'With the Speakers and keynotes' } },
@@ -66,7 +67,7 @@ export const home = {
       'Your logo on the website, in emails, on signage and in the CNCF transparency report',
       'Full-day passes for your team',
     ],
-    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar. ${e.year} details are in the prospectus.`,
+    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar. ${e.year} details come with the prospectus.`,
     // Critique fix 8: the sponsor hall (photo 001) instead of the cut-off roll-up (136).
     photoAlt: 'Attendees, several in cowboy hats, walk between sponsor tables in the KCD Texas 2026 sponsor hall, in front of Diagrid’s backdrop.',
     photoTime: '8:41 a.m.',
