@@ -11,7 +11,7 @@ interface Props {
   title?: string;
   /** Put before each tier name, such as "2026". */
   tierPrefix?: string;
-  /** Show the "Your logo here" slot and the prospectus line. */
+  /** Show the "Your logo here" slot. */
   next?: boolean;
   /** Drop the full-width wrapper, for use inside a page column. */
   bare?: boolean;
@@ -27,9 +27,6 @@ const { title = home.wall.title, tierPrefix, next = true, bare = false } = Astro
     {next && (
       <div class="wall-next">
         <a class="slot slot--logo" href={prospectus.href}><span class="slot-label">{home.wall.slot}</span><span class="slot-sub">{prospectus.slot}<span class="arrow" aria-hidden="true">→</span></span></a>
-        <div class="wall-links">
-          <p>{prospectus.note}.</p>
-        </div>
       </div>
     )}
   </div>
