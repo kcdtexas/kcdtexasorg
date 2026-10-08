@@ -11,7 +11,7 @@
   .tl-axis { stroke: var(--line); stroke-width: 1px; }
   .tl-past { stroke: var(--muted); stroke-width: 1px; }
   .tl-bar--cfp { fill: var(--fg); }
-  .tl-bar--tix { fill: var(--track-tickets); }
+  .tl-bar--tix, .tl-bar--sched { fill: var(--track-tickets); }
   .tl-mark { fill: var(--signal, var(--fg)); stroke: var(--bg); stroke-width: 2px; }
   .tl-event { fill: var(--signal, var(--fg)); }
   .tl-event-label { fill: var(--on-signal, var(--bg)); font-stretch: 62%; font-weight: 900; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -19,13 +19,19 @@
   .tl-now-label { fill: var(--fg); font-size: 13px; font-weight: 800; }
   .tl-list { display: grid; grid-template-columns: 31fr 92fr 28fr 31fr 30fr; }
   .tl-it { padding: 12px 12px 0 8px; border-left: 1px solid var(--fg); }
-  /* Each item sits under its stretch of the strip; one with no date yet goes under the first stretch. */
-  .tl-it--sched { grid-column: 4; }
-  .tl-it--event { grid-column: 5; }
-  .tl-it--undated { grid-column: 1; grid-row: 2; padding-top: 16px; }
   .it-name { font-weight: 700; font-size: 15px; line-height: 1.3; }
   .it-st { margin-top: 2px; font-stretch: 62%; font-weight: 800; font-size: 24px; line-height: 1.1; }
   .it-dt { margin-top: 4px; font-size: 15px; line-height: 1.35; color: var(--muted); }
+
+  /* Wide screens: each item sits under its stretch of the strip. While tickets have no sale day, the
+     call for proposals' column runs through February and Tickets is one slim line under the list. */
+  @media (min-width: 1100px) {
+    .tl-it--sched { grid-column: 4; }
+    .tl-it--event { grid-column: 5; }
+    .tl-list--no-tix-day .tl-it--cfp { grid-column: 2 / span 2; }
+    .tl-list--no-tix-day .tl-it--tix { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-top: 18px; padding: 10px 0 0; border-left: 0; border-top: 1px solid var(--line); }
+    .tl-list--no-tix-day .tl-it--tix .it-st, .tl-list--no-tix-day .tl-it--tix .it-dt { margin-top: 0; }
+  }
 
   @media (max-width: 1099px) {
     .tl-months i { display: none; }
