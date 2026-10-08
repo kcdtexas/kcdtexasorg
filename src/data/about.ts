@@ -18,8 +18,8 @@ export const about = {
     rows: [
       { year: '2023', text: 'Canceled.' },
       { year: '2024', text: 'Austin, co-located with Texas Linux Fest.' },
-      { year: '2025', text: `Austin Central Library. The first independent KCD Texas. ${edition2026.checkedIn2025} attendees checked in.` },
-      { year: String(edition2026.year), text: `TCEA, ${edition2026.city}, ${edition2026.date}. ${edition2026.checkedIn} attendees checked in, with ${edition2026.speakers} Speakers and ${edition2026.sponsorCount} sponsors.` },
+      { year: '2025', text: 'Austin Central Library. The first independent KCD Texas.' },
+      { year: String(edition2026.year), text: `TCEA, ${edition2026.city}, ${edition2026.date}, with ${edition2026.speakers} Speakers and ${edition2026.sponsorCount} sponsors.` },
       { year: String(e.year), text: `${e.city}, ${longDate(e.eventDay)}.`, current: true },
     ],
     source: 'Source: CNCF transparency reports for',

@@ -1,5 +1,5 @@
 ---
-// The 2026 photo band under the hero: 2026's verified numbers, then two photos, each with its
+// The 2026 photo band under the hero: a line on 2026, then two photos, each with its
 // caption under it, in the same style as every other photo caption (.photo in base.css).
 // Phones show only the photo that has a phone crop: the afternoon session, cropped tighter.
 import { getImage } from 'astro:assets';
@@ -22,7 +22,7 @@ const shots = await Promise.all(h.band.map(async (b) => {
 ---
 
 <div class="band">
-  <p class="proof"><strong>{h.proofLead}</strong> <span><b>{edition2026.checkedIn}</b> checked in</span> <i aria-hidden="true">·</i> <span><b>{edition2026.speakers}</b> Speakers</span> <i aria-hidden="true">·</i> <span><b>{edition2026.sponsorCount}</b> sponsors</span> <i aria-hidden="true">·</i> <span>{edition2026.recordings} talks on YouTube</span></p>
+  <p class="proof"><strong>{h.proofLead}</strong> <span><b>{edition2026.speakers}</b> Speakers</span> <i aria-hidden="true">·</i> <span><b>{edition2026.sponsorCount}</b> sponsors</span> <i aria-hidden="true">·</i> <span>{edition2026.recordings} talks on YouTube</span></p>
   <div class="shots">
     {shots.map((s) => (
       <figure class:list={['photo', 'shot', { 'shot--wide': !s.phone }]}>

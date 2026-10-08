@@ -47,18 +47,10 @@ export const home = {
     slot: `Your logo here in ${e.year}`,
   },
 
-  room: {
-    title: 'Who was in the room in 2026',
-    checkedInLabel: `attendees checked in, ${edition2026.city}, ${edition2026.date}`,
-    reportSource: 'CNCF transparency report',
-    surveySource: '2026 pre-registration survey, so it describes the people who answered it',
-    more: 'Read the KCD Texas 2026 transparency report',
-  },
-
   sponsor: {
     kicker: 'Sponsor',
     title: 'Put your team in front of Texas platform engineers.',
-    lead: 'KCD Texas is where Texas teams that run Kubernetes meet the companies that build their tools. In the 2026 pre-registration survey, about 7 in 10 respondents were DevOps, SRE and sysadmin staff, developers or architects, 79% were from Texas, and about 1 in 4 worked at an End-User company.',
+    lead: 'KCD Texas is where Texas teams that run Kubernetes meet the companies that build their tools.',
     tiersTitle: 'What 2026 Sponsor Tiers included',
     tiersSource: '(from the public 2026 prospectus)',
     tiers: [

@@ -27,12 +27,11 @@ import { editions as ed } from '../data/editions';
             <p class="ed-place">{e.place}</p>
             {e.facts.length > 0 && <ul class="ed-facts">{e.facts.map((f) => <li>{f}</li>)}</ul>}
             {e.link && <p class="ed-link"><a href={e.link.href}>{e.link.text}<span class="arrow" aria-hidden="true"> →</span></a></p>}
-            <p class="ed-src">Source: <a href={e.source.href}>{e.source.text}</a>.{'sourceNote' in e && ` ${e.sourceNote}`}</p>
+            <p class="ed-src">Source: <a href={e.source.href}>{e.source.text}</a>.</p>
           </div>
         </li>
       ))}
     </ol>
     <p class="page-soon">{ed.canceled}</p>
-    <p class="ed-note">{ed.sources}</p>
   </article>
 </Base>

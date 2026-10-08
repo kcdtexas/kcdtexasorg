@@ -6,19 +6,18 @@ const recorded = speakers2026.filter((s) => s.youtube).length;
 
 export const page2026 = {
   title: `KCD Texas ${e.year} · ${e.city} · ${e.date}`,
-  description: `KCD Texas ${e.year} in ${e.city} on ${e.date}: ${e.checkedIn} Attendees checked in, ${e.speakers} Speakers, ${e.sponsorCount} sponsors. The full program with links to ${e.recordings} talk recordings.`,
+  description: `KCD Texas ${e.year} in ${e.city} on ${e.date}: ${e.speakers} Speakers and ${e.sponsorCount} sponsors. The full program with links to ${e.recordings} talk recordings.`,
   kicker: 'Past Edition',
   heading: `KCD Texas ${e.year}`,
   lead: `${e.city}, ${e.date}, at ${e.venue}. One day of Kubernetes and cloud native talks and workshops.`,
 
   facts: [
-    { term: 'Checked in', text: `${e.checkedIn} Attendees` },
     { term: 'Speakers', text: `${e.speakers}, plus ${e.hosts} hosts` },
     { term: 'Workshops', text: String(e.workshops) },
     { term: 'Sponsors', text: String(e.sponsorCount) },
     { term: 'Recordings', text: `${e.recordings} talks` },
   ],
-  factsSource: 'Attendance counts check-ins, not Registrations. Source:',
+  factsSource: 'Source:',
   factsLink: 'CNCF transparency report, 2026',
 
   keynotes: {
