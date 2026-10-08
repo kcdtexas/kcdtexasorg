@@ -38,7 +38,7 @@ From the Edition's announcement until the CFP closes. Sponsors come first, then 
 
 **Countdown**:
 From the CFP closing until the event starts. Attendees come first. The Schedule appears during this Phase, not at its start.
-_Avoid_: Agenda Live (the Schedule is published up to two weeks after the Phase begins)
+_Avoid_: Agenda Live (the Schedule is published weeks after the Phase begins)
 
 **Event Day**:
 The day or days of the event itself. Attendees on site come first.

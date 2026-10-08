@@ -12,7 +12,7 @@ export const cfp = {
   dates: [
     { term: 'Opens', text: shortDateYear(e.cfp.opens) },
     { term: 'Closes', text: `${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
-    { term: 'Speakers announced', text: e.speakersAnnounced },
+    { term: 'Speakers announced', text: `${shortDateYear(e.schedule)}, with the Schedule` },
     { term: 'Event', text: `${longDate(e.eventDay)}, ${e.city}` },
   ],
 
@@ -54,7 +54,7 @@ export const cfp = {
   },
   choose: {
     title: 'How we choose',
-    text: `The Session Committee selects the Sessions, and the selected Speakers are announced together in ${e.speakersAnnounced}.`,
+    text: `The Session Committee selects the Sessions. The selected Speakers, the keynotes and the Schedule are announced together on ${shortDateYear(e.schedule)}.`,
     proposals: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.`,
     proposalsSource: 'CNCF transparency report, 2025',
   },

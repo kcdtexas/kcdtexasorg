@@ -5,13 +5,12 @@ const e = edition2027;
 
 export const schedule = {
   title: `The KCD Texas ${e.year} Schedule`,
-  description: `The KCD Texas ${e.year} Schedule comes out ${shortDateYear(e.schedule)}, and Speakers are announced in ${e.speakersAnnounced}. Until then, see the call for proposals and the 2026 program.`,
+  description: `The KCD Texas ${e.year} Schedule, its Speakers and the keynotes are announced together on ${shortDateYear(e.schedule)}. Until then, see the call for proposals and the 2026 program.`,
   kicker: 'Schedule',
-  lead: `The Schedule comes out ${shortDateYear(e.schedule)}. The Session Committee selects the Sessions, and the selected Speakers are announced together in ${e.speakersAnnounced}.`,
+  lead: `The Schedule comes out ${shortDateYear(e.schedule)}, together with the Speakers and the keynotes. The Session Committee selects the Sessions.`,
   facts: [
     { term: 'Call for proposals closes', text: shortDateYear(e.cfp.closes) },
-    { term: 'Speakers announced', text: e.speakersAnnounced },
-    { term: 'Schedule', text: shortDate(e.schedule) },
+    { term: 'Schedule and Speakers', text: shortDate(e.schedule) },
     { term: 'Event', text: `${longDate(e.eventDay)}, ${e.city}` },
   ],
   speak: {

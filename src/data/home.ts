@@ -12,7 +12,7 @@ export const home = {
   hero: {
     promise: 'One day of Kubernetes and cloud native talks and hands-on workshops, for the platform, SRE and DevOps engineers who run production across Texas. Organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF).',
     bill: [
-      { label: 'Keynotes:', text: `announced in ${e.cfp.keynotesAnnounced}` },
+      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
       { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
       { label: 'Sponsorships:', text: lowerFirst(e.sponsorships.status) },
     ],
@@ -36,7 +36,7 @@ export const home = {
       { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: { text: 'Email us for the prospectus', href: 'prospectus' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
       { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: { text: 'Chapter members hear first', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: `Speakers announced in ${e.speakersAnnounced}` } },
+      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: 'With the Speakers and keynotes' } },
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventStatus(), detail: { text: e.eventNote } },
     ],
   },

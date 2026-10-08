@@ -12,10 +12,9 @@ export const edition2027 = {
     opens: '2026-11-01',
     closes: '2027-01-31',
     closesTime: '11:59 p.m.',
-    keynotesAnnounced: 'February',
   },
   tickets: { onSale: '2027-02-01' },
-  speakersAnnounced: 'February',
+  // The Speakers, the keynotes and the Schedule are announced together on this day (a Co-Organizer, 2026-10-08).
   schedule: '2027-03-01',
   eventDay: '2027-04-23',
   eventNote: 'One day, in person. Venue announced soon.',
