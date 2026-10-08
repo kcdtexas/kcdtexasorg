@@ -39,8 +39,6 @@ export const prospectus = {
   href: prospectusUrl || paths.sponsors,
   // The doors: the hero, the home sponsor block and the sponsors link card.
   label: prospectusUrl ? `Download the ${edition2027.year} prospectus` : `Sponsor KCD Texas ${edition2027.year}`,
-  // The open slot on the home page's sponsor wall, next to "Your logo here".
-  slot: prospectusUrl ? `Download the ${edition2027.year} prospectus` : 'How to sponsor',
   note: prospectusUrl ? 'PDF on GitHub' : `${edition2027.year} prospectus coming soon`,
 } as const;
 
