@@ -49,7 +49,7 @@ From the end of the event until the next Edition becomes the Current Edition. Th
 ### Program
 
 **CFP**:
-An Edition's call for proposals, run on Sessionize by the Session Committee.
+An Edition's call for proposals, run by the Session Committee.
 _Avoid_: Call for Speakers, call for papers, C4P
 
 **Session**:
