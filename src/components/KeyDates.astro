@@ -13,6 +13,9 @@ const width = (from: string, to: string) => `${(timelinePercent(to) - timelinePe
 const eventMonth = `${e.eventDay.slice(0, 8)}01`;
 const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl };
 const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+// An item with no date yet (tickets, until CNCF sets the sale day) sits under the first stretch, with
+// what is open now, so its column never suggests a month.
+const undated = (key: string) => key === 'tix' && !e.tickets.onSale;
 // "Now" sits left of its line, except near the strip's start, where it would run off the edge.
 const nowLeft = timelinePercent(asOfDay) > 6;
 const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
@@ -37,7 +40,7 @@ const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
     </div>
     <ol class="tl-list">
       {home.dates.items.map((it) => (
-        <li class={`tl-it tl-it--${it.key}`}>
+        <li class:list={['tl-it', `tl-it--${it.key}`, { 'tl-it--undated': undated(it.key) }]}>
           <p class="it-name">{it.name}</p>
           <p class="it-st">{it.status}</p>
           <p class="it-dt">{'href' in it.detail ? <a href={hrefs[it.detail.href as string]}>{it.detail.text}</a> : it.detail.text}</p>
