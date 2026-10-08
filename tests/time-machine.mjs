@@ -19,7 +19,8 @@ export const DAYS = {
     'CFP page: "Opens Nov 1."': cfpCallout(cfp) === 'Opens Nov 1.',
     '/2027/cfp/ uses the default card': cardOf(cfp) === 'default',
     'home page in the CFP Phase order': /<main id="main" class="main--cfp">/.test(home),
-    'key dates: tickets "On sale Feb 1"': keyDates(home).Tickets === 'On sale Feb 1',
+    'key dates: tickets "Coming soon"': keyDates(home).Tickets === 'Coming soon',
+    'no tickets bar on the strip before the sale day is set': !/tl-bar--tix/.test(home),
     '"Now" on the strip': /class="tl-now"/.test(home),
   }),
   '2026-11-01': ({ home, cfp }) => ({
@@ -31,13 +32,13 @@ export const DAYS = {
   '2027-01-31': ({ home, cfp }) => ({
     'key dates: CFP still "Open now"': keyDates(home)['Call for proposals'] === 'Open now',
     '/2027/cfp/ still uses the cfp card': cardOf(cfp) === 'cfp',
-    'tickets still "On sale Feb 1"': keyDates(home).Tickets === 'On sale Feb 1',
+    'tickets still "Coming soon"': keyDates(home).Tickets === 'Coming soon',
   }),
   '2027-02-01': ({ home, cfp }) => ({
     'key dates: CFP "Closed"': keyDates(home)['Call for proposals'] === 'Closed',
     'CFP page: "Closed."': cfpCallout(cfp) === 'Closed.',
     '/2027/cfp/ back to the default card': cardOf(cfp) === 'default',
-    'key dates: tickets "On sale now"': keyDates(home).Tickets === 'On sale now',
+    'key dates: tickets still "Coming soon"': keyDates(home).Tickets === 'Coming soon',
     'home page left the CFP Phase order': !/class="main--cfp"/.test(home),
   }),
   '2027-03-01': ({ home }) => ({

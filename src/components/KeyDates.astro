@@ -27,7 +27,7 @@ const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
         <line class="tl-axis" x1="0" x2="100%" y1="50%" y2="50%" />
         <line class="tl-past" x1="0" x2={pct(asOfDay)} y1="50%" y2="50%" />
         <rect class="tl-bar--cfp" x={pct(e.cfp.opens)} width={width(e.cfp.opens, e.cfp.closes)} y="11" height="12" />
-        <rect class="tl-bar--tix" x={pct(e.tickets.onSale)} width={width(e.tickets.onSale, eventMonth)} y="11" height="12" />
+        {e.tickets.onSale && <rect class="tl-bar--tix" x={pct(e.tickets.onSale)} width={width(e.tickets.onSale, eventMonth)} y="11" height="12" />}
         <svg x={pct(e.schedule)} y="17" overflow="visible"><rect class="tl-mark" x="-7" y="-7" width="14" height="14" transform="rotate(45)" /></svg>
         <rect class="tl-event" x={pct(eventMonth)} width={width(eventMonth, timeline.end)} y="0" height="34" />
         <text class="tl-event-label" x={`${((timelinePercent(eventMonth) + 100) / 2).toFixed(2)}%`} y="17" text-anchor="middle" dominant-baseline="central">{e.city}</text>

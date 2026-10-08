@@ -1,6 +1,6 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -112,7 +112,7 @@ export const home = {
 
   attend: {
     kicker: 'Attend',
-    title: `Coming to learn? Tickets go on sale ${shortDate(e.tickets.onSale)}.`,
+    title: `Coming to learn? Tickets ${ticketsSentence()}.`,
     lead: `2026 tickets cost $50 to $150, depending on when you bought. Join the KCD Texas chapter on the CNCF community site to get the email when ${e.year} tickets go on sale.`,
     letter: `An approval letter is coming in ${e.managerLetter}, with the cost and what your team gets back.`,
     photoAlt: 'Three attendees laugh together between sessions.',

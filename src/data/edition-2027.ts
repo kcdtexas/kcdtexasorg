@@ -13,7 +13,9 @@ export const edition2027 = {
     closes: '2027-01-31',
     closesTime: '11:59 p.m.',
   },
-  tickets: { onSale: '2027-02-01' },
+  // Empty until CNCF sets the day tickets go on sale; until then the site says
+  // "Coming soon" (a Co-Organizer, 2026-10-08). Setting it adds the day to scripts/rebuild-dates.mjs.
+  tickets: { onSale: null as string | null },
   // The Speakers, the keynotes and the Schedule are announced together on this day (a Co-Organizer, 2026-10-08).
   schedule: '2027-03-01',
   eventDay: '2027-04-23',
@@ -71,9 +73,18 @@ export function cfpSentence(day = asOfDay): string {
   return 'is closed';
 }
 
-/** "On sale Feb 1" or "On sale now", for tickets on the build day. */
+/** "Coming soon" until the sale day is set, then "On sale Feb 1" or "On sale now", for tickets on the build day. */
 export function ticketsStatus(day = asOfDay): string {
-  return day < edition2027.tickets.onSale ? `On sale ${shortDate(edition2027.tickets.onSale)}` : 'On sale now';
+  const on = edition2027.tickets.onSale;
+  if (!on) return 'Coming soon';
+  return day < on ? `On sale ${shortDate(on)}` : 'On sale now';
+}
+
+/** "are coming soon", "go on sale Feb 1" or "are on sale now": the tickets status to end "Tickets …". */
+export function ticketsSentence(day = asOfDay): string {
+  const on = edition2027.tickets.onSale;
+  if (!on) return 'are coming soon';
+  return day < on ? `go on sale ${shortDate(on)}` : 'are on sale now';
 }
 
 /** "Apr 23 · Dallas", or "Today · Dallas" on Event Day, for the Edition on the build day. */
