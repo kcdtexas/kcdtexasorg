@@ -22,6 +22,8 @@
 - { from: /github,          to: "https://github.com/kcdtexas",                       code: 302, mode: evergreen }
 - { from: /cntx,            to: "https://cloudnativetexas.com",                      code: 302, mode: evergreen }
 - { from: /linktree,        to: "https://linktree.com/kcdtexas",                     code: 302, mode: evergreen }
+- { from: /youtube,         to: "https://www.youtube.com/@KCDTexas",                 code: 302, mode: evergreen }
+- { from: /photos,          to: "https://photos.kcdtexas.org/",                      code: 302, mode: evergreen }
 - { from: /present,         to: "https://sessionize.com/kcd-texas-2026",             code: 302, mode: pinned }
 - { from: /feedback,        to: "https://forms.gle/RdZ4CULh7qMYMESq8",               code: 302, mode: pinned }
 - { from: /komodor,         to: "https://komodor.com/",                              code: 302, mode: pinned }

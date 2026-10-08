@@ -12,6 +12,8 @@ export const contact = {
     { label: 'X', handle: '@KCDTexas', url: 'https://x.com/KCDTexas' },
     { label: 'LinkedIn', handle: 'KCD Texas', url: 'https://www.linkedin.com/company/kcdtexas/' },
     { label: 'Instagram', handle: '@TexasKCD', url: 'https://www.instagram.com/texaskcd/' },
+    // The channel with every recorded talk (a Co-Organizer asked for a direct link, 2026-10-08).
+    { label: 'YouTube', handle: '@KCDTexas', url: 'https://www.youtube.com/@KCDTexas' },
   ],
 } as const;
 
