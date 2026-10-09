@@ -83,16 +83,6 @@
     .theme { padding: 0; width: 44px; }
     .menu-word, .theme-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   }
-  /* From Feb 1 (.site-header--long): the nav's "Program" and "Sponsors" and the buttons "Get ticket news",
-     "Getting to Dallas" and "See the Schedule" need more room. Below 1100 px the menu takes the nav's place,
-     as on tablets, and on phones the button may take two lines. The CFP Phase is unchanged. */
-  @media (min-width: 900px) and (max-width: 1099px) {
-    .site-header--long .nav { display: none; }
-    .site-header--long .menu { display: block; }
-  }
-  @media (max-width: 599px) {
-    .site-header--long .head-cta { white-space: normal; }
-  }
   @media (max-width: 379px) {
     .lockup { gap: 5px; }
     .lockup-kcd { height: 22px; }

@@ -16,15 +16,19 @@ const afterAction: Action = programPublic() ? { href: paths.schedule, label: 'Se
   : phase === 'event-day' ? { href: paths.travel, label: 'Getting to Dallas' }
   : { href: paths.edition2026, label: '2026 talks' };
 
-/** The header's filled button. The CFP Phase is as in release 4: "Submit a talk" while the call is open, then
- *  "Sponsor"; from Feb 1, tickets; on Event Day and in the Recap, afterAction. Changes only on rebuild days or
- *  with the data releases (the ticket link, the program). */
+/** The header's filled button, in short words so the nav stays visible from 900 px and the phone button stays on
+ *  one line. The CFP Phase is as in release 4: "Submit a talk" while the call is open, then "Sponsor". From
+ *  Feb 1, "Tickets", to the same place as ticketsAction. On Event Day, "Schedule" once public, else "Travel"; in
+ *  the Recap, "Schedule" once public, else "2026 talks". Changes only on rebuild days or with the data releases
+ *  (the ticket link, the program). */
 export const headerCta: Action = phase === 'cfp'
   ? (cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk' }
     : sponsorshipsOpen() ? { href: prospectus.href, label: 'Sponsor' }
     : ticketsAction)
-  : phase === 'countdown' ? ticketsAction
-  : afterAction;
+  : phase === 'countdown' ? { href: ticketsAction.href, label: 'Tickets' }
+  : programPublic() ? { href: paths.schedule, label: 'Schedule' }
+  : phase === 'event-day' ? { href: paths.travel, label: 'Travel' }
+  : { href: paths.edition2026, label: '2026 talks' };
 
 /** The hero's doors, the filled one first; the hero keeps exactly one filled button (release 4 critique).
  *  CFP Phase: sponsors first, then "Submit a talk". Countdown: tickets, then the prospectus while sponsorships
