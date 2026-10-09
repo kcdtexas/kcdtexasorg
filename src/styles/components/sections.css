@@ -5,9 +5,10 @@
   /* A 3 px rule over the content only, not the wrap's side padding, as on the stage and the bills. */
   .sponsor > .wrap, .attend > .wrap, .day > .wrap { padding-top: 31px; background: linear-gradient(var(--fg), var(--fg)) var(--pad) 0 / calc(100% - 2 * var(--pad)) 3px no-repeat; }
   .sponsor-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 36px; align-items: start; }
-  .sponsor-head { grid-column: 1 / span 8; }
+  /* The photo column starts at the kicker, so no empty corner sits beside the heading. */
+  .sponsor-head { grid-column: 1 / span 6; }
   .sponsor-main { grid-column: 1 / span 6; }
-  .sponsor-side { grid-column: 7 / -1; }
+  .sponsor-side { grid-column: 7 / -1; grid-row: 1 / span 2; }
   .dallas { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); column-gap: 20px; align-items: baseline; margin-top: 32px; padding: 16px 0 18px; border-block: 1px solid var(--fg); }
   .dallas-label { font-weight: 700; font-size: 18px; line-height: 1.4; }
   .dallas-text { font-size: 18px; line-height: 1.5; }
@@ -73,18 +74,20 @@
   .drive-local { margin-top: 18px; font-weight: 700; font-size: 17px; }
   .drive .src { margin-top: 4px; }
   .meetups { margin-top: 24px; font-size: 16px; }
-  .attend-photo { grid-column: 8 / -1; }
+  /* The photo, then "Getting to Dallas", in the right-hand column; phones hide the photo only. */
+  .attend-side { grid-column: 8 / -1; }
   .attend-photo img { aspect-ratio: 3 / 2; object-fit: cover; }
+  .attend-side .drive { margin-top: 28px; }
 
   @media (max-width: 1099px) {
     .sponsor-head, .sponsor-main { grid-column: 1 / span 7; }
-    .sponsor-side { grid-column: 8 / -1; grid-row: 2; }
+    .sponsor-side { grid-column: 8 / -1; grid-row: 1 / span 2; }
     .speak-main { grid-column: 1 / span 8; }
     .speak-side { grid-column: 9 / -1; }
   }
   @media (max-width: 899px) {
     .sponsor-head, .sponsor-main, .sponsor-side { grid-column: 1 / -1; grid-row: auto; }
-    .speak-main, .attend-main, .attend-photo { grid-column: 1 / -1; }
+    .speak-main, .attend-main, .attend-side { grid-column: 1 / -1; }
     .speak-side { grid-column: 1 / -1; justify-self: stretch; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--gutter); align-items: start; }
     .eu-talks { margin-top: 0; }
   }
