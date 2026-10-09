@@ -5,6 +5,9 @@ import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, 
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
+const cfpNow = cfpStatus();
+const tixNow = ticketsStatus();
+const eventNow = eventStatus();
 
 export const home = {
   title: `KCD Texas ${e.year} · ${e.city} · ${longDate(e.eventDay)}`,
@@ -28,13 +31,25 @@ export const home = {
   },
 
   dates: {
+    title: 'Key dates',
+    // In date order. `big` is the poster line and `bigTo` a range's end; `echo` marks a status that only repeats
+    // `big`, so the key dates can hide it on screen; `from` and `until` (YYYY-MM-DD) place NOW (nowOn() in
+    // edition-2027.ts, and /now.js between builds). Sponsorships are open throughout, and tickets have no day
+    // until CNCF sets one, so neither has a span then. Each detail says something the date doesn't.
     items: [
-      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'Prospectus coming soon' } },
-      { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
+      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, big: e.sponsorships.status, echo: true,
+        detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'How to sponsor', href: 'sponsors' } },
+      { key: 'cfp', name: 'Call for proposals', status: cfpNow, big: shortDate(e.cfp.opens), bigTo: shortDate(e.cfp.closes), echo: cfpNow.startsWith('Opens'),
+        from: e.cfp.opens, until: e.cfp.closes,
+        detail: cfpNow === 'Closed' ? { text: 'Thanks to everyone who sent a proposal.' } : { text: 'Read the CFP guide', href: 'cfp' } },
       // "Sample day" marks a test build with a made-up sale day (build.sh --tickets-day); check-dist blocks it elsewhere.
-      { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: 'With the Speakers and keynotes' } },
-      { key: 'event', name: `KCD Texas ${e.year}`, status: eventStatus(), detail: { text: e.eventNote } },
+      { key: 'tix', name: 'Tickets', status: tixNow, big: e.tickets.onSale ? shortDate(e.tickets.onSale) : tixNow, echo: Boolean(e.tickets.onSale) && tixNow !== 'On sale now',
+        undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale } : {}),
+        detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } },
+      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), big: shortDate(e.schedule), echo: true, from: e.schedule, until: e.schedule,
+        detail: { text: 'With the Speakers and keynotes' } },
+      { key: 'event', name: `KCD Texas ${e.year}`, status: eventNow, big: shortDate(e.eventDay), echo: !eventNow.startsWith('Today'), from: e.eventDay, until: e.eventDay,
+        detail: { text: `One day, in person, in ${e.city}.` } },
     ],
   },
 

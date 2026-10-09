@@ -6,12 +6,13 @@
 import { home } from '../data/home';
 import { asOfDay, edition2027, shortDateYear, timeline, timelinePercent } from '../data/edition-2027';
 import { contact, prospectus } from '../data/site';
+import { paths } from '../data/nav';
 
 const e = edition2027;
 const pct = (day: string) => `${timelinePercent(day).toFixed(2)}%`;
 const width = (from: string, to: string) => `${(timelinePercent(to) - timelinePercent(from)).toFixed(2)}%`;
 const eventMonth = `${e.eventDay.slice(0, 8)}01`;
-const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl };
+const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl, sponsors: paths.sponsors, cfp: paths.cfp };
 const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
 // Tickets get their bar only once CNCF sets the sale day. Until then, on wide screens the call for
 // proposals' column runs through February and Tickets is one slim line under the list, so no column

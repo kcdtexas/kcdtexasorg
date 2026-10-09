@@ -101,6 +101,17 @@ export function eventStatus(day = asOfDay): string {
   return `${day === edition2027.eventDay ? 'Today' : shortDate(edition2027.eventDay)} · ${edition2027.city}`;
 }
 
+/** Where NOW sits among the dated key-date items on `day`: on the last item that has started, while it runs
+ *  ('on'), or just after it ('after'); before the first item until one starts ('before'); nowhere outside the
+ *  key-dates window. It only moves forward, through the items in date order. /now.js repeats this rule. */
+export function nowOn(spans: { key: string; from: string; until: string }[], day = asOfDay): { key: string; at: 'before' | 'on' | 'after' } | null {
+  if (day < timeline.start || day >= timeline.end || spans.length === 0) return null;
+  const ordered = [...spans].sort((a, b) => a.from.localeCompare(b.from));
+  const last = ordered.filter((s) => s.from <= day).at(-1);
+  if (!last) return { key: ordered[0].key, at: 'before' };
+  return { key: last.key, at: day <= last.until ? 'on' : 'after' };
+}
+
 /** Where "Now" sits on the key-dates strip, which runs from Oct 1, 2026 to Apr 30, 2027. */
 export const timeline = { start: '2026-10-01', end: '2027-05-01' } as const;
 export function timelinePercent(day: string): number {
