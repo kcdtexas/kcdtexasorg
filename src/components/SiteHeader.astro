@@ -2,7 +2,7 @@
 import { Image } from 'astro:assets';
 import ThemeSwitch from './ThemeSwitch.astro';
 import { badge } from '../lib/images';
-import { cfpPath, mainNav, isCurrent } from '../data/nav';
+import { cfpPath, mainNav, isCurrent, paths } from '../data/nav';
 import { contact, prospectus } from '../data/site';
 import { cfpStatus, sponsorshipsStatus } from '../data/edition-2027';
 
@@ -14,6 +14,11 @@ const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.p
 const cta = cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk' }
   : sponsorshipsStatus() === 'Open now' ? { href: prospectus.href, label: 'Sponsor' }
   : { href: contact.chapterUrl, label: 'Get ticket news' };
+// While the button says "Sponsor", the wide nav drops its own Sponsor link (the button already goes there) and the
+// button marks the current page in its place. The phone menu keeps every link (owner's choice, release 4 round 4).
+const sponsorCta = cta.label === 'Sponsor';
+const wideLinks = sponsorCta ? links.filter((l) => l.href !== paths.sponsors) : links;
+const ctaCurrent = sponsorCta && isCurrent(cta.href, Astro.url.pathname);
 ---
 
 <header class="site-header">
@@ -26,11 +31,11 @@ const cta = cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk'
     </a>
     <nav class="nav" aria-label="Main">
       <ul>
-        {links.map((l) => <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
+        {wideLinks.map((l) => <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
       </ul>
     </nav>
     <div class="head-end">
-      <a class="btn btn--sm head-cta" href={cta.href}>{cta.label}</a>
+      <a class="btn btn--sm head-cta" href={cta.href} aria-current={ctaCurrent ? 'page' : undefined}>{cta.label}</a>
       <ThemeSwitch />
       <details class="menu">
         <summary><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></summary>
