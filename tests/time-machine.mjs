@@ -70,6 +70,14 @@ export const DAYS = {
     'key dates: Schedule "Mar 1"': keyDates(home).Schedule === 'Mar 1',
     'NOW on the phase rail': Boolean(overlayNow(home)),
   }),
+  '2027-03-31': ({ home }) => ({
+    'phase rail: Sponsorships still "Open now" on their last day': lane(home, 'spons').state === 'live' && lane(home, 'spons').when === 'Open now',
+    'phase rail: Sponsorships end on the calendar (an outline, no arrow)': /pr-lane--spons [^"]*">(?:(?!<\/li>)[\s\S])*<rect class="pr-span"/.test(home) && !/pr-now--arrow/.test(home),
+  }),
+  '2027-04-01': ({ home }) => ({
+    'phase rail: Sponsorships past, "Closed", with the thank-you line': lane(home, 'spons').state === 'past' && lane(home, 'spons').when === 'Closed' && /Thanks to every 2027 sponsor\./.test(home),
+    'hero: "Sponsorships: closed"': /Sponsorships: closed/.test(text(home)),
+  }),
   '2027-04-23': ({ home }) => ({
     'phase rail: event live, "Today · Dallas"': lane(home, 'event').state === 'live' && keyDates(home)['KCD Texas 2027'] === 'Today · Dallas',
     'NOW tag with at-event': Boolean(overlayNow(home)?.includes('at-event')),
