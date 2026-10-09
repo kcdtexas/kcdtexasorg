@@ -3,9 +3,17 @@ import { Image } from 'astro:assets';
 import ThemeSwitch from './ThemeSwitch.astro';
 import { badge } from '../lib/images';
 import { cfpPath, mainNav, isCurrent } from '../data/nav';
+import { contact, prospectus } from '../data/site';
+import { cfpStatus, sponsorshipsStatus } from '../data/edition-2027';
 
 // Every page, the home page included, links to the pages; the current one is marked.
 const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.pathname) }));
+// The filled button follows the Phase (owner's choice, release 4 round 3): "Submit a talk" while the call is open,
+// "Sponsor" while sponsorships are open, then "Get ticket news", the key dates' tickets link. It changes only on
+// rebuild days (the CFP opens and closes; sponsorships close).
+const cta = cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk' }
+  : sponsorshipsStatus() === 'Open now' ? { href: prospectus.href, label: 'Sponsor' }
+  : { href: contact.chapterUrl, label: 'Get ticket news' };
 ---
 
 <header class="site-header">
@@ -22,7 +30,7 @@ const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.p
       </ul>
     </nav>
     <div class="head-end">
-      <a class="btn btn--sm head-cta" href={cfpPath}>Submit a talk</a>
+      <a class="btn btn--sm head-cta" href={cta.href}>{cta.label}</a>
       <ThemeSwitch />
       <details class="menu">
         <summary><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></summary>

@@ -1,4 +1,4 @@
-/* Header: the official lockup (KCD logo, rule, badge), the nav, the talk door and the theme switch. Stays on screen. */
+/* Header: the official lockup (KCD logo, rule, badge), the nav, the filled button by phase and the theme switch. Stays on screen. */
 @layer components {
   .site-header { position: sticky; top: 0; z-index: 30; background: var(--bg); border-bottom: 1px solid var(--fg); }
   .head { display: flex; align-items: center; gap: 28px; min-height: var(--head-h); }
@@ -49,6 +49,11 @@
   @media (max-width: 1199px) {
     .head { gap: 20px; }
     .nav ul { gap: 20px; }
+  }
+  @media (min-width: 900px) and (max-width: 979px) {
+    /* Just above the phone menu, the longest button label ("Get ticket news") needs a little room. */
+    .head { gap: 14px; }
+    .nav ul { gap: 16px; }
   }
   @media (max-width: 899px) {
     .nav { display: none; }

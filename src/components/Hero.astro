@@ -21,8 +21,8 @@ const h = home.hero;
     <Bill2027 />
     <p class="promise">{h.promise}</p>
     <div class="hero-act">
-      {/* One filled button: sponsors come first in the CFP Phase (CONTEXT.md), and the header's filled
-          "Submit a talk" already serves speakers. The talk door leaves the hero once the call closes. */}
+      {/* One filled button: sponsors come first in the CFP Phase (CONTEXT.md); the header's filled button
+          says "Submit a talk" while the call is open. The talk door leaves the hero once the call closes. */}
       <div class="doors">
         <Door href={prospectus.href} label={prospectus.label} />
         {phase === 'cfp' && <Door href={cfpPath} label="Submit a talk" line />}
