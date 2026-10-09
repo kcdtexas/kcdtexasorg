@@ -30,11 +30,14 @@ const cfpCallout = (html) => html.match(/<p class="page-callout cfp-callout">\s*
 // Whether a row's fill is grey (finished), and whether the Sponsorships row says "Closed" exactly when it is grey.
 const fillPast = (html, key) => new RegExp(`<li class="pr-lane pr-lane--${key} [^"]*">(?:(?!</li>)[\\s\\S])*<rect class="pr-done is-past"`).test(html);
 const sponsorsAgree = (html) => (lane(html, 'spons').state === 'past') === (lane(html, 'spons').when === 'Closed');
+// The header's filled button: its label and where it goes.
+const headCta = (html) => html.match(/<a class="btn btn--sm head-cta" href="([^"]*)">([^<]*)<\/a>/)?.slice(1, 3) ?? [];
 const sections = (html) => [...html.matchAll(/<section [^>]*class="([a-z]+)"/g)].map((m) => m[1]).join();
 
 /** What each key day must show. `home` and `cfp` are the built HTML of / and /2027/cfp/. */
 export const DAYS = {
   '2026-10-28': ({ home, cfp }) => ({
+    'header: "Sponsor", to the hero\'s Sponsor door': headCta(home)[1] === 'Sponsor' && new RegExp(`class="btn btn--door" href="${headCta(home)[0]}"`).test(home),
     'phase rail rows in order: Sponsorships, CFP, Schedule, event': lanes(home).map((l) => l.key).join() === 'spons,cfp,sched,event',
     'phase rail: Sponsorships live': lane(home, 'spons').state === 'live',
     'phase rail: CFP future': lane(home, 'cfp').state === 'future',
@@ -50,17 +53,20 @@ export const DAYS = {
     'NOW on the phase rail': Boolean(overlayNow(home)),
   }),
   '2026-11-01': ({ home, cfp }) => ({
+    'header: "Submit a talk", to the CFP page': headCta(home).join() === '/2027/cfp/,Submit a talk' && headCta(cfp)[1] === 'Submit a talk',
     'phase rail: CFP live, "Open now" on screen': lane(home, 'cfp').state === 'live' && lane(home, 'cfp').status === 'Open now' && lane(home, 'cfp').onScreen && !lane(home, 'cfp').ariaHidden,
     'hero: "Call for proposals: open now"': /Call for proposals: open now/.test(text(home)),
     'CFP page: "Open now."': cfpCallout(cfp) === 'Open now.' || /class="btn"[^>]*>[^<]*Submit/i.test(cfp),
     '/2027/cfp/ uses the cfp card': cardOf(cfp) === 'cfp',
   }),
   '2027-01-31': ({ home, cfp }) => ({
+    'header: still "Submit a talk" on the last day of the call': headCta(home).join() === '/2027/cfp/,Submit a talk',
     'phase rail: CFP still live, "Open now" on screen': lane(home, 'cfp').state === 'live' && lane(home, 'cfp').status === 'Open now' && lane(home, 'cfp').onScreen,
     '/2027/cfp/ still uses the cfp card': cardOf(cfp) === 'cfp',
     'tickets still "Coming soon"': keyDates(home).Tickets === 'Coming soon',
   }),
   '2027-02-01': ({ home, cfp }) => ({
+    'header: "Sponsor" again': headCta(home)[1] === 'Sponsor' && headCta(cfp)[1] === 'Sponsor',
     'phase rail: CFP past, "Closed"': lane(home, 'cfp').state === 'past' && keyDates(home)['Call for proposals'] === 'Closed',
     'CFP page: "Closed."': cfpCallout(cfp) === 'Closed.',
     '/2027/cfp/ back to the default card': cardOf(cfp) === 'default',
@@ -71,10 +77,12 @@ export const DAYS = {
     'NOW on the phase rail': Boolean(overlayNow(home)),
   }),
   '2027-03-31': ({ home }) => ({
+    'header: still "Sponsor" on the last day of sponsorships': headCta(home)[1] === 'Sponsor',
     'phase rail: Sponsorships still "Open now" on their last day': lane(home, 'spons').state === 'live' && lane(home, 'spons').when === 'Open now',
     'phase rail: Sponsorships end on the calendar (an outline, no arrow)': /pr-lane--spons [^"]*">(?:(?!<\/li>)[\s\S])*<rect class="pr-span"/.test(home) && !/pr-now--arrow/.test(home),
   }),
   '2027-04-01': ({ home }) => ({
+    'header: "Get ticket news", to the key dates\' tickets link': headCta(home)[1] === 'Get ticket news' && new RegExp(`<a href="${headCta(home)[0]}">Get ticket news</a>`).test(home),
     'phase rail: Sponsorships past, "Closed", with the thank-you line': lane(home, 'spons').state === 'past' && lane(home, 'spons').when === 'Closed' && /Thanks to every 2027 sponsor\./.test(home),
     'hero: "Sponsorships: closed"': /Sponsorships: closed/.test(text(home)),
   }),
