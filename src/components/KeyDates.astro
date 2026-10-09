@@ -12,7 +12,7 @@ import { contact, prospectus } from '../data/site';
 import { paths } from '../data/nav';
 import { badge } from '../lib/images';
 
-type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string; until?: string; undated?: boolean; echo?: boolean };
+type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string; until?: string; ends?: string; undated?: boolean; echo?: boolean };
 const e = edition2027;
 const d = home.dates;
 const items = d.items as Item[];
@@ -90,7 +90,7 @@ const dates = [
     </div>
     <ol class:list={['pr-cards', `pr-cards--${cards.length}`]}>
       {cards.map((it) => (
-        <li class:list={['pr-card', `pr-card--${it.key}`, { 'pr-card--echo': it.echo && it.key !== 'spons', 'pr-card--past': it.until && it.until < asOfDay }]}>
+        <li class:list={['pr-card', `pr-card--${it.key}`, { 'pr-card--echo': it.echo && it.key !== 'spons', 'pr-card--past': (it.ends ?? it.until) && (it.ends ?? it.until)! < asOfDay }]}>
           <p class="it-name">{it.name}</p>
           <p class="it-st">{it.status}</p>
           <p class="it-dt">{link(it.detail) ? <a href={link(it.detail)}>{it.detail.text}</a> : it.detail.text}</p>
