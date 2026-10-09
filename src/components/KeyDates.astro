@@ -62,7 +62,7 @@ const months = [['Oct', '2026-10-01'], ['Nov', '2026-11-01'], ['Dec', '2026-12-0
 <section class="dates" aria-labelledby="dates-title">
   <div class="wrap">
     <div class:list={['pr', { 'pr--now': showNow }]} data-pr data-start={timeline.start} data-end={timeline.end} data-event={e.eventDay}>
-      <h2 id="dates-title" class="pr-title">{d.title}</h2>
+      <h2 id="dates-title" class="h2 pr-title">{d.title}</h2>
       <div class="pr-axis"></div>
       <ol class="pr-lanes" role="list">
         {lanes.map((it) => {

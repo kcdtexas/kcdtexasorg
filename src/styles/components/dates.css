@@ -7,13 +7,14 @@
   .pr {
     position: relative; display: grid;
     grid-template-columns: [name-start] minmax(0, 1fr) [name-end] 20px [when-start] max-content [when-end] 40px [chart-start] minmax(0, 1.8fr) [chart-end];
-    grid-template-rows: 48px auto auto;
+    grid-template-rows: auto 48px auto auto;
   }
-  .pr-title { grid-column: name-start / when-end; grid-row: 1; align-self: end; padding-bottom: 10px; font-weight: 700; font-size: 16px; line-height: 1.2; }
-  .pr-axis { grid-column: chart; grid-row: 1; }
+  /* The section title (.h2) over the whole rail; the month names keep their own row over the chart column. */
+  .pr-title { grid-column: name-start / chart-end; grid-row: 1; max-width: none; padding-bottom: 8px; }
+  .pr-axis { grid-column: chart; grid-row: 2; }
 
   /* The rows share the columns, so names, dates and bars line up from row to row. */
-  .pr-lanes { grid-column: name-start / chart-end; grid-row: 2; display: grid; grid-template-columns: subgrid; border-top: 3px solid var(--fg); }
+  .pr-lanes { grid-column: name-start / chart-end; grid-row: 3; display: grid; grid-template-columns: subgrid; border-top: 3px solid var(--fg); }
   .pr-lane { grid-column: name-start / chart-end; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 72px; padding: 14px 0; border-bottom: 1px solid var(--line); }
   .pr-text { display: contents; }
   .pr-lane .it-name { grid-column: name; grid-row: 1; }
@@ -51,7 +52,7 @@
   .pr-now--tick line { stroke: var(--action); stroke-width: 3px; }
 
   /* The calendar over the bars: month names and lines, the gold line on Apr 23, and NOW. */
-  .pr-over { grid-column: chart; grid-row: 1 / 3; position: relative; z-index: 1; pointer-events: none; }
+  .pr-over { grid-column: chart; grid-row: 2 / 4; position: relative; z-index: 1; pointer-events: none; }
   .pr-over-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .pr-grid { stroke: var(--line); stroke-width: 1px; }
   .pr-event-line { stroke: var(--signal); stroke-width: 3px; }
@@ -64,7 +65,7 @@
   .pr-now.at-start .pr-tag--start, .pr-now.at-end .pr-tag--end { display: inline; }
 
   /* Tickets without a day: one line under the rows. */
-  .pr-tix-line { grid-column: name-start / chart-end; grid-row: 3; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding-top: 14px; }
+  .pr-tix-line { grid-column: name-start / chart-end; grid-row: 4; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding-top: 14px; }
   .pr-tix-line > * { margin-top: 0; }
   .pr-tix-line.pr-lane--live .it-st { background: var(--fg); color: var(--bg); }
 
@@ -95,7 +96,7 @@
   @media (max-width: 719px) {
     /* Each phase stacks over its own bar; the shared calendar gives way to a NOW tick on each bar. */
     .pr { display: block; }
-    .pr-title { padding-bottom: 14px; }
+    .pr-title { padding-bottom: 20px; }
     .pr-axis, .pr-over { display: none; }
     .pr-lanes { display: block; }
     .pr-lane { display: block; min-height: 0; padding: 16px 0 18px; }
