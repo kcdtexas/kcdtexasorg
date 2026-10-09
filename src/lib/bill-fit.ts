@@ -138,7 +138,8 @@ function archivo() {
 }
 
 /** The advance width of one run of uppercased text, in em. */
-function width(text: string, weight: number): number {
+export function width(text: string, weight: number): number {
+  if (!text) return 0;
   const { upem, at } = archivo();
   const buffer = hb.createBuffer();
   buffer.addText(text.toUpperCase());

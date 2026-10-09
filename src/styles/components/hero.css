@@ -19,9 +19,10 @@
 
   /* The 2027 bill: the notes and the end line, one row sized to fill the measure. The fits are em widths, computed
      from the font for what this build's bill says (src/lib/bill-fit.ts, served as virtual:bill-fit.css):
-     --fit is the whole row, --notes-fit the notes alone, --slot-fit the end line alone. */
+     --fit is the whole row, --notes-fit the notes alone, --slot-fit the end line alone. geometricPrecision keeps
+     Chromium on Linux from rounding each glyph's advance to whole pixels, so the text is as wide as the font says. */
   .bill27 { margin-top: 30px; }
-  .slots { display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc(99.5cqi / var(--fit)); }
+  .slots { text-rendering: geometricPrecision; display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc(99.5cqi / var(--fit)); }
   .slots li { display: inline; }
   .slots .note { font-size: 0.7em; font-weight: 700; color: var(--fg); }
   .slots .note b { font-weight: 900; color: var(--fg); }
