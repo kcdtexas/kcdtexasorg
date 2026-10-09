@@ -15,10 +15,12 @@ export const home = {
 
   hero: {
     promise: 'One day of Kubernetes and cloud native talks and hands-on workshops, for the platform, SRE and DevOps engineers who run production across Texas. Organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF).',
+    // What's open first, in the CFP Phase's order (sponsors, then speakers). Same words as before in another
+    // order, so the fitted bill sizes in hero.css still hold.
     bill: [
-      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
-      { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
       { label: 'Sponsorships:', text: lowerFirst(e.sponsorships.status) },
+      { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
+      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
     ],
     proofLead: `KCD Texas 2026 in ${edition2026.city}:`,
     // The band's two photos, each captioned under itself like every photo on the site: a bold lead, then the words.
@@ -38,7 +40,7 @@ export const home = {
     // until CNCF sets one, so neither has a span then. Each detail says something the date doesn't.
     items: [
       { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, big: e.sponsorships.status, echo: true,
-        detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'How to sponsor', href: 'sponsors' } },
+        detail: { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpNow, big: shortDate(e.cfp.opens), bigTo: shortDate(e.cfp.closes), echo: cfpNow.startsWith('Opens'),
         from: e.cfp.opens, until: e.cfp.closes,
         detail: cfpNow === 'Closed' ? { text: 'Thanks to everyone who sent a proposal.' } : { text: 'Read the CFP guide', href: 'cfp' } },
@@ -47,7 +49,7 @@ export const home = {
         // NOW treats the sale day as one day; `ends` keeps tickets current (not faded as past) until the event.
         undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale, ends: e.eventDay } : {}),
         detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), big: shortDate(e.schedule), echo: true, from: e.schedule, until: e.schedule,
+      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), big: shortDate(e.schedule), echo: true, from: e.schedule, until: e.schedule, ends: e.eventDay,
         detail: { text: 'With the Speakers and keynotes' } },
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventNow, big: shortDate(e.eventDay), echo: !eventNow.startsWith('Today'), from: e.eventDay, until: e.eventDay,
         detail: { text: `One day, in person, in ${e.city}.` } },
