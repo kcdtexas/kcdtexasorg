@@ -5,7 +5,8 @@
    logo in a tier covers the same area. Platinum is 1.5x Gold's size (2.25x its area), Silver 0.75x. */
 @layer components {
   .wall { padding-top: 64px; text-align: center; }
-  .wall-title { font-stretch: 68%; font-weight: 800; font-size: clamp(30px, 2.8vw, 40px); line-height: 1.05; text-wrap: balance; }
+  /* The same size as every home section title (.h2). */
+  .wall-title { font-stretch: 68%; font-weight: 800; font-size: clamp(38px, 4.2vw, 60px); line-height: 1.02; letter-spacing: -0.005em; text-wrap: balance; }
   .tiers {
     container-type: inline-size;
     --gap: 14px;
@@ -54,6 +55,7 @@
     .tiers { --gold-cols: 4; }
   }
   @media (max-width: 599px) {
+    .wall-title { font-size: 34px; }
     .tiers {
       --gap: 10px;
       --gold-cols: 2;

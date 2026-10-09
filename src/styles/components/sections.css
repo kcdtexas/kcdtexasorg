@@ -2,7 +2,8 @@
 @layer components {
   /* Sponsor block */
   .sponsor { padding-top: var(--sec); }
-  .sponsor > .wrap, .attend > .wrap, .day > .wrap { border-top: 3px solid var(--fg); padding-top: 28px; }
+  /* A 3 px rule over the content only, not the wrap's side padding, as on the stage and the bills. */
+  .sponsor > .wrap, .attend > .wrap, .day > .wrap { padding-top: 31px; background: linear-gradient(var(--fg), var(--fg)) var(--pad) 0 / calc(100% - 2 * var(--pad)) 3px no-repeat; }
   .sponsor-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 36px; align-items: start; }
   .sponsor-head { grid-column: 1 / span 8; }
   .sponsor-main { grid-column: 1 / span 6; }

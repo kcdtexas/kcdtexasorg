@@ -59,7 +59,7 @@ export const home = {
       'Your logo on the website, in emails, on signage and in the CNCF transparency report',
       'Full-day passes for your team',
     ],
-    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar. ${e.year} details come with the prospectus.`,
+    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar.`,
     // Critique fix 8: the sponsor hall (photo 001) instead of the cut-off roll-up (136).
     photoAlt: 'Attendees, several in cowboy hats, walk between sponsor tables in the KCD Texas 2026 sponsor hall, in front of Diagrid’s backdrop.',
     photoTime: '8:41 a.m.',
