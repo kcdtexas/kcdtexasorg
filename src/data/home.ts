@@ -94,8 +94,8 @@ export const home = {
     title: 'On the 2026 stage',
     count: `${edition2026.speakers} Speakers and ${edition2026.hosts} hosts`,
     asPrinted: 'Affiliations as printed on the 2026 Event Page.',
-    recordings: `${edition2026.recordings} talk recordings on YouTube`,
-    talksTitle: 'More 2026 talks, practitioners first',
+    // The talks list and the recap video live on /2026/ (release 4: the stage was 2,600 px tall).
+    programLink: `See the full 2026 program and its ${edition2026.recordings} talk recordings`,
   },
 
   day: {
