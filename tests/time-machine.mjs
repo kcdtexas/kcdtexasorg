@@ -31,12 +31,19 @@ const cfpCallout = (html) => html.match(/<p class="page-callout cfp-callout">\s*
 const fillPast = (html, key) => new RegExp(`<li class="pr-lane pr-lane--${key} [^"]*">(?:(?!</li>)[\\s\\S])*<rect class="pr-done is-past"`).test(html);
 const sponsorsAgree = (html) => (lane(html, 'spons').state === 'past') === (lane(html, 'spons').when === 'Closed');
 // The header's filled button: its label and where it goes.
-const headCta = (html) => html.match(/<a class="btn btn--sm head-cta" href="([^"]*)">([^<]*)<\/a>/)?.slice(1, 3) ?? [];
+const headCta = (html) => html.match(/<a class="btn btn--sm head-cta" href="([^"]*)"(?: aria-current="page")?>([^<]*)<\/a>/)?.slice(1, 3) ?? [];
+// The wide nav's link labels (the phone menu is a separate list).
+const navLabels = (html) => [...(html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '').matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
+const menuLabels = (html) => [...(html.match(/<nav class="menu-panel" aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '').matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
+const allLinks = 'Speak,Sponsor,Attend,2026 talks,About';
+const navWithout = (html) => navLabels(html).join() === 'Speak,Attend,2026 talks,About' && menuLabels(html).join() === allLinks;
+const navWith = (html) => navLabels(html).join() === allLinks && menuLabels(html).join() === allLinks;
 const sections = (html) => [...html.matchAll(/<section [^>]*class="([a-z]+)"/g)].map((m) => m[1]).join();
 
 /** What each key day must show. `home` and `cfp` are the built HTML of / and /2027/cfp/. */
 export const DAYS = {
   '2026-10-28': ({ home, cfp }) => ({
+    'nav: no "Sponsor" link while the button says "Sponsor"; the phone menu keeps it': navWithout(home) && navWithout(cfp),
     'header: "Sponsor", to the hero\'s Sponsor door': headCta(home)[1] === 'Sponsor' && new RegExp(`class="btn btn--door" href="${headCta(home)[0]}"`).test(home),
     'phase rail rows in order: Sponsorships, CFP, Schedule, event': lanes(home).map((l) => l.key).join() === 'spons,cfp,sched,event',
     'phase rail: Sponsorships live': lane(home, 'spons').state === 'live',
@@ -53,6 +60,7 @@ export const DAYS = {
     'NOW on the phase rail': Boolean(overlayNow(home)),
   }),
   '2026-11-01': ({ home, cfp }) => ({
+    'nav: the "Sponsor" link is back': navWith(home) && navWith(cfp),
     'header: "Submit a talk", to the CFP page': headCta(home).join() === '/2027/cfp/,Submit a talk' && headCta(cfp)[1] === 'Submit a talk',
     'phase rail: CFP live, "Open now" on screen': lane(home, 'cfp').state === 'live' && lane(home, 'cfp').status === 'Open now' && lane(home, 'cfp').onScreen && !lane(home, 'cfp').ariaHidden,
     'hero: "Call for proposals: open now"': /Call for proposals: open now/.test(text(home)),
@@ -66,6 +74,7 @@ export const DAYS = {
     'tickets still "Coming soon"': keyDates(home).Tickets === 'Coming soon',
   }),
   '2027-02-01': ({ home, cfp }) => ({
+    'nav: no "Sponsor" link again; the phone menu keeps it': navWithout(home) && navWithout(cfp),
     'header: "Sponsor" again': headCta(home)[1] === 'Sponsor' && headCta(cfp)[1] === 'Sponsor',
     'phase rail: CFP past, "Closed"': lane(home, 'cfp').state === 'past' && keyDates(home)['Call for proposals'] === 'Closed',
     'CFP page: "Closed."': cfpCallout(cfp) === 'Closed.',
@@ -77,11 +86,13 @@ export const DAYS = {
     'NOW on the phase rail': Boolean(overlayNow(home)),
   }),
   '2027-03-31': ({ home }) => ({
+    'nav: still no "Sponsor" link on the last day of sponsorships': navWithout(home),
     'header: still "Sponsor" on the last day of sponsorships': headCta(home)[1] === 'Sponsor',
     'phase rail: Sponsorships still "Open now" on their last day': lane(home, 'spons').state === 'live' && lane(home, 'spons').when === 'Open now',
     'phase rail: Sponsorships end on the calendar (an outline, no arrow)': /pr-lane--spons [^"]*">(?:(?!<\/li>)[\s\S])*<rect class="pr-span"/.test(home) && !/pr-now--arrow/.test(home),
   }),
   '2027-04-01': ({ home }) => ({
+    'nav: the "Sponsor" link is back for good': navWith(home),
     'header: "Get ticket news", to the key dates\' tickets link': headCta(home)[1] === 'Get ticket news' && new RegExp(`<a href="${headCta(home)[0]}">Get ticket news</a>`).test(home),
     'phase rail: Sponsorships past, "Closed", with the thank-you line': lane(home, 'spons').state === 'past' && lane(home, 'spons').when === 'Closed' && /Thanks to every 2027 sponsor\./.test(home),
     'hero: "Sponsorships: closed"': /Sponsorships: closed/.test(text(home)),

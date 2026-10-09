@@ -410,6 +410,7 @@ try {
   // sideways. In the CFP Phase the hero has exactly one filled button (Sponsor). "Key dates" uses the section title
   // size, the hero bill's notes and link never overlap or overflow, and the header's button stays on screen with
   // every nav link on one line.
+  // While it says "Sponsor", "Sponsor" shows once in the header, and the phone menu lists every link.
   for (const width of [1440, 1280, 1100, 900, 768, 600, 390, 360, 320]) {
     const label = `key dates at ${width}`;
     const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'light', isMobile: width <= 390 });
@@ -451,6 +452,11 @@ try {
         cta: { right: cta.right, height: cta.height },
         // A nav link on two lines (one line is about 48 px with its padding).
         navWrapped: [...document.querySelectorAll('.nav a')].filter((a) => shown(a) && a.getBoundingClientRect().height > 60).map((a) => a.textContent),
+        // While the button says "Sponsor", the wide nav drops its own Sponsor link; the phone menu keeps every link.
+        ctaLabel: document.querySelector('.head-cta').textContent.trim(),
+        navShown: [...document.querySelectorAll('.nav a')].some(shown),
+        sponsorShown: [...document.querySelectorAll('.site-header .nav a, .site-header .head-cta')].filter((a) => shown(a) && a.textContent.trim() === 'Sponsor').length,
+        menuLinks: [...document.querySelectorAll('.menu-panel a')].map((a) => a.textContent.trim()),
         // The hero shows its talk door only in the CFP Phase.
         cfp: Boolean(document.querySelector('.hero .btn[href="/2027/cfp/"]')),
         overlaps,
@@ -477,6 +483,8 @@ try {
     expect(layout.billOverflow <= 1, `${label}: the hero bill runs ${layout.billOverflow.toFixed(1)}px past its measure`);
     expect(layout.cta.right <= width && layout.cta.height >= 44, `${label}: the header button ends at ${layout.cta.right}px, ${layout.cta.height}px tall`);
     expect(!layout.navWrapped.length, `${label}: header links wrap: ${layout.navWrapped.join(', ')}`);
+    if (layout.navShown && layout.ctaLabel === 'Sponsor') expect(layout.sponsorShown === 1, `${label}: "Sponsor" shows ${layout.sponsorShown} times in the header`);
+    expect(layout.menuLinks.join() === 'Speak,Sponsor,Attend,2026 talks,About', `${label}: the phone menu lists ${layout.menuLinks.join(', ')}`);
     if (layout.cfp) expect(layout.filled.length === 1, `${label}: ${layout.filled.length} filled buttons in the hero (${layout.filled.join(', ')})`);
     if (width <= 1100) expect(layout.overflow <= 1, `${label}: page scrolls sideways by ${layout.overflow}px`);
     await context.close();
