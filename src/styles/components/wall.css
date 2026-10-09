@@ -4,8 +4,8 @@
    Logo sizes are optical: a logo with aspect ratio --ar gets height --logo-size / sqrt(--ar), so every
    logo in a tier covers the same area. Platinum is 1.5x Gold's size (2.25x its area), Silver 0.75x. */
 @layer components {
-  .wall { padding-top: 64px; text-align: center; }
-  /* The same size as every home section title (.h2). */
+  .wall { padding-top: 64px; }
+  /* The same size as every home section title (.h2), and left-aligned like them; the logos stay centered. */
   .wall-title { font-stretch: 68%; font-weight: 800; font-size: clamp(38px, 4.2vw, 60px); line-height: 1.02; letter-spacing: -0.005em; text-wrap: balance; }
   .tiers {
     container-type: inline-size;
@@ -45,7 +45,7 @@
   .sp-logo[data-logo="vcluster"] { --ar: 1.049; }
   .sp-logo[data-logo="wso2"] { --ar: 2.517; }
 
-  .partners { max-width: 60em; margin: 22px auto 0; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
+  .partners { max-width: 60em; margin: 22px auto 0; text-align: center; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
   .wall-next { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 24px; }
   .slot--logo { align-items: baseline; gap: 18px; padding: 12px 20px 11px; font-size: 30px; text-align: left; }
   .slot-sub { display: inline-flex; align-items: baseline; gap: 8px; color: var(--fg); font-stretch: 100%; font-weight: 700; font-size: 16px; text-transform: none; text-decoration: underline; text-decoration-color: var(--link-underline); text-underline-offset: 0.2em; }
