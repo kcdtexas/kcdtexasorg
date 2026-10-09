@@ -1,21 +1,30 @@
 ---
-// The 2026 sponsors by tier: equal cells per tier, each logo centered in its cell (see wall.css).
-// The home page's sponsor wall and the 2026 page both use it.
+// The sponsors of an Edition by tier: equal cells per tier, each logo centered in its cell (see wall.css).
+// The home page's sponsor wall, the sponsors page and the 2026 page use it. 2026 lists every tier; 2027 lists
+// the tiers that have a sponsor, and a sponsor without a logo shows its name as a text tile.
 import { Image } from 'astro:assets';
 import { edition2026 } from '../data/edition-2026';
+import { sponsors2027, type Tier2027 } from '../data/sponsors-2027';
 import { logos } from '../lib/images';
 
 interface Props {
   /** Put before each tier name, such as "2026". */
   tierPrefix?: string;
+  edition?: 2026 | 2027;
 }
-const { tierPrefix } = Astro.props;
+const { tierPrefix, edition = 2026 } = Astro.props;
 
-const tiers = [
-  { key: 'platinum', name: 'Platinum', sponsors: edition2026.sponsors.platinum },
-  { key: 'gold', name: 'Gold', sponsors: edition2026.sponsors.gold },
-  { key: 'silver', name: 'Silver', sponsors: edition2026.sponsors.silver },
-];
+type Entry = { id: string | null; name: string; link?: string };
+const names: Record<Tier2027, string> = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver' };
+const tiers: { key: string; name: string; sponsors: readonly Entry[] }[] = edition === 2026
+  ? [
+    { key: 'platinum', name: 'Platinum', sponsors: edition2026.sponsors.platinum },
+    { key: 'gold', name: 'Gold', sponsors: edition2026.sponsors.gold },
+    { key: 'silver', name: 'Silver', sponsors: edition2026.sponsors.silver },
+  ]
+  : (Object.keys(names) as Tier2027[])
+    .map((key) => ({ key, name: names[key], sponsors: sponsors2027.filter((s) => s.tier === key).map((s) => ({ id: s.logo, name: s.alt || s.name, link: s.link })) }))
+    .filter((t) => t.sponsors.length > 0);
 ---
 
 <div class="tiers">
@@ -23,9 +32,10 @@ const tiers = [
     <div class={`tier tier--${t.key}`}>
       <h3 class="tier-name">{tierPrefix ? `${tierPrefix} ${t.name}` : t.name}</h3>
       <ul class="logos">
-        {t.sponsors.map((s) => (
-          <li><Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /></li>
-        ))}
+        {t.sponsors.map((s) => {
+          const mark = s.id ? <Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /> : <span class="sp-name">{s.name}</span>;
+          return <li>{s.link ? <a class="sp-link" href={s.link}>{mark}</a> : mark}</li>;
+        })}
       </ul>
     </div>
   ))}

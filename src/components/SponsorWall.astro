@@ -1,32 +1,52 @@
 ---
-// The 2026 sponsor wall by tier: equal cells per tier, each logo centered in its cell (see wall.css).
-// The home page uses the defaults and ends the wall with the open 2027 spot; the sponsors page passes
-// its own title and a year before each tier name, without the spot.
+// The sponsor wall by tier: equal cells per tier, each logo centered in its cell (see wall.css).
+// The home page uses the defaults: the 2026 wall and the open 2027 spot until the first 2027 sponsor; then 2027
+// leads, with the 2026 wall below it as thanks in the CFP Phase only (plan-release-5, "The sponsor analysis").
+// The open spot shows while sponsorships are open. The sponsors page passes an edition, its own title and a year
+// before each tier name, without the spot.
 import SponsorTiers from './SponsorTiers.astro';
 import { home } from '../data/home';
 import { edition2026 } from '../data/edition-2026';
+import { sponsors2027 } from '../data/sponsors-2027';
+import { phase, sponsorshipsOpen } from '../data/edition-2027';
 import { paths } from '../data/nav';
 
 interface Props {
   title?: string;
   /** Put before each tier name, such as "2026". */
   tierPrefix?: string;
-  /** End the wall with the open 2027 spot. */
+  /** One Edition's wall; without it, the home page's wall for the current state. */
+  edition?: 2026 | 2027;
+  /** End the wall with the open 2027 spot, while sponsorships are open. */
   next?: boolean;
   /** Drop the full-width wrapper, for use inside a page column. */
   bare?: boolean;
+  /** The title's id, when a page has two walls. */
+  titleId?: string;
 }
-const { title = home.wall.title, tierPrefix, next = true, bare = false } = Astro.props;
+const { tierPrefix, edition, next = true, bare = false, titleId = 'wall-title' } = Astro.props;
+const lead: 2026 | 2027 = edition ?? (sponsors2027.length > 0 ? 2027 : 2026);
+const title = Astro.props.title ?? (lead === 2027 ? home.wall.title2027 : home.wall.title);
+// The 2026 wall stays under the 2027 one as proof through the CFP Phase, on the home page only.
+const thanks2026 = !edition && lead === 2027 && phase === 'cfp';
+const slot = next && sponsorshipsOpen();
 ---
 
-<section class:list={['wall', { 'wall--bare': bare }]} aria-labelledby="wall-title">
+<section class:list={['wall', { 'wall--bare': bare }]} aria-labelledby={titleId}>
   <div class:list={{ wrap: !bare }}>
-    <h2 id="wall-title" class="wall-title">{title}</h2>
-    <SponsorTiers tierPrefix={tierPrefix} />
-    <p class="partners">{edition2026.partners}</p>
-    {next && (
+    <h2 id={titleId} class="wall-title">{title}</h2>
+    <SponsorTiers tierPrefix={tierPrefix} edition={lead} />
+    {lead === 2026 && <p class="partners">{edition2026.partners}</p>}
+    {slot && (
       <div class="wall-next">
         <a class="slot slot--logo" href={paths.sponsors}><span class="slot-label">{home.wall.slot}</span><span class="slot-sub">{home.wall.link}<span class="arrow" aria-hidden="true">→</span></span></a>
+      </div>
+    )}
+    {thanks2026 && (
+      <div class="wall-past">
+        <h3 class="wall-past-title">{home.wall.thanks2026}</h3>
+        <SponsorTiers />
+        <p class="partners">{edition2026.partners}</p>
       </div>
     )}
   </div>

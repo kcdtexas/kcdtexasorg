@@ -45,6 +45,12 @@
   .sp-logo[data-logo="vcluster"] { --ar: 1.049; }
   .sp-logo[data-logo="wso2"] { --ar: 2.517; }
 
+  /* A 2027 sponsor without its logo yet (and the --sponsors-sample tiles): the name, centered in its cell. */
+  .sp-name { display: block; font-weight: 700; font-size: 15px; line-height: 1.2; text-align: center; color: var(--tile-fg); text-wrap: balance; }
+  .sp-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--tile-fg); text-decoration: none; }
+  /* The CFP Phase's double wall: the 2026 sponsors under the 2027 ones, as thanks and proof. */
+  .wall-past { margin-top: 44px; }
+  .wall-past-title { font-stretch: 68%; font-weight: 800; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.1; text-wrap: balance; }
   .partners { max-width: 60em; margin: 22px auto 0; text-align: center; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
   .wall-next { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 24px; }
   .slot--logo { align-items: baseline; gap: 18px; padding: 12px 20px 11px; font-size: 30px; text-align: left; }

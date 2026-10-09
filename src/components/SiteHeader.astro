@@ -2,18 +2,14 @@
 import { Image } from 'astro:assets';
 import ThemeSwitch from './ThemeSwitch.astro';
 import { badge } from '../lib/images';
-import { cfpPath, mainNav, isCurrent, paths } from '../data/nav';
-import { contact, prospectus } from '../data/site';
-import { cfpStatus, sponsorshipsStatus } from '../data/edition-2027';
+import { mainNav, isCurrent, paths } from '../data/nav';
+import { headerCta as cta } from '../data/actions';
 
 // Every page, the home page included, links to the pages; the current one is marked.
 const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.pathname) }));
-// The filled button follows the Phase (owner's choice, release 4 round 3): "Submit a talk" while the call is open,
-// "Sponsor" while sponsorships are open, then "Get ticket news", the key dates' tickets link. It changes only on
-// rebuild days (the CFP opens and closes; sponsorships close).
-const cta = cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk' }
-  : sponsorshipsStatus() === 'Open now' ? { href: prospectus.href, label: 'Sponsor' }
-  : { href: contact.chapterUrl, label: 'Get ticket news' };
+// The filled button follows the state (headerCta in data/actions.ts): in the CFP Phase "Submit a talk" while the
+// call is open, then "Sponsor"; from Feb 1, "Get tickets" or "Get ticket news"; on Event Day and in the Recap,
+// "See the Schedule" once it is public. It changes only on rebuild days or with the data releases.
 // While the button opens the sponsors page, the wide nav drops its own Sponsor link (the button already goes there)
 // and the button marks the current page in its place. Once the button opens the prospectus PDF instead, the link
 // comes back. The phone menu keeps every link (owner's choice, release 4 round 4).
