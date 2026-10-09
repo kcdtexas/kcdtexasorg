@@ -58,9 +58,9 @@
   --action: #a3174e;          /* buttons, doors, open slots */
   --action-hover: #7c0f3a;
   --on-action: #ffffff;
-  --link: #a3174e;
-  --link-hover: #7c0f3a;
-  --link-underline: currentColor;
+  --link: #121412;           /* links in ink, underlined in magenta (release 4: magenta is for actions) */
+  --link-hover: #a3174e;
+  --link-underline: #a3174e;
 
   /* The speak band: the one reversed panel. */
   --band: #121412;
