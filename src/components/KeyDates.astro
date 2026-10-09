@@ -12,7 +12,7 @@ import { asOfDay, edition2027, shortDate, sponsorshipsCloses, timeline, timeline
 import { contact, prospectus } from '../data/site';
 import { paths } from '../data/nav';
 
-type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string; until?: string; ends?: string; undated?: boolean; echo?: boolean };
+type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string; until?: string; ends?: string; undated?: boolean; echo?: boolean; late?: boolean };
 const e = edition2027;
 const d = home.dates;
 const items = d.items as Item[];
@@ -25,9 +25,11 @@ const day = asOfDay;
 
 // Each phase runs from its first day to the day after its last, which is when it turns grey. Sponsorships run
 // through their last day (Event Day until one is set), the Schedule through Event Day; tickets run into Event
-// Day; the event itself is a mark. A bar is drawn no further than Event Day.
+// Day; the event itself is a mark. A bar is drawn no further than Event Day. A Schedule that is late (its day
+// passed without the program) has no span, so no outline and no fill.
 const spanOf = (it: Item): [string, string] | null =>
-  it.key === 'spons' ? [timeline.start, next(sponsorshipsCloses())]
+  it.late ? null
+  : it.key === 'spons' ? [timeline.start, next(sponsorshipsCloses())]
   : it.key === 'cfp' ? [e.cfp.opens, next(e.cfp.closes)]
   : it.key === 'sched' ? [e.schedule, next(e.eventDay)]
   : it.key === 'tix' && e.tickets.onSale ? [e.tickets.onSale, e.eventDay]
@@ -42,8 +44,9 @@ const stateOf = (it: Item) => {
   if (it.key === 'event') return day > e.eventDay ? 'past' : day === e.eventDay ? 'live' : 'future';
   const s = spanOf(it);
   // The Schedule's row reads the same before and after Mar 1 (its status only repeats the date, so no stamp
-  // shows) and /now.js fills its bar, so it stays 'future' through Event Day and Mar 1 needs no rebuild.
-  if (it.key === 'sched') return day >= s![1] ? 'past' : 'future';
+  // shows) and /now.js fills its bar, so it stays 'future' through Event Day. Mar 1 is a rebuild day only for the
+  // gate: if the program isn't public by then, the row reads "Coming soon" (home.ts).
+  if (it.key === 'sched') return s && day >= s[1] ? 'past' : 'future';
   return !s || day < s[0] ? 'future' : day >= s[1] ? 'past' : 'live';
 };
 // A status that only repeats the dates is hidden on screen and from screen readers; "Opens Nov 1" keeps its

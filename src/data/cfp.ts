@@ -1,8 +1,10 @@
 // The 2027 CFP page's words (Session Committee). Dates come from the Edition file.
 import { edition2026 } from './edition-2026';
-import { edition2027, longDate, phase, programStatus, shortDateYear, ticketsStatus } from './edition-2027';
+import { edition2027, longDate, phase, programState, programStatus, shortDateYear, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
+// The program's day follows its gate, like every program word: no date once the day passes without the release.
+const late = programState() === 'soon';
 
 export const cfp = {
   title: `Speak at KCD Texas ${e.year}`,
@@ -14,7 +16,7 @@ export const cfp = {
   dates: [
     { term: 'Opens', text: shortDateYear(e.cfp.opens) },
     { term: 'Closes', text: `${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
-    { term: 'Speakers announced', text: `${shortDateYear(e.schedule)}, with the Schedule` },
+    { term: 'Speakers announced', text: `${late ? 'Coming soon' : shortDateYear(e.schedule)}, with the Schedule` },
     { term: 'Event', text: `${longDate(e.eventDay)}, ${e.city}` },
   ],
 
@@ -63,7 +65,7 @@ export const cfp = {
   },
   choose: {
     title: 'How we choose',
-    text: `The Session Committee selects the Sessions. The selected Speakers, the keynotes and the Schedule are announced together on ${shortDateYear(e.schedule)}.`,
+    text: `The Session Committee selects the Sessions. The selected Speakers, the keynotes and the Schedule ${late ? 'come out together soon' : `are announced together on ${shortDateYear(e.schedule)}`}.`,
     proposals: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.`,
     proposalsSource: 'CNCF transparency report, 2025',
   },

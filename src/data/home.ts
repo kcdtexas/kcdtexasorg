@@ -87,8 +87,13 @@ export const home = {
         // NOW treats the sale day as one day; `ends` keeps tickets current (not faded as past) until the event.
         undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale, ends: e.eventDay } : {}),
         detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), big: shortDate(e.schedule), echo: true, from: e.schedule, until: e.schedule, ends: e.eventDay,
-        detail: { text: 'With the Speakers and keynotes' } },
+      // The Schedule follows the program's gate (programState), like every program word: its date until then,
+      // "Coming soon" with no date and no bar if the day passes without the release, "Out now" once public.
+      prog === 'soon'
+        ? { key: 'sched', name: 'Schedule', status: 'Coming soon', big: 'Coming soon', echo: true, late: true,
+          detail: { text: 'With the Speakers and keynotes' } }
+        : { key: 'sched', name: 'Schedule', status: prog === 'out' ? 'Out now' : shortDate(e.schedule), big: shortDate(e.schedule), echo: prog !== 'out', from: e.schedule, until: e.schedule, ends: e.eventDay,
+          detail: { text: 'With the Speakers and keynotes' } },
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventNow, big: shortDate(e.eventDay), echo: !eventNow.startsWith('Today'), from: e.eventDay, until: e.eventDay,
         detail: { text: `One day, in person, in ${e.city}.` } },
     ],
