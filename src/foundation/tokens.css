@@ -62,7 +62,7 @@
   --link-hover: #a3174e;
   --link-underline: #a3174e;
 
-  /* The speak band: the one reversed panel. */
+  /* The speak band: the one reversed panel in light; a raised dark surface in dark. */
   --band: #121412;
   --band-fg: #ffffff;
   --band-muted: #c3c6c3;
@@ -79,11 +79,12 @@
   --foot-edge: #121412;       /* the full-width rule on top */
 
   /* Gold: highlights in dark; in light, fills only. */
-  --year: #121412;            /* "2027" in the title */
+  --year: #121412;            /* "2027" in the title, ink in both themes (gold means Apr 23); its underline is gold */
   --dateline: #121412;
   --figure: #121412;          /* verified figures */
   /* Gold fills in light (the Marketing Committee's OK pending). To remove them, delete this one line: */
   --signal: var(--gold); --on-signal: #121412;
+  --signal-edge: #121412;     /* a thin ink edge on the gold Apr 23 mark, light only (WCAG 1.4.11) */
   --track-tickets: #8a8d8a;   /* the tickets bar on the key dates */
 
   --tile: transparent;        /* behind sponsor logos */
@@ -105,23 +106,24 @@
     --link: #ffffff;
     --link-hover: #ffffff;
     --link-underline: #f27aa5;
-    --band: #f4f3ef;
-    --band-fg: #121412;
-    --band-muted: #555855;
-    --band-line: rgba(18, 20, 18, 0.2);
-    --band-action: #a3174e;
-    --band-action-hover: #7c0f3a;
-    --band-link: #121412;
+    --band: #222622;
+    --band-fg: #ffffff;
+    --band-muted: #c3c6c3;
+    --band-line: rgba(255, 255, 255, 0.2);
+    --band-action: #d6336f;
+    --band-action-hover: #b02a5c;
+    --band-link: #ffffff;
     --foot: #222622;
     --foot-fg: #ffffff;
     --foot-muted: #c3c6c3;
     --foot-line: rgba(255, 255, 255, 0.2);
     --foot-edge: #ffffff;
-    --year: #ebb64f;
+    --year: #ffffff;
     --dateline: #ebb64f;
     --figure: #ebb64f;
     --signal: #ebb64f;
     --on-signal: #121412;
+    --signal-edge: none;
     --track-tickets: #8a8d8a;
     --tile: #f4f3ef;
     --focus: #ffffff;
@@ -142,23 +144,24 @@
     --link: #ffffff;
     --link-hover: #ffffff;
     --link-underline: #f27aa5;
-    --band: #f4f3ef;
-    --band-fg: #121412;
-    --band-muted: #555855;
-    --band-line: rgba(18, 20, 18, 0.2);
-    --band-action: #a3174e;
-    --band-action-hover: #7c0f3a;
-    --band-link: #121412;
+    --band: #222622;
+    --band-fg: #ffffff;
+    --band-muted: #c3c6c3;
+    --band-line: rgba(255, 255, 255, 0.2);
+    --band-action: #d6336f;
+    --band-action-hover: #b02a5c;
+    --band-link: #ffffff;
     --foot: #222622;
     --foot-fg: #ffffff;
     --foot-muted: #c3c6c3;
     --foot-line: rgba(255, 255, 255, 0.2);
     --foot-edge: #ffffff;
-    --year: #ebb64f;
+    --year: #ffffff;
     --dateline: #ebb64f;
     --figure: #ebb64f;
     --signal: #ebb64f;
     --on-signal: #121412;
+    --signal-edge: none;
     --track-tickets: #8a8d8a;
     --tile: #f4f3ef;
     --focus: #ffffff;

@@ -19,6 +19,7 @@
   .rows li:last-child { border-bottom: 1px solid var(--line); }
   .tiers-note { margin-top: 16px; font-size: 16px; line-height: 1.5; color: var(--muted); max-width: 38em; }
   .offer { margin-top: 28px; }
+  /* The button under the tiers list (release 4 round 3), at its own width; full width on phones. */
   .offer-mail { margin-top: 10px; font-size: 16px; color: var(--muted); }
   .coc { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 16px; }
 

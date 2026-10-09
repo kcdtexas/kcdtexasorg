@@ -46,7 +46,7 @@
   .pr-done.is-past { fill: var(--muted); }
   .pr-arrow { fill: var(--action); }
   .pr-lane--past .pr-arrow, .pr-now.at-event .pr-now-line, .pr-now--tick.at-event { display: none; }
-  .pr-mark { fill: var(--signal); }
+  .pr-mark { fill: var(--signal); stroke: var(--signal-edge); stroke-width: 1px; }
   .pr-lane--past .pr-mark { fill: var(--muted); }
   .pr-now--tick { display: none; }
   .pr-now--tick line { stroke: var(--action); stroke-width: 3px; }
@@ -74,7 +74,7 @@
     .pr-span { fill: Canvas; stroke: CanvasText; }
     .pr-done, .pr-arrow, .pr-now--tick line { fill: Highlight; stroke: Highlight; }
     .pr-done.is-past { fill: GrayText; }
-    .pr-mark { fill: CanvasText; }
+    .pr-mark { fill: CanvasText; stroke: none; }
     .pr-grid, .pr-track { stroke: GrayText; }
     .pr-event-line { stroke: CanvasText; }
     .pr-month { fill: CanvasText; stroke: Canvas; }
