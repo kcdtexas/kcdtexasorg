@@ -36,8 +36,8 @@ function build(day) {
 const failures = [];
 const prints = new Map();
 let checks = 0;
-// The rebuild days for the dates in src/data/edition-2027.ts (release 4 round 3): no more, no fewer.
-const REBUILDS = ['2026-11-01', '2027-02-01', '2027-04-01', '2027-04-23', '2027-04-24'];
+// The rebuild days for the dates in src/data/edition-2027.ts (sponsorships run through Apr 23): no more, no fewer.
+const REBUILDS = ['2026-11-01', '2027-02-01', '2027-04-23', '2027-04-24'];
 checks += 1;
 if (rebuilds.join() !== REBUILDS.join()) failures.push(`rebuild days are ${rebuilds.join(', ')}, not ${REBUILDS.join(', ')}`);
 try {
