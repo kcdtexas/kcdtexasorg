@@ -22,7 +22,7 @@ const descriptions = {
   cfp: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. The call for proposals ${cfpSentence()}.`,
   countdown: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. Tickets ${ticketsSentence()}; the Speakers and the Schedule ${progSentence}.`,
   'event-day': `KCD Texas ${e.year} is today in ${e.city}: ${lowerFirst(promise)}.`,
-  recap: `KCD Texas ${e.year} took place in ${e.city} on ${longDate(e.eventDay)}. Thank you to every Speaker, sponsor and volunteer.`,
+  recap: `KCD Texas ${e.year} took place in ${e.city} on ${longDate(e.eventDay)}. Thank you to every Attendee, Speaker, sponsor and volunteer.`,
 };
 
 // The bill under the title (Bill2027.astro): its notes, then one big line, a link or a statement.
@@ -186,8 +186,8 @@ export const home = {
   attend: {
     kicker: 'Attend',
     title: phase === 'event-day' ? `KCD Texas ${e.year} is today.` : `Coming to learn? Tickets ${ticketsSentence()}.`,
-    lead: phase === 'event-day' ? `How to get to ${e.city}, and the venue once it's announced, are on the travel page.`
-      : tixOn ? `${e.year} tickets are sold on the CNCF community site. 2026 tickets cost $50 to $150, depending on when you bought.`
+    lead: phase === 'event-day' ? `The travel page covers getting to ${e.city}, and the venue once it's announced.`
+      : tixOn ? `Buy ${e.year} tickets on the CNCF community site. 2026 tickets cost $50 to $150, depending on when you bought.`
       : `2026 tickets cost $50 to $150, depending on when you bought. Join the KCD Texas chapter on the CNCF community site to get the email when ${e.year} tickets go on sale.`,
     buttonNote: tixOn ? 'On the CNCF community site' : 'Free CNCF community account',
     travel: 'See the travel page',
