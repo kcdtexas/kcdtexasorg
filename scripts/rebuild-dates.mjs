@@ -1,7 +1,7 @@
 // Prints every day on which the built pages change, from the Edition file. The live site is rebuilt
 // rarely (ADR 0010), so date-driven text only changes when a build runs: a scheduled job builds and
-// deploys on each of these days, early in the morning Central time. "As of" on the key dates changes
-// with every build and "Now" moves in the browser (/now.js), so neither needs a date of its own.
+// deploys on each of these days, early in the morning Central time. NOW and the phase fills on the key
+// dates move in the browser (/now.js), so they need no date of their own.
 // tests/run-time-machine.mjs proves the list: each day changes the output and the days between don't.
 //
 // Usage: node scripts/rebuild-dates.mjs [--json] [--from YYYY-MM-DD] [--tickets-day YYYY-MM-DD]
@@ -10,7 +10,7 @@
 //   --tickets-day  include a sample ticket sale day (as build.sh --tickets-day does)
 import { importTs } from './lib/import-ts.mjs';
 
-const { edition2027: e, timeline } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
+const { edition2027: e } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
 
 const next = (day) => {
   const d = new Date(`${day}T12:00:00Z`);
@@ -25,8 +25,7 @@ export function rebuildDates({ ticketsDay = e.tickets.onSale } = {}) {
     // Only once CNCF sets the sale day; until then the key dates say "Coming soon" every day.
     ...(ticketsDay ? [{ day: ticketsDay, why: 'tickets: "On sale now" on the key dates' }] : []),
     { day: e.eventDay, why: 'Event Day: "Today" on the key dates' },
-    { day: next(e.eventDay), why: 'the day after Event Day: the key dates show the date again' },
-    { day: timeline.end, why: 'the key-dates strip ends: no "Now" line in the built page' },
+    { day: next(e.eventDay), why: 'the day after Event Day: the key dates show the date again, and NOW is gone' },
   ];
   // One build covers every change on the same day.
   const byDay = new Map();
