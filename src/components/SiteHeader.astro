@@ -14,9 +14,10 @@ const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.p
 const cta = cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk' }
   : sponsorshipsStatus() === 'Open now' ? { href: prospectus.href, label: 'Sponsor' }
   : { href: contact.chapterUrl, label: 'Get ticket news' };
-// While the button says "Sponsor", the wide nav drops its own Sponsor link (the button already goes there) and the
-// button marks the current page in its place. The phone menu keeps every link (owner's choice, release 4 round 4).
-const sponsorCta = cta.label === 'Sponsor';
+// While the button opens the sponsors page, the wide nav drops its own Sponsor link (the button already goes there)
+// and the button marks the current page in its place. Once the button opens the prospectus PDF instead, the link
+// comes back. The phone menu keeps every link (owner's choice, release 4 round 4).
+const sponsorCta = cta.label === 'Sponsor' && cta.href === paths.sponsors;
 const wideLinks = sponsorCta ? links.filter((l) => l.href !== paths.sponsors) : links;
 const ctaCurrent = sponsorCta && isCurrent(cta.href, Astro.url.pathname);
 ---
