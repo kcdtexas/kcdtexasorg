@@ -17,11 +17,6 @@ export const home = {
       { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
       { label: 'Sponsorships:', text: lowerFirst(e.sponsorships.status) },
     ],
-    // Critique fix 6: say it's a 2026 talk, with the full title, and the name and affiliation as printed.
-    watch: { text: 'Watch a 2026 talk: We Migrated to Karpenter and Our Costs Went Up: A Journey to Real Savings, Abhinav Dahiya, Lyft', youtube: 'UdpviRNrnj8' },
-    talkNote: `Call for proposals ${lowerFirst(cfpStatus())}`,
-    ticketNote: 'Free CNCF community account',
-    managerLink: 'Need your manager’s OK?',
     proofLead: `KCD Texas 2026 in ${edition2026.city}:`,
     // The band's two photos, each captioned under itself like every photo on the site: a bold lead, then the words.
     // The one with a phone crop is the only one phones show.
@@ -88,6 +83,10 @@ export const home = {
     photoTime: '4:07 p.m.',
     photoCaption: 'Tyler Auerbeck, Stack AV: Self-Service, Multi-Tenant Infrastructure With Kured and Flatcar Linux.',
     photoYoutube: 'WoI83_KQtWM',
+    // Two more End-User talks from 2026 under the photo (they moved here from the hero in release 4),
+    // with titles, names and affiliations as printed (edition2026.talks).
+    talksTitle: 'More End-User talks from 2026',
+    talks: ['abhinav-dahiya', 'shravani-gunturu'],
   },
 
   stage: {

@@ -21,21 +21,16 @@
   .bill27 { margin-top: 30px; }
   .slots { --fit: 39.4538; --notes-fit: 37.7467; --slot-fit: 12.4711; display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc((99.5cqi - 6px) / var(--fit)); }
   .slots li { display: inline; }
-  .slots .note { font-size: 0.7em; font-weight: 700; color: var(--muted); }
+  .slots .note { font-size: 0.7em; font-weight: 700; color: var(--fg); }
   .slots .note b { font-weight: 900; color: var(--fg); }
   .slots .note::after { content: "·"; padding: 0 0.295em; font-weight: 700; color: var(--fg); }
-  .eu-example { margin-top: 10px; text-align: right; font-size: 15px; line-height: 1.35; }
-  .eu-example .watch { margin-top: 0; padding: 2px 0; font-weight: 600; }
 
   .promise { grid-column: 1 / span 5; margin-top: 24px; font-size: 20px; line-height: 1.45; text-wrap: pretty; }
   .hero-act { grid-column: 6 / -1; margin-top: 24px; }
   .doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .door .btn { width: 100%; }
   .door-note { margin-top: 8px; font-size: 15px; line-height: 1.35; color: var(--muted); }
-  .ticket { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 18px; }
-  .ticket-note { font-size: 15px; line-height: 1.35; color: var(--muted); }
-  .ticket-note a { white-space: nowrap; }
-  .proof i, .ticket-note i { font-style: normal; padding: 0 0.2em; }
+  .proof i { font-style: normal; padding: 0 0.2em; }
 
   /* The room: the 2026 photo band, captioned with 2026's verified numbers */
   .band { margin-top: 26px; }
@@ -55,7 +50,6 @@
     .slots .note:nth-child(3)::after { content: none; }
     .slots .open { display: block; margin-top: 14px; }
     .slots .slot { font-size: clamp(28px, 4.6vw, 44px); }
-    .eu-example { text-align: center; }
     .promise { grid-column: 1 / span 6; }
     .hero-act { grid-column: 7 / -1; }
     .band img { height: clamp(220px, 30vw, 320px); object-fit: cover; object-position: 50% 30%; }
@@ -74,16 +68,11 @@
     .slots .note::after { content: none; }
     .slots .open { margin-top: 8px; }
     .slots .slot { display: flex; justify-content: center; font-size: calc((99.5cqi - 6px) / var(--slot-fit)); }
-    .eu-example { margin-top: 8px; font-size: 14px; text-align: left; }
     .promise { margin-top: 14px; font-size: 16px; line-height: 1.45; }
     .hero-act { display: contents; }
     .doors { margin-top: 14px; gap: 8px; }
     .doors .btn { min-height: 48px; font-size: 16px; }
     .door-note { margin-top: 4px; font-size: 14px; }
-    .ticket { order: 2; margin-top: 14px; gap: 6px 12px; }
-    .ticket-note { font-size: 14px; }
-    .ticket-note i { display: none; }
-    .ticket-note a { display: block; }
     .band { order: 1; margin-top: 18px; margin-inline: calc(-1 * var(--pad)); }
     .band .proof { padding: 8px var(--pad); font-size: 14px; }
     .shots { grid-template-columns: 1fr; }

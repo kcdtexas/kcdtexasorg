@@ -1,14 +1,16 @@
 ---
-// A door: one big action button with a short note under it.
+// A door: one big action button, filled or outlined, with an optional short note under it.
 interface Props {
   href: string;
   label: string;
   note?: string;
+  /** Outlined instead of filled: the hero keeps one filled button (release 4 critique). */
+  line?: boolean;
 }
-const { href, label, note } = Astro.props;
+const { href, label, note, line = false } = Astro.props;
 ---
 
 <div class="door">
-  <a class="btn btn--door" href={href}>{label}</a>
+  <a class:list={['btn', 'btn--door', { 'btn--line': line }]} href={href}>{label}</a>
   {note && <p class="door-note">{note}</p>}
 </div>
