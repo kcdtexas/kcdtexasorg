@@ -2,6 +2,15 @@
 // Every date the site shows lives here, never in a template (ADR 0009: pushing = announcing).
 // All dates and times are Central time (America/Chicago).
 
+// The day tickets go on sale, once CNCF sets it (owner-actions A62); null until then. `scripts/build.sh
+// --tickets-day DAY` sets KCD_TICKETS_DAY to try a sample day in tests and design reviews: the pages then
+// label it "Sample day", and production builds refuse the flag.
+const ticketsDay: string | null = null;
+const sampleTicketsDay = import.meta.env?.KCD_TICKETS_DAY as string | undefined;
+if (sampleTicketsDay && !/^\d{4}-\d{2}-\d{2}$/.test(sampleTicketsDay)) throw new Error(`KCD_TICKETS_DAY must be YYYY-MM-DD, not ${sampleTicketsDay}`);
+/** True only in a test build with a sample ticket day. */
+export const ticketsSample = Boolean(sampleTicketsDay);
+
 export const edition2027 = {
   year: 2027,
   city: 'Dallas',
@@ -13,9 +22,9 @@ export const edition2027 = {
     closes: '2027-01-31',
     closesTime: '11:59 p.m.',
   },
-  // Empty until CNCF sets the day tickets go on sale; until then the site says
-  // "Coming soon" (a Co-Organizer, 2026-10-08). Setting it adds the day to scripts/rebuild-dates.mjs.
-  tickets: { onSale: null as string | null },
+  // "Coming soon" until CNCF sets the day (a Co-Organizer, 2026-10-08); setting `ticketsDay` above adds
+  // it to scripts/rebuild-dates.mjs.
+  tickets: { onSale: (sampleTicketsDay || ticketsDay) as string | null },
   // The Speakers, the keynotes and the Schedule are announced together on this day (a Co-Organizer, 2026-10-08).
   schedule: '2027-03-01',
   eventDay: '2027-04-23',

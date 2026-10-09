@@ -1,7 +1,7 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -36,7 +36,8 @@ export const home = {
     items: [
       { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'Prospectus coming soon' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
-      { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: { text: 'Chapter members hear first', href: 'chapter' } },
+      // "Sample day" marks a test build with a made-up sale day (build.sh --tickets-day); check-dist blocks it elsewhere.
+      { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Chapter members hear first', href: 'chapter' } },
       { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: 'With the Speakers and keynotes' } },
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventStatus(), detail: { text: e.eventNote } },
     ],
