@@ -1,10 +1,14 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, sponsorshipsStatus, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
+const sponsNow = sponsorshipsStatus();
+const cfpNow = cfpStatus();
+const tixNow = ticketsStatus();
+const eventNow = eventStatus();
 
 export const home = {
   title: `KCD Texas ${e.year} · ${e.city} · ${longDate(e.eventDay)}`,
@@ -12,16 +16,13 @@ export const home = {
 
   hero: {
     promise: 'One day of Kubernetes and cloud native talks and hands-on workshops, for the platform, SRE and DevOps engineers who run production across Texas. Organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF).',
+    // What's open first, in the CFP Phase's order (sponsors, then speakers). Same words as before in another
+    // order, so the fitted bill sizes in hero.css still hold.
     bill: [
-      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
+      { label: 'Sponsorships:', text: lowerFirst(sponsNow) },
       { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
-      { label: 'Sponsorships:', text: lowerFirst(e.sponsorships.status) },
+      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
     ],
-    // Critique fix 6: say it's a 2026 talk, with the full title, and the name and affiliation as printed.
-    watch: { text: 'Watch a 2026 talk: We Migrated to Karpenter and Our Costs Went Up: A Journey to Real Savings, Abhinav Dahiya, Lyft', youtube: 'UdpviRNrnj8' },
-    talkNote: `Call for proposals ${lowerFirst(cfpStatus())}`,
-    ticketNote: 'Free CNCF community account',
-    managerLink: 'Need your manager’s OK?',
     proofLead: `KCD Texas 2026 in ${edition2026.city}:`,
     // The band's two photos, each captioned under itself like every photo on the site: a bold lead, then the words.
     // The one with a phone crop is the only one phones show.
@@ -33,12 +34,26 @@ export const home = {
   },
 
   dates: {
+    title: 'Key dates',
+    // In date order. `big` is the poster line and `bigTo` a range's end; `echo` marks a status that only repeats
+    // `big`, so the key dates can hide it on screen; `from` and `until` (YYYY-MM-DD) place NOW (nowOn() in
+    // edition-2027.ts, and /now.js between builds). Sponsorships read "Open now", then "Closed" after their last
+    // day; tickets have no day until CNCF sets one, and no span then. Each detail says something the date doesn't.
     items: [
-      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'Prospectus coming soon' } },
-      { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
-      { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: { text: 'Chapter members hear first', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: 'With the Speakers and keynotes' } },
-      { key: 'event', name: `KCD Texas ${e.year}`, status: eventStatus(), detail: { text: e.eventNote } },
+      { key: 'spons', name: 'Sponsorships', status: sponsNow, big: sponsNow, echo: true,
+        detail: sponsNow === 'Closed' ? { text: `Thanks to every ${e.year} sponsor.` } : { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
+      { key: 'cfp', name: 'Call for proposals', status: cfpNow, big: shortDate(e.cfp.opens), bigTo: shortDate(e.cfp.closes), echo: cfpNow.startsWith('Opens'),
+        from: e.cfp.opens, until: e.cfp.closes,
+        detail: cfpNow === 'Closed' ? { text: 'Thanks to everyone who sent a proposal.' } : { text: 'Read the CFP guide', href: 'cfp' } },
+      // "Sample day" marks a test build with a made-up sale day (build.sh --tickets-day); check-dist blocks it elsewhere.
+      { key: 'tix', name: 'Tickets', status: tixNow, big: e.tickets.onSale ? shortDate(e.tickets.onSale) : tixNow, echo: Boolean(e.tickets.onSale) && tixNow !== 'On sale now',
+        // NOW treats the sale day as one day; `ends` keeps tickets current (not faded as past) until the event.
+        undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale, ends: e.eventDay } : {}),
+        detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } },
+      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), big: shortDate(e.schedule), echo: true, from: e.schedule, until: e.schedule, ends: e.eventDay,
+        detail: { text: 'With the Speakers and keynotes' } },
+      { key: 'event', name: `KCD Texas ${e.year}`, status: eventNow, big: shortDate(e.eventDay), echo: !eventNow.startsWith('Today'), from: e.eventDay, until: e.eventDay,
+        detail: { text: `One day, in person, in ${e.city}.` } },
     ],
   },
 
@@ -63,7 +78,7 @@ export const home = {
       'Your logo on the website, in emails, on signage and in the CNCF transparency report',
       'Full-day passes for your team',
     ],
-    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar. ${e.year} details come with the prospectus.`,
+    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar.`,
     // Critique fix 8: the sponsor hall (photo 001) instead of the cut-off roll-up (136).
     photoAlt: 'Attendees, several in cowboy hats, walk between sponsor tables in the KCD Texas 2026 sponsor hall, in front of Diagrid’s backdrop.',
     photoTime: '8:41 a.m.',
@@ -87,6 +102,10 @@ export const home = {
     photoTime: '4:07 p.m.',
     photoCaption: 'Tyler Auerbeck, Stack AV: Self-Service, Multi-Tenant Infrastructure With Kured and Flatcar Linux.',
     photoYoutube: 'WoI83_KQtWM',
+    // Two more End-User talks from 2026 under the photo (they moved here from the hero in release 4),
+    // with titles, names and affiliations as printed (edition2026.talks).
+    talksTitle: 'More End-User talks from 2026',
+    talks: ['abhinav-dahiya', 'shravani-gunturu'],
   },
 
   stage: {
@@ -94,8 +113,8 @@ export const home = {
     title: 'On the 2026 stage',
     count: `${edition2026.speakers} Speakers and ${edition2026.hosts} hosts`,
     asPrinted: 'Affiliations as printed on the 2026 Event Page.',
-    recordings: `${edition2026.recordings} talk recordings on YouTube`,
-    talksTitle: 'More 2026 talks, practitioners first',
+    // The talks list and the recap video live on /2026/ (release 4: the stage was 2,600 px tall).
+    programLink: `See the full 2026 program and its ${edition2026.recordings} talk recordings`,
   },
 
   day: {

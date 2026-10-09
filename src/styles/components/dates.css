@@ -1,51 +1,107 @@
-/* Key dates: a tour strip. The months, bars and marks sit at their dates (see KeyDates.astro). */
+/* Key dates as a phase rail (KeyDates.astro): a row per phase (name, start and end, link) beside a bar drawn to
+   scale on a shared calendar, with month names on top and a magenta NOW line across the bars. From 1100 px the
+   start and end have their own column; from 720 px they sit under the names; below that each phase stacks over
+   its own bar, which carries a NOW tick. */
 @layer components {
-  .dates { padding-top: 40px; }
-  .dates-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-weight: 700; font-size: 16px; line-height: 1.2; }
-  .dates-title span { font-weight: 400; color: var(--muted); }
-  .tl { margin-top: 12px; }
-  .tl-months { display: grid; grid-template-columns: 31fr 30fr 31fr 31fr 28fr 31fr 30fr; font-stretch: 62%; font-weight: 800; font-size: 18px; line-height: 1; }
-  .tl-months span { padding: 0 0 8px 8px; border-left: 1px solid var(--fg); white-space: nowrap; }
-  .tl-months i { font-style: normal; font-weight: 600; color: var(--muted); }
-  .tl-track { display: block; width: 100%; height: 34px; overflow: visible; }
-  .tl-axis { stroke: var(--line); stroke-width: 1px; }
-  .tl-past { stroke: var(--muted); stroke-width: 1px; }
-  .tl-bar--cfp { fill: var(--fg); }
-  .tl-bar--tix { fill: var(--track-tickets); }
-  .tl-mark { fill: var(--signal, var(--fg)); stroke: var(--bg); stroke-width: 2px; }
-  .tl-event { fill: var(--signal, var(--fg)); }
-  .tl-event-label { fill: var(--on-signal, var(--bg)); font-stretch: 62%; font-weight: 900; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .tl-now { stroke: var(--fg); stroke-width: 2px; }
-  .tl-now-label { fill: var(--fg); font-size: 13px; font-weight: 800; }
-  .tl-list { display: grid; grid-template-columns: 31fr 92fr 28fr 31fr 30fr; }
-  .tl-it { padding: 12px 12px 0 8px; border-left: 1px solid var(--fg); }
-  .it-name { font-weight: 700; font-size: 15px; line-height: 1.3; }
-  .it-st { margin-top: 2px; font-stretch: 62%; font-weight: 800; font-size: 24px; line-height: 1.1; }
-  .it-dt { margin-top: 4px; font-size: 15px; line-height: 1.35; color: var(--muted); }
-
-  /* Wide screens: each item sits under its stretch of the strip. While tickets have no sale day, the
-     call for proposals' column runs through February and Tickets is one slim line under the list. */
-  @media (min-width: 1100px) {
-    .tl-it--sched { grid-column: 4; }
-    .tl-it--event { grid-column: 5; }
-    .tl-list--no-tix-day .tl-it--cfp { grid-column: 2 / span 2; }
-    .tl-list--no-tix-day .tl-it--tix { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-top: 18px; padding: 10px 0 0; border-left: 0; border-top: 1px solid var(--line); }
-    .tl-list--no-tix-day .tl-it--tix .it-st, .tl-list--no-tix-day .tl-it--tix .it-dt { margin-top: 0; }
+  .dates { padding-top: 44px; }
+  .pr {
+    position: relative; display: grid;
+    grid-template-columns: [name-start] minmax(0, 1fr) [name-end] 20px [when-start] max-content [when-end] 40px [chart-start] minmax(0, 1.8fr) [chart-end];
+    grid-template-rows: auto 48px auto auto;
   }
+  /* The section title (.h2) over the whole rail; the month names keep their own row over the chart column. */
+  .pr-title { grid-column: name-start / chart-end; grid-row: 1; max-width: none; padding-bottom: 8px; }
+  .pr-axis { grid-column: chart; grid-row: 2; }
 
+  /* The rows share the columns, so names, dates and bars line up from row to row. */
+  .pr-lanes { grid-column: name-start / chart-end; grid-row: 3; display: grid; grid-template-columns: subgrid; border-top: 3px solid var(--fg); }
+  .pr-lane { grid-column: name-start / chart-end; display: grid; grid-template-columns: subgrid; align-items: center; min-height: 72px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .pr-text { display: contents; }
+  .pr-lane .it-name { grid-column: name; grid-row: 1; }
+  .pr-lane .pr-when { grid-column: when; grid-row: 1 / span 3; }
+  .pr-lane .it-st { grid-column: name; grid-row: 2; justify-self: start; }
+  .pr-lane .it-dt { grid-column: name; grid-row: 3; }
+  .pr-bar { grid-column: chart; grid-row: 1 / span 3; display: block; width: 100%; height: 18px; overflow: visible; }
+
+  .it-name { font-weight: 800; font-size: 14px; line-height: 1.25; letter-spacing: 0.03em; text-transform: uppercase; }
+  .pr-when { font-stretch: 62%; font-weight: 900; font-size: clamp(26px, 2.3vw, 34px); line-height: 0.95; letter-spacing: -0.005em; text-transform: uppercase; white-space: nowrap; }
+  .pr-when { word-spacing: 0.06em; }
+  .pr-dash { margin-inline: 0.22em; }
+  .pr-lane--event .pr-when { justify-self: start; padding: 7px 10px 5px; background: var(--signal); color: var(--on-signal); }
+  /* Stamps: a running state is filled ink, one still to come an outline, a finished one a tinted tag; one that
+     repeats the dates is hidden. */
+  .it-st { display: inline-block; margin-top: 8px; padding: 4px 8px 3px; background: var(--surface); font-weight: 800; font-size: 12px; line-height: 1.2; letter-spacing: 0.05em; text-transform: uppercase; }
+  .pr-lane--live .it-st { background: var(--fg); color: var(--bg); }
+  .pr-lane--future .it-st, .pr-tix-line:not(.pr-lane--live) .it-st { padding: 2px 6px 1px; background: none; border: 2px solid currentColor; }
+  .pr-lane--echo .it-st { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .it-dt { margin-top: 6px; max-width: 22em; font-size: 15px; line-height: 1.4; color: var(--muted); }
+  .it-dt a { display: inline-block; padding-block: 2px; }
+  .pr-lane--past .it-name, .pr-lane--past .pr-when { color: var(--muted); }
+
+  /* The bars: an outline still to come, magenta up to NOW while running, grey once finished. */
+  .pr-track { display: none; stroke: var(--line); stroke-width: 2px; }
+  .pr-span { fill: var(--bg); stroke: var(--fg); stroke-width: 2px; }
+  .pr-lane--past .pr-span { stroke: var(--muted); }
+  .pr-done { fill: var(--action); }
+  .pr-done.is-past { fill: var(--muted); }
+  .pr-arrow { fill: var(--action); }
+  .pr-lane--past .pr-arrow, .pr-now.at-event .pr-now-line, .pr-now--tick.at-event { display: none; }
+  .pr-mark { fill: var(--signal); stroke: var(--signal-edge); stroke-width: 1px; }
+  .pr-lane--past .pr-mark { fill: var(--muted); }
+  .pr-now--tick { display: none; }
+  .pr-now--tick line { stroke: var(--action); stroke-width: 3px; }
+
+  /* The calendar over the bars: month names and lines, the gold line on Apr 23, and NOW. */
+  .pr-over { grid-column: chart; grid-row: 2 / 4; position: relative; z-index: 1; pointer-events: none; }
+  .pr-over-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .pr-grid { stroke: var(--line); stroke-width: 1px; }
+  .pr-event-line { stroke: var(--signal); stroke-width: 3px; }
+  /* Month names carry a page-colored halo, so the NOW line passes behind them. */
+  .pr-month { fill: var(--muted); font-weight: 600; font-size: 12px; paint-order: stroke; stroke: var(--bg); stroke-width: 6px; stroke-linejoin: round; }
+  .pr-now-line { stroke: var(--action); stroke-width: 3px; }
+  .pr-tag rect { fill: var(--action); }
+  .pr-tag text { fill: var(--on-action); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pr-tag--start, .pr-tag--end, .pr-now.at-start .pr-tag--mid, .pr-now.at-end .pr-tag--mid { display: none; }
+  .pr-now.at-start .pr-tag--start, .pr-now.at-end .pr-tag--end { display: inline; }
+
+  /* Tickets without a day: one line under the rows. */
+  .pr-tix-line { grid-column: name-start / chart-end; grid-row: 4; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding-top: 14px; }
+  .pr-tix-line > * { margin-top: 0; }
+  .pr-tix-line.pr-lane--live .it-st { background: var(--fg); color: var(--bg); }
+
+  @media (forced-colors: active) {
+    .pr-bar, .pr-over-svg { forced-color-adjust: none; }
+    .pr-span { fill: Canvas; stroke: CanvasText; }
+    .pr-done, .pr-arrow, .pr-now--tick line { fill: Highlight; stroke: Highlight; }
+    .pr-done.is-past { fill: GrayText; }
+    .pr-mark { fill: CanvasText; stroke: none; }
+    .pr-grid, .pr-track { stroke: GrayText; }
+    .pr-event-line { stroke: CanvasText; }
+    .pr-month { fill: CanvasText; stroke: Canvas; }
+    .pr-now-line { stroke: Highlight; }
+    .pr-tag rect { fill: Highlight; }
+    .pr-tag text { fill: HighlightText; }
+    /* The gold plate's fill is gone in forced colors, so Apr 23 gets a frame. */
+    .pr-lane--event .pr-when { outline: 2px solid CanvasText; outline-offset: -2px; }
+  }
   @media (max-width: 1099px) {
-    .tl-months i { display: none; }
-    .tl-list { display: block; margin-top: 18px; }
-    .tl-it { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: baseline; padding: 10px 0; border-left: 0; border-top: 1px solid var(--line); }
-    .tl-it:last-child { border-bottom: 1px solid var(--line); }
-    .it-name { grid-column: 1; grid-row: 1; font-size: 16px; }
-    .it-st { grid-column: 2; grid-row: 1; margin: 0; font-size: 20px; text-align: right; }
-    .it-dt { grid-column: 1 / -1; margin-top: 2px; }
+    /* The start and end move under the name. */
+    .pr { grid-template-columns: [name-start when-start] minmax(0, 1fr) [name-end when-end] 32px [chart-start] minmax(0, 1.35fr) [chart-end]; }
+    .pr-text { display: block; grid-column: name-start / name-end; }
+    .pr-when { margin-top: 6px; font-size: 26px; }
+    .pr-lane--event .pr-when { display: inline-block; }
+    .pr-text .it-st { margin-top: 10px; }
+    .pr-text .it-st + .it-dt, .pr-lane--echo .it-dt { margin-top: 8px; }
   }
-  @media (max-width: 599px) {
-    .tl-months { font-size: 14px; }
-    .tl-months span { padding-left: 4px; }
-    .tl-event-label { font-size: 11px; letter-spacing: 0.02em; }
-    .it-st { font-size: 19px; }
+  @media (max-width: 719px) {
+    /* Each phase stacks over its own bar; the shared calendar gives way to a NOW tick on each bar. */
+    .pr { display: block; }
+    .pr-title { padding-bottom: 20px; }
+    .pr-axis, .pr-over { display: none; }
+    .pr-lanes { display: block; }
+    .pr-lane { display: block; min-height: 0; padding: 16px 0 18px; }
+    .pr-bar { margin-top: 14px; }
+    .pr-track, .pr-now--tick { display: inline; }
+    .pr-tix-line { padding-top: 16px; }
   }
 }

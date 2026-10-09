@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Builds kcdtexas.org. The same script runs locally and in CI.
 #
-# Usage: scripts/build.sh [--zip] [--serve] [--skip-install] [--now YYYY-MM-DD]
+# Usage: scripts/build.sh [--zip] [--serve] [--skip-install] [--now YYYY-MM-DD] [--tickets-day YYYY-MM-DD]
 #   --zip           also write out/kcdtexas-<commit>.zip (for Cloudflare Pages
 #                   dashboard uploads; Netlify drag-and-drop takes the dist/ folder)
 #   --serve         preview the built site at http://127.0.0.1:4321
 #   --skip-install  reuse node_modules instead of running npm ci
 #   --now DAY       build as if DAY were today in Central time, to test date-driven text
 #                   (tests/time-machine.mjs). Never in production: the build refuses it there.
+#   --tickets-day DAY  build as if tickets went on sale on DAY, a sample day for tests and design
+#                   reviews; the pages label it "Sample day". Never in production either.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -18,8 +20,8 @@ export ASTRO_TELEMETRY_DISABLED=1
 zip=false
 serve=false
 install=true
-# The build day comes only from --now, never from an inherited variable.
-unset KCD_BUILD_DAY
+# The build day and the sample ticket day come only from the flags, never from inherited variables.
+unset KCD_BUILD_DAY KCD_TICKETS_DAY
 while [ $# -gt 0 ]; do
   case "$1" in
     --zip) zip=true ;;
@@ -32,6 +34,12 @@ while [ $# -gt 0 ]; do
         echo "--now is not allowed in a production build" >&2; exit 2
       fi
       export KCD_BUILD_DAY="$2"; shift ;;
+    --tickets-day)
+      [[ "${2:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "--tickets-day needs a date as YYYY-MM-DD" >&2; exit 2; }
+      if [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; then
+        echo "--tickets-day is not allowed in a production build" >&2; exit 2
+      fi
+      export KCD_TICKETS_DAY="$2"; shift ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -41,6 +49,9 @@ step() { printf '\n==> %s\n' "$1"; }
 
 if [ -n "${KCD_BUILD_DAY:-}" ]; then
   echo "Building as if today were $KCD_BUILD_DAY (Central time). Test builds only."
+fi
+if [ -n "${KCD_TICKETS_DAY:-}" ]; then
+  echo "Building with a sample ticket sale day, $KCD_TICKETS_DAY. Test builds only."
 fi
 
 step "Checking Node.js (needs 22.12 or newer)"

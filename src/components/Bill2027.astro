@@ -1,6 +1,5 @@
 ---
 import { home } from '../data/home';
-import { youtube } from '../data/edition-2026';
 import { cfpPath } from '../data/nav';
 
 const h = home.hero;
@@ -8,6 +7,5 @@ const h = home.hero;
 
 <div class="bill27">
   <h2 class="sr-only">The 2027 bill</h2>
-  <ul class="slots">{h.bill.map((n) => <li class="note"><b>{n.label}</b> {n.text}</li>)}<li class="open"><a class="slot slot--eu" href={cfpPath}><span class="slot-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a></li></ul>
-  <p class="eu-example"><a class="watch" href={youtube(h.watch.youtube)}>{h.watch.text}</a></p>
+  <ul class="slots">{h.bill.map((n) => <li class="note"><b>{n.label}</b> {n.text}</li>)}<li class="open"><a class="eu-link" href={cfpPath}><span class="eu-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a></li></ul>
 </div>

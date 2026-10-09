@@ -2,20 +2,31 @@
 // Every date the site shows lives here, never in a template (ADR 0009: pushing = announcing).
 // All dates and times are Central time (America/Chicago).
 
+// The day tickets go on sale, once CNCF sets it (owner-actions A62); null until then. `scripts/build.sh
+// --tickets-day DAY` sets KCD_TICKETS_DAY to try a sample day in tests and design reviews: the pages then
+// label it "Sample day", and production builds refuse the flag.
+const ticketsDay: string | null = null;
+const sampleTicketsDay = import.meta.env?.KCD_TICKETS_DAY as string | undefined;
+if (sampleTicketsDay && !/^\d{4}-\d{2}-\d{2}$/.test(sampleTicketsDay)) throw new Error(`KCD_TICKETS_DAY must be YYYY-MM-DD, not ${sampleTicketsDay}`);
+/** True only in a test build with a sample ticket day. */
+export const ticketsSample = Boolean(sampleTicketsDay);
+
+// The last day sponsorships are open: they close before Event Day, on Mar 31 (the owner, 2026-10-09). With null,
+// sponsorships stay open through Event Day. Setting it adds the day after to scripts/rebuild-dates.mjs.
+const sponsorshipsLastDay: string | null = '2027-03-31';
+
 export const edition2027 = {
   year: 2027,
   city: 'Dallas',
-  // The day the Website presents this Edition; "As of" on the key dates never shows an earlier day.
-  announced: '2026-10-28',
-  sponsorships: { status: 'Open now' },
+  sponsorships: { closes: sponsorshipsLastDay },
   cfp: {
     opens: '2026-11-01',
     closes: '2027-01-31',
     closesTime: '11:59 p.m.',
   },
-  // Empty until CNCF sets the day tickets go on sale; until then the site says
-  // "Coming soon" (a Co-Organizer, 2026-10-08). Setting it adds the day to scripts/rebuild-dates.mjs.
-  tickets: { onSale: null as string | null },
+  // "Coming soon" until CNCF sets the day (a Co-Organizer, 2026-10-08); setting `ticketsDay` above adds
+  // it to scripts/rebuild-dates.mjs.
+  tickets: { onSale: (sampleTicketsDay || ticketsDay) as string | null },
   // The Speakers, the keynotes and the Schedule are announced together on this day (a Co-Organizer, 2026-10-08).
   schedule: '2027-03-01',
   eventDay: '2027-04-23',
@@ -47,7 +58,7 @@ export function phaseOn(day: string): Phase {
   return 'recap';
 }
 
-/** The day the build describes: the build day, in Central time. "Now" and "As of" on the key dates use it. */
+/** The day the build describes: the build day, in Central time. NOW on the key dates uses it. */
 export const asOfDay = todayCentral();
 export const phase: Phase = phaseOn(asOfDay);
 
@@ -58,6 +69,14 @@ export const shortDate = (day: string) => new Intl.DateTimeFormat('en-US', { tim
 export const shortDateYear = (day: string) => `${shortDate(day)}, ${day.slice(0, 4)}`;
 /** "April 23, 2027" */
 export const longDate = (day: string) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' }).format(at(day));
+
+/** The last day sponsorships are open: the day set above, or Event Day until one is set. */
+export const sponsorshipsCloses = (): string => edition2027.sponsorships.closes ?? edition2027.eventDay;
+
+/** "Open now" through the last day of sponsorships, then "Closed", for sponsorships on the build day. */
+export function sponsorshipsStatus(day = asOfDay): string {
+  return day <= sponsorshipsCloses() ? 'Open now' : 'Closed';
+}
 
 /** "Opens Nov 1", "Open now" or "Closed", for the CFP on the build day. */
 export function cfpStatus(day = asOfDay): string {
@@ -90,6 +109,17 @@ export function ticketsSentence(day = asOfDay): string {
 /** "Apr 23 · Dallas", or "Today · Dallas" on Event Day, for the Edition on the build day. */
 export function eventStatus(day = asOfDay): string {
   return `${day === edition2027.eventDay ? 'Today' : shortDate(edition2027.eventDay)} · ${edition2027.city}`;
+}
+
+/** Where NOW sits among the dated key-date items on `day`: on the last item that has started, while it runs
+ *  ('on'), or just after it ('after'); before the first item until one starts ('before'); nowhere outside the
+ *  key-dates window. It only moves forward, through the items in date order. /now.js repeats this rule. */
+export function nowOn(spans: { key: string; from: string; until: string }[], day = asOfDay): { key: string; at: 'before' | 'on' | 'after' } | null {
+  if (day < timeline.start || day >= timeline.end || spans.length === 0) return null;
+  const ordered = [...spans].sort((a, b) => a.from.localeCompare(b.from));
+  const last = ordered.filter((s) => s.from <= day).at(-1);
+  if (!last) return { key: ordered[0].key, at: 'before' };
+  return { key: last.key, at: day <= last.until ? 'on' : 'after' };
 }
 
 /** Where "Now" sits on the key-dates strip, which runs from Oct 1, 2026 to Apr 30, 2027. */

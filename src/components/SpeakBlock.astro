@@ -2,12 +2,13 @@
 // The speak block: the reversed panel that asks for End-User Stories. Both buttons go to the CFP page.
 import { Image } from 'astro:assets';
 import { home } from '../data/home';
-import { youtube } from '../data/edition-2026';
+import { edition2026, youtube } from '../data/edition-2026';
 import { legal } from '../data/site';
 import { cfpPath } from '../data/nav';
 import { photos } from '../lib/images';
 
 const s = home.speak;
+const talks = s.talks.map((id) => edition2026.talks.find((t) => t.face === id)!);
 ---
 
 <section id="speak" class="speak" aria-labelledby="speak-title">
@@ -26,9 +27,15 @@ const s = home.speak;
         <a class="btn btn--line" href={cfpPath}>Read the CFP guide</a>
       </div>
     </div>
-    <figure class="photo speak-photo">
-      <Image src={photos['speak-118']} quality={70} widths={[432, 864]} sizes="(min-width: 1100px) 30vw, (min-width: 600px) 36vw, 38vw" alt={s.photoAlt} />
-      <figcaption><b>KCD Texas 2026 · {s.photoTime}</b> {s.photoCaption} <a class="watch" href={youtube(s.photoYoutube)}>Watch<span class="sr-only"> Tyler Auerbeck’s talk on YouTube</span></a></figcaption>
-    </figure>
+    <div class="speak-side">
+      <figure class="photo speak-photo">
+        <Image src={photos['speak-118']} quality={70} widths={[432, 864]} sizes="(min-width: 1100px) 30vw, (min-width: 600px) 36vw, 38vw" alt={s.photoAlt} />
+        <figcaption><b>KCD Texas 2026 · {s.photoTime}</b> {s.photoCaption} <a class="watch" href={youtube(s.photoYoutube)}>Watch<span class="sr-only"> Tyler Auerbeck’s talk on YouTube</span></a></figcaption>
+      </figure>
+      <div class="eu-talks">
+        <h3 class="eu-talks-title">{s.talksTitle}</h3>
+        <ul>{talks.map((t) => <li><a href={youtube(t.youtube)}>{t.title}</a> <span>{t.name}, {t.affiliation}</span></li>)}</ul>
+      </div>
+    </div>
   </div>
 </section>

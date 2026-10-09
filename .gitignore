@@ -5,15 +5,21 @@ node_modules/
 dist/
 .astro/
 
-# Environment / secrets
+# Environment / secrets (also direnv's .envrc and wrangler's .dev.vars)
 .env
 .env.*
 !.env.example
+.envrc
+.dev.vars*
 
 # Logs
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Host and deploy tools' local state
+.netlify/
+.wrangler/
 
 # OS / editor
 .DS_Store
@@ -21,6 +27,12 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.swp
+*~
+
+# Claude Code: personal settings and worktrees (settings.json and skills/ stay shared)
+.claude/settings.local.json
+.claude/worktrees/
 
 # Office lock files
 ~$*

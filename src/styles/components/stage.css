@@ -1,9 +1,10 @@
-/* The keynote stage, the 2026 bill and the 2026 talks. */
+/* The keynote stage, the 2026 bill, the open 2027 slot and the link to the 2026 program. */
 @layer components {
   .stage { padding-top: var(--sec); }
   .stage-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: 24px; padding-top: 24px; border-top: 3px solid var(--fg); }
   .stage-head .kicker { grid-column: 1 / -1; }
-  .stage-title { font-stretch: 62%; font-weight: 800; font-size: clamp(64px, 9.4vw, 136px); line-height: 0.9; letter-spacing: -0.01em; text-box: trim-both cap alphabetic; }
+  /* The same size as every home section title (.h2): last year no longer outshouts this year. */
+  .stage-title { font-stretch: 68%; font-weight: 800; font-size: clamp(38px, 4.2vw, 60px); line-height: 1.02; letter-spacing: -0.005em; text-box: trim-both cap alphabetic; }
   .stage-count { font-weight: 700; font-size: 17px; padding-bottom: 2px; }
   .keynotes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px var(--gutter); margin-top: 48px; }
   .kn-photo { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; }
@@ -65,36 +66,15 @@
   .slot--end { display: flex; justify-content: center; gap: 0.45em; margin-top: 32px; padding: 0.42em 0.6em; font-size: clamp(30px, 4.4vw, 64px); }
   .slot-year { padding: 0.1em 0.25em; background: var(--action); color: var(--on-action); font-size: 0.62em; line-height: 1; }
   .slot--end:hover .slot-year { background: var(--on-action); color: var(--action); }
+  .stage-more { text-align: center; }
 
-  .talks-block { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 48px; margin-top: 88px; }
-  .recap-col { grid-column: 1 / span 4; }
-  .talks-col { grid-column: 6 / -1; }
-  .recap-col .h3, .talks-col .h3 { padding-bottom: 12px; margin-bottom: 18px; border-bottom: 3px solid var(--fg); }
-  .recap { display: block; max-width: 800px; color: var(--fg); text-decoration: none; }
-  .recap-frame { position: relative; display: block; }
-  .recap-frame img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
-  .play { position: absolute; left: 14px; bottom: 14px; width: 56px; height: 56px; background: var(--action); }
-  .play::after { content: ""; position: absolute; left: 22px; top: 17px; border-style: solid; border-width: 11px 0 11px 18px; border-color: transparent transparent transparent var(--on-action); }
-  .recap-text { display: block; margin-top: 12px; color: var(--link); font-weight: 700; font-size: 18px; text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
-  .recap:hover .recap-text { color: var(--link-hover); text-decoration-thickness: 2px; }
-  .talks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--gutter); }
-  .talk { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
-  .talk img { width: 72px; height: 72px; object-fit: cover; }
-  .talk-who { font-size: 15px; line-height: 1.35; color: var(--muted); }
-  .talk-who b { color: var(--fg); font-weight: 700; margin-right: 4px; }
-  .talk-title { margin-top: 4px; font-size: 16px; line-height: 1.4; }
 
-  @media (max-width: 1099px) {
-    .recap-col { grid-column: 1 / span 5; }
-    .talks-col { grid-column: 1 / -1; }
-  }
   @media (max-width: 899px) {
     .keynotes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .talks { grid-template-columns: 1fr; }
   }
   @media (max-width: 599px) {
     .stage-head { grid-template-columns: 1fr; row-gap: 10px; }
-    .stage-title { font-size: 52px; }
+    .stage-title { font-size: 34px; }
     .keynotes { grid-template-columns: 1fr; gap: 20px; margin-top: 26px; }
     .kn { display: grid; grid-template-columns: 38% minmax(0, 1fr); grid-template-rows: repeat(5, auto) 1fr; column-gap: 16px; }
     .kn-photo { grid-column: 1; grid-row: 1 / -1; }
@@ -119,17 +99,5 @@
     .bl-more .bl-hosts li { font-size: calc(99.5cqi / var(--em)); }
     .slot--end { margin-top: 20px; padding: 12px 10px; font-size: calc((100vw - 2 * var(--pad) - 28px) / 14); }
     .as-printed { margin-top: 16px; }
-    .talks-block { margin-top: 44px; row-gap: 36px; }
-    .talks-col, .recap-col { grid-column: 1 / -1; }
-    .recap { display: grid; grid-template-columns: 44% minmax(0, 1fr); column-gap: 14px; align-items: center; }
-    .recap-text { margin-top: 0; font-size: 17px; }
-    .play { left: 8px; bottom: 8px; width: 40px; height: 40px; }
-    .play::after { left: 15px; top: 11px; border-width: 9px 0 9px 14px; }
-    .recap-col .more { margin-top: 14px; }
-    .talk:nth-child(n + 5) { display: none; }
-    .talk { grid-template-columns: 48px minmax(0, 1fr); gap: 12px; padding: 12px 0 13px; }
-    .talk img { width: 48px; height: 48px; }
-    .talk-title { font-size: 15px; line-height: 1.35; }
-    .talk .watch { margin-top: 4px; padding: 2px 0; font-size: 14px; }
   }
 }

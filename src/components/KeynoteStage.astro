@@ -1,12 +1,12 @@
 ---
-// The 2026 stage: the three keynotes, the 2026 bill, the open 2027 slot and more 2026 talks.
+// The 2026 stage: the three keynotes, the 2026 bill, the open 2027 slot and a link to the full program on /2026/.
 import { Image } from 'astro:assets';
 import Bill2026 from './Bill2026.astro';
 import { home } from '../data/home';
 import { edition2026, youtube } from '../data/edition-2026';
-import { cfpPath } from '../data/nav';
+import { cfpPath, paths } from '../data/nav';
 import { edition2027 } from '../data/edition-2027';
-import { faces, keynotePhotos, recapPoster } from '../lib/images';
+import { keynotePhotos } from '../lib/images';
 
 const st = home.stage;
 ---
@@ -33,31 +33,6 @@ const st = home.stage;
     <p class="as-printed">{st.asPrinted}</p>
     <Bill2026 />
     <a class="slot slot--end" href={cfpPath}><span class="slot-year">{edition2027.year}</span><span class="slot-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a>
-    <div class="talks-block">
-      <div class="recap-col">
-        <h3 class="h3">{st.recordings}</h3>
-        <a class="recap" href={edition2026.recapUrl}>
-          <span class="recap-frame"><Image src={recapPoster} quality={70} widths={[640, 1200]} sizes="(min-width: 1100px) 420px, (min-width: 600px) 60vw, 100vw" alt="" /><span class="play" aria-hidden="true"></span></span>
-          <span class="recap-text">Watch the 2026 recap video</span>
-        </a>
-        <p class="more"><a href={edition2026.talksUrl}>Watch all 2026 talks</a></p>
-      </div>
-      <div class="talks-col">
-        <h3 class="h3">{st.talksTitle}</h3>
-        <ul class="talks">
-          {edition2026.talks.map((t) => (
-            <li class="talk">
-              <Image src={faces[t.face]} width={144} height={144} alt="" />
-              <div>
-                <p class="talk-who"><b>{t.name}</b> {t.affiliation}</p>
-                <p class="talk-title">{t.title}</p>
-                <a class="watch" href={youtube(t.youtube)}>Watch on YouTube<span class="sr-only">: {t.title}</span></a>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p class="as-printed">{st.asPrinted}</p>
-      </div>
-    </div>
+    <p class="more stage-more"><a href={`${paths.edition2026}#program`}>{st.programLink}</a></p>
   </div>
 </section>

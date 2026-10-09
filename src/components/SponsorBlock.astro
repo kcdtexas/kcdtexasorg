@@ -1,5 +1,6 @@
 ---
-// The sponsor block: the case for sponsoring, what 2026 Sponsor Tiers included, and the prospectus door.
+// The sponsor block: the case for sponsoring, what 2026 Sponsor Tiers included, and the prospectus door under
+// them; the 2026 photo beside.
 import { Image } from 'astro:assets';
 import { home } from '../data/home';
 import { dallasMetro } from '../data/edition-2026';
@@ -27,17 +28,17 @@ const s = home.sponsor;
       <h3 class="h3">{s.tiersTitle} <span>{s.tiersSource}</span></h3>
       <ul class="rows">{s.tiers.map((t) => <li>{t}</li>)}</ul>
       <p class="tiers-note">{s.tiersNote}</p>
+      <div class="offer">
+        <a class="btn" href={prospectus.href}>{prospectus.label}</a>
+        <p class="offer-mail">{prospectus.note}.</p>
+      </div>
+      <p class="coc">Sponsors agree to the <a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a>.</p>
     </div>
     <div class="sponsor-side">
       <figure class="photo">
         <Image src={photos['001-sponsor-hall']} quality={70} widths={[1000, 2000]} sizes="(min-width: 1100px) 46vw, (min-width: 600px) 92vw, 100vw" alt={s.photoAlt} />
         <figcaption><b>KCD Texas 2026 · {s.photoTime}</b> {s.photoCaption}</figcaption>
       </figure>
-      <div class="offer">
-        <a class="btn btn--wide" href={prospectus.href}>{prospectus.label}</a>
-        <p class="offer-mail">{prospectus.note}.</p>
-      </div>
-      <p class="coc">Sponsors agree to the <a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a>.</p>
     </div>
   </div>
 </section>
