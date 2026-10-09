@@ -21,7 +21,6 @@ export const DAYS = {
     'home page in the CFP Phase order': /<main id="main" class="main--cfp">/.test(home),
     'key dates: tickets "Coming soon"': keyDates(home).Tickets === 'Coming soon',
     'no tickets bar on the strip before the sale day is set': !/tl-bar--tix/.test(home),
-    'the grey bar runs from the Schedule instead': /class="tl-bar--sched"/.test(home),
     '"Now" on the strip': /class="tl-now"/.test(home),
   }),
   '2026-11-01': ({ home, cfp }) => ({

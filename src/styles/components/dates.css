@@ -11,7 +11,7 @@
   .tl-axis { stroke: var(--line); stroke-width: 1px; }
   .tl-past { stroke: var(--muted); stroke-width: 1px; }
   .tl-bar--cfp { fill: var(--fg); }
-  .tl-bar--tix, .tl-bar--sched { fill: var(--track-tickets); }
+  .tl-bar--tix { fill: var(--track-tickets); }
   .tl-mark { fill: var(--signal, var(--fg)); stroke: var(--bg); stroke-width: 2px; }
   .tl-event { fill: var(--signal, var(--fg)); }
   .tl-event-label { fill: var(--on-signal, var(--bg)); font-stretch: 62%; font-weight: 900; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
