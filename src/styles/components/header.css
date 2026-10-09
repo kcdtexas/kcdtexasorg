@@ -80,4 +80,11 @@
     .lockup-badge { height: 30px; }
     .head-cta { padding: 0 7px; font-size: 14px; }
   }
+  @media (max-width: 359px) {
+    /* 320 px (a 1280 px screen at 400%): a smaller lockup and tighter gaps keep every control without sideways scroll. */
+    .head, .head-end, .lockup { gap: 4px; }
+    .lockup-kcd, .lockup-rule { height: 17px; }
+    .lockup-badge { height: 25px; }
+    .head-cta { padding: 0 6px; font-size: 13px; }
+  }
 }

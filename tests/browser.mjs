@@ -194,11 +194,13 @@ try {
       const violations = await axe(tab);
       expect(!violations.length, `${label}: accessibility: ${violations.join(' | ')}`);
 
-      // Phones as narrow as 360 px (the modes above use 390 px).
+      // Phones as narrow as 360 px (the modes above use 390 px), and 320 px for reflow (WCAG 1.4.10).
       if (mode.isMobile) {
-        await tab.setViewportSize({ width: 360, height: mode.viewport.height });
-        const overflow = await tab.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-        expect(overflow <= 1, `${label}: page scrolls sideways by ${overflow}px at 360px`);
+        for (const narrow of [360, 320]) {
+          await tab.setViewportSize({ width: narrow, height: mode.viewport.height });
+          const overflow = await tab.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+          expect(overflow <= 1, `${label}: page scrolls sideways by ${overflow}px at ${narrow}px`);
+        }
       }
       await context.close();
     }
