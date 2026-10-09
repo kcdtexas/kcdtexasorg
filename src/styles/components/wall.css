@@ -22,8 +22,9 @@
   .tier { margin-top: 22px; }
   .tier-name { display: flex; align-items: center; gap: 20px; font-weight: 700; font-size: 15px; line-height: 1.2; }
   .tier-name::before, .tier-name::after { content: ""; flex: 1; height: 1px; background: var(--fg); }
-  .logos { display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); justify-content: center; gap: var(--gap); margin-top: 16px; }
-  .logos > li { display: flex; align-items: center; justify-content: center; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
+  /* At most --cols cells per row, and a row that isn't full stays centered under the full ones. */
+  .logos { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); max-width: calc(var(--cols) * var(--cell) + (var(--cols) - 1) * var(--gap)); margin: 16px auto 0; }
+  .logos > li { flex: 0 0 var(--cell); display: flex; align-items: center; justify-content: center; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
   .tier--platinum .logos { --cols: var(--plat-cols); --cell: var(--plat-cell); --logo-size: calc(1.5 * var(--gold-size)); --cell-h: calc(1.5 * var(--gold-size) + 40px); }
   .tier--gold .logos { --cols: var(--gold-cols); --cell: var(--gold-cell); --logo-size: var(--gold-size); --cell-h: calc(1.12 * var(--gold-size) + 28px); }
   .tier--silver .logos { --cols: var(--silver-cols); --cell: var(--silver-cell); --logo-size: min(calc(0.75 * var(--gold-size)), calc((var(--silver-cell) - 20px) / 2.8)); --cell-h: calc(0.75 * var(--gold-size) + 26px); }
@@ -57,6 +58,10 @@
   .slot-sub { display: inline-flex; align-items: baseline; gap: 8px; color: var(--fg); font-stretch: 100%; font-weight: 700; font-size: 16px; text-transform: none; text-decoration: underline; text-decoration-color: var(--link-underline); text-underline-offset: 0.2em; }
   .slot:hover .slot-sub { color: var(--on-action); }
 
+  /* Forced colors would drop the light plate behind the logos, and dark logos would vanish on a dark Canvas. */
+  @media (forced-colors: active) {
+    .logos > li { forced-color-adjust: none; }
+  }
   @media (max-width: 1099px) {
     .tiers { --gold-cols: 4; }
   }
