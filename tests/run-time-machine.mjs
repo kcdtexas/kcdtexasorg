@@ -1,6 +1,6 @@
 // The time machine: builds the site as if each key day were today (scripts/build.sh --now) and checks
 // the date-driven text (tests/time-machine.mjs). It also proves scripts/rebuild-dates.mjs: two builds
-// differ, beyond "As of" and "Now", exactly when a rebuild date falls between them.
+// differ, beyond where NOW sits and how far each phase is filled, exactly when a rebuild date falls between them.
 // Each build takes about 10 seconds; at the end dist/ is rebuilt for today.
 // Usage: node tests/run-time-machine.mjs [--keep-dist]
 import { spawnSync } from 'node:child_process';
@@ -50,7 +50,7 @@ try {
 
   // Consecutive builds differ exactly when a rebuild date falls in (a, b].
   const order = [...prints.keys()];
-  console.log('\nRebuild-date proof (consecutive builds, "As of" and "Now" ignored):');
+  console.log('\nRebuild-date proof (consecutive builds, NOW and the fills ignored):');
   for (let i = 0; i + 1 < order.length; i += 1) {
     const [a, b] = [order[i], order[i + 1]];
     const changed = diff(prints.get(a), prints.get(b));

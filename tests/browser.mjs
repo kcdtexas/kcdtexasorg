@@ -6,7 +6,8 @@
 // and without a stored theme. Saves full-page screenshots with --shots.
 // Then the theme switch on the home page: the visitor's stored choice wins over
 // the device scheme, is applied before first paint, and works by keyboard and
-// without JS.
+// without JS. Last, the key dates: NOW and the fills on ten days (clock fixed), and the
+// phase rail's layout from 1440 down to 360 px.
 //
 // Usage: node tests/browser.mjs [baseUrl] [--shots <dir>]
 // Pages run in parallel, $BROWSER_JOBS at a time (default 4).
@@ -365,11 +366,11 @@ try {
     }
   }
 
-  // "Now" on the key dates follows today between builds (/now.js, the owner's A50) and goes once the
-  // strip ends (Apr 30); "As of" keeps the build day. The clock is fixed at noon Central.
+  // The key dates' phase rail follows today between builds (/now.js, the owner's A50): NOW sits on today, the
+  // running phases fill up to it and a finished fill turns grey, Event Day keeps only the tag, and from Apr 24
+  // there is no NOW. The clock is fixed at noon Central.
   const at = (day) => Date.parse(`${day}T12:00:00Z`);
-  const builtAsOf = (await (await fetch(base + '/')).text()).match(/As of [^<]+/)?.[0];
-  for (const day of ['2026-11-15', '2027-05-02']) {
+  for (const day of ['2026-10-10', '2026-11-10', '2026-12-10', '2027-01-10', '2027-02-10', '2027-03-10', '2027-04-10', '2027-04-23', '2027-04-24', '2027-05-02']) {
     const label = `key dates on ${day}`;
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
     const tab = await context.newPage();
@@ -377,25 +378,79 @@ try {
     await tab.clock.setFixedTime(new Date(`${day}T18:00:00Z`));
     await tab.goto(base + '/', { waitUntil: 'networkidle' });
     const state = await tab.evaluate(() => {
-      const tl = document.querySelector('[data-tl-start]');
+      const pr = document.querySelector('[data-pr]');
+      const now = document.querySelector('.pr-over .pr-now');
+      const cfp = document.querySelector('.pr-lane--cfp rect.pr-done');
       return {
-        start: tl?.dataset.tlStart, end: tl?.dataset.tlEnd,
-        asOf: document.querySelector('.dates-title span')?.textContent,
-        now: document.querySelector('.tl-now')?.getAttribute('x1') ?? null,
-        label: document.querySelector('.tl-now-label')?.getAttribute('x') ?? null,
-        past: document.querySelector('.tl-past')?.getAttribute('x2'),
+        start: pr?.dataset.start, end: pr?.dataset.end, nows: document.querySelectorAll('.pr-now').length,
+        x: now?.getAttribute('x') ?? null, atEvent: now?.classList.contains('at-event') ?? null,
+        from: cfp?.dataset.from, to: cfp?.dataset.to, width: cfp?.getAttribute('width'), past: cfp?.classList.contains('is-past'),
       };
     });
-    const pct = Math.min(100, Math.max(0, ((at(day) - at(state.start)) / (at(state.end) - at(state.start))) * 100)).toFixed(2) + '%';
-    expect(builtAsOf && state.asOf === builtAsOf, `${label}: "${state.asOf}", expected the build day "${builtAsOf}"`);
-    expect(state.past === pct, `${label}: the past track ends at ${state.past}, expected ${pct}`);
-    if (day < state.end) {
-      expect(state.now === pct && state.label === pct, `${label}: Now at ${state.now} (label ${state.label}), expected ${pct}`);
+    const pct = (d) => Math.min(100, Math.max(0, ((at(d) - at(state.start)) / (at(state.end) - at(state.start))) * 100));
+    const today = pct(day);
+    if (day <= '2027-04-23') {
+      expect(state.x !== null && Math.abs(parseFloat(state.x) - today) <= 0.1, `${label}: NOW at ${state.x}, expected ${today.toFixed(2)}%`);
+      expect(state.atEvent === (day === '2027-04-23'), `${label}: at-event is ${state.atEvent}`);
     } else {
-      expect(state.now === null && state.label === null, `${label}: Now still shown after the strip ends (at ${state.now})`);
+      expect(state.nows === 0, `${label}: ${state.nows} NOW marks still in the page`);
     }
+    const width = Math.max(0, Math.min(today, pct(state.to)) - pct(state.from));
+    expect(state.width && Math.abs(parseFloat(state.width) - width) <= 0.1, `${label}: the CFP fill is ${state.width} wide, expected ${width.toFixed(2)}%`);
+    expect(state.past === (day >= '2027-02-01'), `${label}: the CFP fill's is-past is ${state.past}`);
     const seen = await problems();
     expect(!seen.length, `${label}: errors or CSP violations: ${seen.join(' | ')}`);
+    await context.close();
+  }
+
+  // The phase rail's layout on today's build: the NOW line never crosses text (month names may sit over it), no
+  // two text boxes overlap, phones swap the shared calendar for a NOW tick on each row, and nothing scrolls
+  // sideways. In the CFP Phase the hero has exactly one filled button (Sponsor).
+  for (const width of [1440, 1280, 1100, 900, 768, 390, 360]) {
+    const label = `key dates at ${width}`;
+    const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'light', isMobile: width <= 390 });
+    const tab = await context.newPage();
+    await tab.goto(base + '/', { waitUntil: 'networkidle' });
+    const layout = await tab.evaluate(() => {
+      const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 && getComputedStyle(el).visibility !== 'hidden'; };
+      const boxes = [...document.querySelectorAll('.dates .it-name, .dates .pr-when, .dates .it-st, .dates .it-dt, .dates .pr-tix-line')].filter(shown);
+      const meet = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+      const name = (el) => `${el.className} "${el.textContent.trim().slice(0, 24)}"`;
+      const line = document.querySelector('.pr-over .pr-now-line');
+      // An SVG line's box has no width; give it the 3 px of its stroke.
+      const lineRect = line && getComputedStyle(line.closest('.pr-over')).display !== 'none' ? line.getBoundingClientRect() : null;
+      const lineBox = lineRect && lineRect.height > 0 ? { left: lineRect.left - 1.5, right: lineRect.right + 1.5, top: lineRect.top, bottom: lineRect.bottom } : null;
+      const overlaps = [];
+      for (let i = 0; i < boxes.length; i += 1) {
+        for (let j = i + 1; j < boxes.length; j += 1) {
+          if (boxes[i].contains(boxes[j]) || boxes[j].contains(boxes[i])) continue;
+          if (meet(boxes[i].getBoundingClientRect(), boxes[j].getBoundingClientRect())) overlaps.push(`${name(boxes[i])} / ${name(boxes[j])}`);
+        }
+      }
+      const hero = [...document.querySelectorAll('.hero .btn')].filter(shown);
+      return {
+        cfp: Boolean(document.querySelector('main.main--cfp')),
+        overlaps,
+        crossed: lineBox ? boxes.filter((b) => meet(b.getBoundingClientRect(), lineBox)).map(name) : [],
+        line: Boolean(lineBox),
+        overlay: getComputedStyle(document.querySelector('.pr-over')).display,
+        lanes: document.querySelectorAll('.pr-lane').length,
+        ticks: [...document.querySelectorAll('.pr-now--tick')].filter((t) => getComputedStyle(t).display !== 'none' && t.getBoundingClientRect().height > 0).length,
+        filled: hero.filter((b) => !/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(b).backgroundColor)).map((b) => b.textContent.trim()),
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    if (width >= 768) {
+      expect(layout.line, `${label}: no NOW line on the shared calendar`);
+      expect(!layout.crossed.length, `${label}: the NOW line crosses ${layout.crossed.join(', ')}`);
+    }
+    if (width === 390) {
+      expect(layout.overlay === 'none', `${label}: the shared calendar shows on a phone (display ${layout.overlay})`);
+      expect(layout.ticks === layout.lanes, `${label}: ${layout.ticks} NOW ticks show for ${layout.lanes} rows`);
+    }
+    if (width !== 360) expect(!layout.overlaps.length, `${label}: text overlaps: ${layout.overlaps.join('; ')}`);
+    if (layout.cfp) expect(layout.filled.length === 1, `${label}: ${layout.filled.length} filled buttons in the hero (${layout.filled.join(', ')})`);
+    if (width <= 1100) expect(layout.overflow <= 1, `${label}: page scrolls sideways by ${layout.overflow}px`);
     await context.close();
   }
 } finally {

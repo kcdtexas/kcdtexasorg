@@ -14,8 +14,6 @@ export const ticketsSample = Boolean(sampleTicketsDay);
 export const edition2027 = {
   year: 2027,
   city: 'Dallas',
-  // The day the Website presents this Edition; "As of" on the key dates never shows an earlier day.
-  announced: '2026-10-28',
   sponsorships: { status: 'Open now' },
   cfp: {
     opens: '2026-11-01',
@@ -56,7 +54,7 @@ export function phaseOn(day: string): Phase {
   return 'recap';
 }
 
-/** The day the build describes: the build day, in Central time. "Now" and "As of" on the key dates use it. */
+/** The day the build describes: the build day, in Central time. NOW on the key dates uses it. */
 export const asOfDay = todayCentral();
 export const phase: Phase = phaseOn(asOfDay);
 
