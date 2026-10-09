@@ -4,6 +4,7 @@ import ThemeSwitch from './ThemeSwitch.astro';
 import { badge } from '../lib/images';
 import { mainNav, isCurrent, paths } from '../data/nav';
 import { headerCta as cta } from '../data/actions';
+import { phase } from '../data/edition-2027';
 
 // Every page, the home page included, links to the pages; the current one is marked.
 const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.pathname) }));
@@ -16,9 +17,12 @@ const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.p
 const sponsorCta = cta.label === 'Sponsor' && cta.href === paths.sponsors;
 const wideLinks = sponsorCta ? links.filter((l) => l.href !== paths.sponsors) : links;
 const ctaCurrent = sponsorCta && isCurrent(cta.href, Astro.url.pathname);
+// From Feb 1 the nav and the button say more ("Program", "Get ticket news", "See the Schedule"): header.css gives
+// them the room. The CFP Phase keeps release 4's header.
+const long = phase !== 'cfp';
 ---
 
-<header class="site-header">
+<header class:list={['site-header', { 'site-header--long': long }]}>
   <div class="wrap head">
     <a class="lockup" href="/">
       <img class="lockup-kcd logo-on-light" src="/brand/kcd-logo-black.svg" width="870" height="280" alt="Kubernetes Community Days" />
