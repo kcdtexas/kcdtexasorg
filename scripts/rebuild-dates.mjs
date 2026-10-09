@@ -21,7 +21,7 @@ const next = (day) => {
 export function rebuildDates({ ticketsDay = e.tickets.onSale } = {}) {
   const changes = [
     { day: e.cfp.opens, why: 'the call for proposals opens: "Open now", and /2027/cfp/ gets the cfp card' },
-    { day: next(e.cfp.closes), why: 'the call for proposals is closed: "Closed", and the home page leaves the CFP Phase order' },
+    { day: next(e.cfp.closes), why: 'the call for proposals is closed: "Closed", and the hero drops "Submit a talk"' },
     // Only once CNCF sets the sale day; until then the key dates say "Coming soon" every day.
     ...(ticketsDay ? [{ day: ticketsDay, why: 'tickets: "On sale now" on the key dates' }] : []),
     { day: e.eventDay, why: 'Event Day: "Today" on the key dates' },

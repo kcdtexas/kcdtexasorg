@@ -429,7 +429,8 @@ try {
       }
       const hero = [...document.querySelectorAll('.hero .btn')].filter(shown);
       return {
-        cfp: Boolean(document.querySelector('main.main--cfp')),
+        // The hero shows its talk door only in the CFP Phase.
+        cfp: Boolean(document.querySelector('.hero .btn[href="/2027/cfp/"]')),
         overlaps,
         crossed: lineBox ? boxes.filter((b) => meet(b.getBoundingClientRect(), lineBox)).map(name) : [],
         line: Boolean(lineBox),

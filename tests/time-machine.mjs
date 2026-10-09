@@ -27,6 +27,7 @@ const overlayNow = (html) => nowTags(html).find((c) => !c.includes('pr-now--tick
 const dated = (html) => lanes(html).filter((l) => l.key !== 'tix');
 const cardOf = (html) => html.match(/<meta property="og:image" content="[^"]*\/cards\/([a-z-]+)\.png"/)?.[1];
 const cfpCallout = (html) => html.match(/<p class="page-callout cfp-callout">\s*<b>([^<]*)<\/b>/)?.[1];
+const sections = (html) => [...html.matchAll(/<section [^>]*class="([a-z]+)"/g)].map((m) => m[1]).join();
 
 /** What each key day must show. `home` and `cfp` are the built HTML of / and /2027/cfp/. */
 export const DAYS = {
@@ -39,7 +40,7 @@ export const DAYS = {
       lane(home, 'cfp').when === 'Nov 1 to Jan 31' && lane(home, 'sched').when === 'Mar 1 to Apr 23' && lane(home, 'event').when === 'Apr 23',
     'CFP page: "Opens Nov 1."': cfpCallout(cfp) === 'Opens Nov 1.',
     '/2027/cfp/ uses the default card': cardOf(cfp) === 'default',
-    'home page in the CFP Phase order': /<main id="main" class="main--cfp">/.test(home),
+    'home page sections in the one order for every width': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,attend',
     'key dates: tickets line "Coming soon"': tixLine(home)?.join() === 'Tickets,Coming soon' && keyDates(home).Tickets === 'Coming soon',
     'no tickets row before the sale day is set': !/pr-lane--tix/.test(home),
     'NOW on the phase rail': Boolean(overlayNow(home)),
@@ -60,7 +61,6 @@ export const DAYS = {
     'CFP page: "Closed."': cfpCallout(cfp) === 'Closed.',
     '/2027/cfp/ back to the default card': cardOf(cfp) === 'default',
     'key dates: tickets still "Coming soon"': keyDates(home).Tickets === 'Coming soon',
-    'home page left the CFP Phase order': !/class="main--cfp"/.test(home),
   }),
   '2027-03-01': ({ home }) => ({
     'key dates: Schedule "Mar 1"': keyDates(home).Schedule === 'Mar 1',
@@ -85,7 +85,7 @@ export const DAYS = {
 export function summary({ home, cfp }) {
   const k = keyDates(home);
   const rows = lanes(home).map((l) => `${l.key} ${l.state}`).join(', ');
-  return `Rows ${rows} | CFP ${k['Call for proposals']} | Tickets ${k.Tickets} | Schedule ${k.Schedule} | Event ${k['KCD Texas 2027']} | NOW ${overlayNow(home) ? overlayNow(home).slice(1).join(' ') || 'yes' : 'no'} | cfp page "${cfpCallout(cfp) ?? 'submit button'}", card ${cardOf(cfp)} | Phase order ${/main--cfp/.test(home) ? 'CFP' : 'default'}`;
+  return `Rows ${rows} | CFP ${k['Call for proposals']} | Tickets ${k.Tickets} | Schedule ${k.Schedule} | Event ${k['KCD Texas 2027']} | NOW ${overlayNow(home) ? overlayNow(home).slice(1).join(' ') || 'yes' : 'no'} | cfp page "${cfpCallout(cfp) ?? 'submit button'}", card ${cardOf(cfp)}`;
 }
 
 /** The parts of a page that change every day by design: where NOW sits (`x`, `at-start`, `at-end` on every
