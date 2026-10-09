@@ -17,13 +17,21 @@
   }
   .title .yr { color: var(--year); text-decoration: underline; text-decoration-color: var(--signal, var(--fg)); text-decoration-thickness: 0.04em; text-underline-offset: 0.035em; text-decoration-skip-ink: none; }
 
-  /* The 2027 bill: three notes and the open slot, one row sized to fill the measure. */
+  /* The 2027 bill: three notes and the end-user link, one row sized to fill the measure. The fits are em widths:
+     --notes-fit from round2-tools/lineup-bill/bills.mjs; --fit (the whole row) and --slot-fit (the link) measured
+     in Chromium once the link lost its box (release 4 round 3: 36.95 and 11.66 em), rounded up. */
   .bill27 { margin-top: 30px; }
-  .slots { --fit: 39.4538; --notes-fit: 37.7467; --slot-fit: 12.4711; display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc((99.5cqi - 6px) / var(--fit)); }
+  .slots { --fit: 37.0; --notes-fit: 37.7467; --slot-fit: 11.7; display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc(99.5cqi / var(--fit)); }
   .slots li { display: inline; }
   .slots .note { font-size: 0.7em; font-weight: 700; color: var(--fg); }
   .slots .note b { font-weight: 900; color: var(--fg); }
   .slots .note::after { content: "·"; padding: 0 0.295em; font-weight: 700; color: var(--fg); }
+  /* The end-user link: the bill's type in ink with a magenta underline, no box; magenta on hover. The filled
+     Sponsor door leads the hero. */
+  .eu-link { display: inline-flex; align-items: center; gap: 0.3em; color: var(--fg); font-stretch: 62%; font-weight: 900; line-height: 1; text-decoration: none; white-space: nowrap; transition: color 0.15s; }
+  .eu-label { text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 0.07em; text-underline-offset: 0.12em; text-decoration-skip-ink: none; }
+  .eu-link:hover { color: var(--action); }
+  .eu-link:hover .eu-label { text-decoration-color: var(--action); }
 
   .promise { grid-column: 1 / span 5; margin-top: 24px; font-size: 20px; line-height: 1.45; text-wrap: pretty; }
   .hero-act { grid-column: 6 / -1; margin-top: 24px; }
@@ -44,18 +52,18 @@
 
   @media (max-width: 1299px) { .doors { grid-template-columns: 1fr; gap: 12px; } }
   @media (max-width: 1099px) {
-    /* The notes fill one row; the open slot takes its own line. */
+    /* The notes fill one row; the end-user link takes its own line. */
     .slots { font-size: calc(99.5cqi / var(--notes-fit)); }
     .slots .note { font-size: 1em; }
     .slots .note:nth-child(3)::after { content: none; }
     .slots .open { display: block; margin-top: 14px; }
-    .slots .slot { font-size: clamp(28px, 4.6vw, 44px); }
+    .slots .eu-link { font-size: clamp(28px, 4.6vw, 44px); }
     .promise { grid-column: 1 / span 6; }
     .hero-act { grid-column: 7 / -1; }
     .band img { height: clamp(220px, 30vw, 320px); object-fit: cover; object-position: 50% 30%; }
   }
   @media (max-width: 599px) {
-    /* Phone hero: title, bill with the open slot, promise and both doors on screen one; the room right after. */
+    /* Phone hero: title, bill with the end-user link, promise and both doors on screen one; the room right after. */
     .hero { padding-top: 12px; }
     .hero-grid { display: flex; flex-direction: column; }
     .hero-top { gap: 2px 10px; }
@@ -67,7 +75,7 @@
     .slots .note { display: block; line-height: 1.2; }
     .slots .note::after { content: none; }
     .slots .open { margin-top: 8px; }
-    .slots .slot { display: flex; justify-content: center; font-size: calc((99.5cqi - 6px) / var(--slot-fit)); }
+    .slots .eu-link { display: flex; justify-content: center; font-size: calc(99.5cqi / var(--slot-fit)); }
     .promise { margin-top: 14px; font-size: 16px; line-height: 1.45; }
     .hero-act { display: contents; }
     .doors { margin-top: 14px; gap: 8px; }
