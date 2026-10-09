@@ -11,8 +11,8 @@ if (sampleTicketsDay && !/^\d{4}-\d{2}-\d{2}$/.test(sampleTicketsDay)) throw new
 /** True only in a test build with a sample ticket day. */
 export const ticketsSample = Boolean(sampleTicketsDay);
 
-// The last day sponsorships are open (the owner: they close before Event Day; Mar 31 for now, 2026-10-09). With
-// null, sponsorships stay open through Event Day. Setting it adds the day after to scripts/rebuild-dates.mjs.
+// The last day sponsorships are open: they close before Event Day, on Mar 31 (the owner, 2026-10-09). With null,
+// sponsorships stay open through Event Day. Setting it adds the day after to scripts/rebuild-dates.mjs.
 const sponsorshipsLastDay: string | null = '2027-03-31';
 
 export const edition2027 = {
