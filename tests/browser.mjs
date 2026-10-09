@@ -408,7 +408,8 @@ try {
   // The phase rail's layout on today's build: the NOW line never crosses text (month names may sit over it), no
   // two text boxes overlap, phones swap the shared calendar for a NOW tick on each row, and nothing scrolls
   // sideways. In the CFP Phase the hero has exactly one filled button (Sponsor). "Key dates" uses the section title
-  // size, the hero bill's notes and link never overlap or overflow, and the header's button stays on screen.
+  // size, the hero bill's notes and link never overlap or overflow, and the header's button stays on screen with
+  // every nav link on one line.
   for (const width of [1440, 1280, 1100, 900, 768, 600, 390, 360, 320]) {
     const label = `key dates at ${width}`;
     const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'light', isMobile: width <= 390 });
@@ -448,6 +449,8 @@ try {
         billOverlaps: [...new Set(billOverlaps)],
         billOverflow: Math.max(slots.getBoundingClientRect().left - Math.min(...used.map((r) => r.left)), Math.max(...used.map((r) => r.right)) - slots.getBoundingClientRect().right),
         cta: { right: cta.right, height: cta.height },
+        // A nav link on two lines (one line is about 48 px with its padding).
+        navWrapped: [...document.querySelectorAll('.nav a')].filter((a) => shown(a) && a.getBoundingClientRect().height > 60).map((a) => a.textContent),
         // The hero shows its talk door only in the CFP Phase.
         cfp: Boolean(document.querySelector('.hero .btn[href="/2027/cfp/"]')),
         overlaps,
@@ -473,6 +476,7 @@ try {
     expect(!layout.billOverlaps.length, `${label}: the hero bill overlaps: ${layout.billOverlaps.join('; ')}`);
     expect(layout.billOverflow <= 1, `${label}: the hero bill runs ${layout.billOverflow.toFixed(1)}px past its measure`);
     expect(layout.cta.right <= width && layout.cta.height >= 44, `${label}: the header button ends at ${layout.cta.right}px, ${layout.cta.height}px tall`);
+    expect(!layout.navWrapped.length, `${label}: header links wrap: ${layout.navWrapped.join(', ')}`);
     if (layout.cfp) expect(layout.filled.length === 1, `${label}: ${layout.filled.length} filled buttons in the hero (${layout.filled.join(', ')})`);
     if (width <= 1100) expect(layout.overflow <= 1, `${label}: page scrolls sideways by ${layout.overflow}px`);
     await context.close();
