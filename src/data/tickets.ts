@@ -1,6 +1,6 @@
 // The 2027 tickets page's words (Core Event Committee). Dates come from the Edition file.
 // No 2027 prices until they are announced; the 2026 range is labeled 2026.
-import { edition2027, longDate, shortDate, shortDateYear, ticketsSentence } from './edition-2027';
+import { edition2027, longDate, managerLetterLine, shortDate, shortDateYear, ticketsSentence } from './edition-2027';
 
 const e = edition2027;
 // " on Feb 1" once CNCF sets the sale day; empty until then.
@@ -36,6 +36,6 @@ export const tickets = {
   },
   manager: {
     title: 'Need your manager’s OK?',
-    text: `An approval letter is coming in ${e.managerLetter}, with the cost and what your team gets back.`,
+    text: managerLetterLine,
   },
 } as const;

@@ -80,6 +80,9 @@ export function phaseOn(day: string): Phase {
 export const asOfDay = todayCentral();
 export const phase: Phase = phaseOn(asOfDay);
 
+/** The manager letter line: its month in the CFP Phase; from Feb 1 that month has passed, so "soon". */
+export const managerLetterLine = `An approval letter is coming ${phase === 'cfp' ? `in ${edition2027.managerLetter}` : 'soon'}, with the cost and what your team gets back.`;
+
 const at = (day: string) => new Date(`${day}T12:00:00Z`);
 /** "Nov 1" */
 export const shortDate = (day: string) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }).format(at(day));

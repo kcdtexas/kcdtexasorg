@@ -16,7 +16,7 @@ type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string;
 const e = edition2027;
 const d = home.dates;
 const items = d.items as Item[];
-const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl, sponsors: paths.sponsors, cfp: paths.cfp };
+const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl, sponsors: paths.sponsors, cfp: paths.cfp, schedule: paths.schedule };
 const link = (detail: Item['detail']) => ('href' in detail ? hrefs[detail.href as string] : undefined);
 const next = (day: string) => { const t = new Date(`${day}T12:00:00Z`); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
 const pct = (day: string) => timelinePercent(day);

@@ -114,6 +114,7 @@ export const DAYS = {
     '/2027/cfp/ back to the default card': cardOf(cfp) === 'default',
     'key dates: tickets still "Coming soon"': keyDates(home).Tickets === 'Coming soon',
     'sponsors page: open': sponsorsPage(sponsors) === 'open',
+    'attend: the manager letter "coming soon", no month': /An approval letter is coming soon,/.test(text(home)) && !/coming in November/.test(text(home)),
   }),
   '2027-02-28': ({ home }) => ({
     'key dates: Schedule still "Mar 1", with its outline': keyDates(home).Schedule === 'Mar 1' && /pr-lane--sched [^"]*">(?:(?!<\/li>)[\s\S])*<rect class="pr-span"/.test(home),
@@ -155,6 +156,8 @@ export const DAYS = {
     'no sponsor call to action on the home page or in the header': !sponsorAsks(home).length && !sponsorAsks(cfp).length,
     'home order: Hero, Key dates, Wall, Program, Attend': sections(home) === 'hero,dates,wall,program,attend',
     'sponsors page: still open on Event Day': sponsorsPage(sponsors) === 'open',
+    'key dates: no Tickets line and no Schedule row for what never came': !tixLine(home) && !/pr-lane--sched/.test(home) && !/Coming soon/.test(text(home)),
+    'program block: only the 2026 talks, nothing "coming soon"': /Watch the 2026 talks/.test(text(home)) && !/Schedule: coming soon/.test(text(home)),
   }),
   '2027-04-24': ({ home, cfp, sponsors }) => ({
     'no key dates and no NOW in the Recap': !/class="dates"/.test(home) && !/pr-now/.test(home),
@@ -164,6 +167,7 @@ export const DAYS = {
     'hero bill: the statement "Thank you, Dallas"': bill(home) === 'Thank you, Dallas',
     'no sponsor call to action on the home page or in the header': !sponsorAsks(home).length && !sponsorAsks(cfp).length,
     'home order: Hero, Wall, Program, Day': sections(home) === 'hero,wall,program,day',
+    'program block: only the 2026 talks, nothing "coming soon"': /Watch the 2026 talks/.test(text(home)) && !/coming soon/i.test(text(home)),
     'sponsors page: "Sponsorships are closed.", thank you': sponsorsPage(sponsors) === 'closed' && /Thank you to every KCD Texas 2027 sponsor\./.test(sponsors),
   }),
   '2027-05-01': ({ home }) => ({
@@ -194,6 +198,7 @@ export const RUNS = [
     'header: still "Tickets"': headCta(home)[1] === 'Tickets',
     'hero bill: "Schedule: out now"': bill(home) === 'Tickets: coming soon | Schedule: out now | Sponsorships: open now | Watch the 2026 talks',
     'key dates: Schedule "Out now" on screen, with its bar': keyDates(home).Schedule === 'Out now' && lane(home, 'sched').onScreen && /pr-lane--sched [^"]*">(?:(?!<\/li>)[\s\S])*<rect class="pr-done/.test(home),
+    'key dates: the Schedule row links "See the Schedule"': /pr-lane--sched [^"]*">(?:(?!<\/li>)[\s\S])*<a href="\/2027\/schedule\/">See the Schedule<\/a>/.test(home),
     'the home page and the schedule page say "Sample"': /\bSample\b/.test(text(home)) && /\bSample\b/.test(text(schedule)),
   }) },
   { name: 'the program public on Event Day', flags: ['--now', '2027-04-23', '--program-public'], checks: ({ home }) => ({

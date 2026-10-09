@@ -5,18 +5,20 @@
 import EndUserTalks from './EndUserTalks.astro';
 import { home } from '../data/home';
 import { paths } from '../data/nav';
-import { programState } from '../data/edition-2027';
+import { phase, programState } from '../data/edition-2027';
 
 const p = home.program;
 const out = programState() === 'out';
+// On Event Day and in the Recap a program that never came out isn't announced as coming: only the 2026 talks.
+const late = !out && (phase === 'event-day' || phase === 'recap');
 ---
 
 <section id="program" class="speak program" aria-labelledby="program-title">
   <div class="wrap speak-grid">
     <div class="speak-main">
-      <p class="kicker">{p.kicker}</p>
-      <h2 id="program-title" class="h2">{p.title}</h2>
-      <p class="lead">{p.lead}</p>
+      <p class="kicker">{late ? p.lateKicker : p.kicker}</p>
+      <h2 id="program-title" class="h2">{late ? p.lateTitle : p.title}</h2>
+      {!late && <p class="lead">{p.lead}</p>}
       {p.sample && <p class="employer">{p.sample}</p>}
       <div class="actions">
         {out ? (
