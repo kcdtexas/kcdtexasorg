@@ -36,8 +36,9 @@ export const DRAFT_MARKERS = [
   { name: '[TBD', pattern: /\[TBD/ },
   { name: 'TODO', pattern: /\bTODO\b/ },
   { name: '{placeholder}', pattern: /\{[A-Za-z_][\w.]*\}/ },
-  // A sample ticket day (build.sh --tickets-day) must never reach a real deploy.
-  ...(process.env.KCD_TICKETS_DAY ? [] : [{ name: 'Sample day', pattern: /Sample day/ }]),
+  // A sample (build.sh --tickets-day, --program-public, --sponsors-sample) must never reach a real deploy:
+  // the pages label every sample "Sample".
+  ...(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
 ];
 export const findDraftMarkers = (html) =>
   DRAFT_MARKERS.flatMap(({ name, pattern }) => {
