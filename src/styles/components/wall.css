@@ -45,9 +45,7 @@
   .sp-logo[data-logo="wso2"] { --ar: 2.517; }
 
   .partners { max-width: 60em; margin: 22px auto 0; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
-  /* The 2027 section above the 2026 wall: its title, the open spot and what happens when sponsors sign. */
-  .wall-next { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 20px; }
-  .wall-note { max-width: 40em; margin: 14px auto 0; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
+  .wall-next { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 24px; }
   .slot--logo { align-items: baseline; gap: 18px; padding: 12px 20px 11px; font-size: 30px; text-align: left; }
   .slot-sub { display: inline-flex; align-items: baseline; gap: 8px; color: var(--fg); font-stretch: 100%; font-weight: 700; font-size: 16px; text-transform: none; text-decoration: underline; text-decoration-color: var(--link-underline); text-underline-offset: 0.2em; }
   .slot:hover .slot-sub { color: var(--on-action); }

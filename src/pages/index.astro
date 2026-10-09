@@ -2,7 +2,6 @@
 import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import KeyDates from '../components/KeyDates.astro';
-import NextSponsors from '../components/NextSponsors.astro';
 import SponsorWall from '../components/SponsorWall.astro';
 import SponsorBlock from '../components/SponsorBlock.astro';
 import SpeakBlock from '../components/SpeakBlock.astro';
@@ -17,7 +16,6 @@ import { homeJsonLd } from '../lib/structured-data';
 <Base title={home.title} description={home.description} mainClass={phase === 'cfp' ? 'main--cfp' : undefined} jsonLd={homeJsonLd()}>
   <Hero />
   <KeyDates />
-  <NextSponsors />
   <SponsorWall />
   <SponsorBlock />
   <SpeakBlock />

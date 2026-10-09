@@ -44,14 +44,11 @@ export const home = {
 
   wall: {
     title: `${edition2026.sponsorCount} sponsors backed KCD Texas 2026`,
-    // The 2027 section above the 2026 wall (NextSponsors.astro, the owner's wording, 2026-10-08). The
-    // spot's label holds only while no 2027 sponsor is announced; with the first, it says "Your logo here".
-    next: {
-      title: `KCD Texas ${e.year} sponsors`,
-      slot: `Be the first ${e.year} sponsor`,
-      link: 'How to get a spot here',
-      note: `${e.year} sponsors appear here as they sign on, and replace the ${edition2026.year} sponsors below.`,
-    },
+    // The open spot that ends the 2026 wall (the owner's wording, 2026-10-08; proof first, 2026-10-09).
+    // It holds only while no 2027 sponsor is announced: with the first, this area becomes the 2027
+    // sponsors, the spot says "Your logo here", and the 2026 wall leaves the home page (owner-actions A64).
+    slot: `Be the first ${e.year} sponsor`,
+    link: 'How to get a spot here',
   },
 
   sponsor: {

@@ -1,19 +1,22 @@
 ---
 // The 2026 sponsor wall by tier: equal cells per tier, each logo centered in its cell (see wall.css).
-// The home page uses the defaults, under the 2027 section (NextSponsors.astro); the sponsors page
-// passes its own title and a year before each tier name.
+// The home page uses the defaults and ends the wall with the open 2027 spot; the sponsors page passes
+// its own title and a year before each tier name, without the spot.
 import SponsorTiers from './SponsorTiers.astro';
 import { home } from '../data/home';
 import { edition2026 } from '../data/edition-2026';
+import { paths } from '../data/nav';
 
 interface Props {
   title?: string;
   /** Put before each tier name, such as "2026". */
   tierPrefix?: string;
+  /** End the wall with the open 2027 spot. */
+  next?: boolean;
   /** Drop the full-width wrapper, for use inside a page column. */
   bare?: boolean;
 }
-const { title = home.wall.title, tierPrefix, bare = false } = Astro.props;
+const { title = home.wall.title, tierPrefix, next = true, bare = false } = Astro.props;
 ---
 
 <section class:list={['wall', { 'wall--bare': bare }]} aria-labelledby="wall-title">
@@ -21,5 +24,10 @@ const { title = home.wall.title, tierPrefix, bare = false } = Astro.props;
     <h2 id="wall-title" class="wall-title">{title}</h2>
     <SponsorTiers tierPrefix={tierPrefix} />
     <p class="partners">{edition2026.partners}</p>
+    {next && (
+      <div class="wall-next">
+        <a class="slot slot--logo" href={paths.sponsors}><span class="slot-label">{home.wall.slot}</span><span class="slot-sub">{home.wall.link}<span class="arrow" aria-hidden="true">→</span></span></a>
+      </div>
+    )}
   </div>
 </section>
