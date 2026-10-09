@@ -1,51 +1,52 @@
-/* Key dates: a tour strip. The months, bars and marks sit at their dates (see KeyDates.astro). */
+/* Key dates as a poster rail (KeyDates.astro): a to-scale rail with big dates above its marks, a magenta NOW
+   line with its tag in its own row, and four equal cards under it. Wide drawing from 600 px; narrow below. */
 @layer components {
-  .dates { padding-top: 40px; }
-  .dates-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; font-weight: 700; font-size: 16px; line-height: 1.2; }
-  .dates-title span { font-weight: 400; color: var(--muted); }
-  .tl { margin-top: 12px; }
-  .tl-months { display: grid; grid-template-columns: 31fr 30fr 31fr 31fr 28fr 31fr 30fr; font-stretch: 62%; font-weight: 800; font-size: 18px; line-height: 1; }
-  .tl-months span { padding: 0 0 8px 8px; border-left: 1px solid var(--fg); white-space: nowrap; }
-  .tl-months i { font-style: normal; font-weight: 600; color: var(--muted); }
-  .tl-track { display: block; width: 100%; height: 34px; overflow: visible; }
-  .tl-axis { stroke: var(--line); stroke-width: 1px; }
-  .tl-past { stroke: var(--muted); stroke-width: 1px; }
-  .tl-bar--cfp { fill: var(--fg); }
-  .tl-bar--tix { fill: var(--track-tickets); }
-  .tl-mark { fill: var(--signal, var(--fg)); stroke: var(--bg); stroke-width: 2px; }
-  .tl-event { fill: var(--signal, var(--fg)); }
-  .tl-event-label { fill: var(--on-signal, var(--bg)); font-stretch: 62%; font-weight: 900; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .tl-now { stroke: var(--fg); stroke-width: 2px; }
-  .tl-now-label { fill: var(--fg); font-size: 13px; font-weight: 800; }
-  .tl-list { display: grid; grid-template-columns: 31fr 92fr 28fr 31fr 30fr; }
-  .tl-it { padding: 12px 12px 0 8px; border-left: 1px solid var(--fg); }
-  .it-name { font-weight: 700; font-size: 15px; line-height: 1.3; }
-  .it-st { margin-top: 2px; font-stretch: 62%; font-weight: 800; font-size: 24px; line-height: 1.1; }
-  .it-dt { margin-top: 4px; font-size: 15px; line-height: 1.35; color: var(--muted); }
+  .dates { padding-top: 44px; }
+  .pr-title { font-weight: 700; font-size: 16px; line-height: 1.2; }
+  .pr { margin-top: 18px; }
+  .pr-svg { display: block; width: 100%; overflow: visible; }
+  .pr-svg--wide { height: 176px; }
+  .pr-svg--narrow { display: none; height: 98px; }
+  .pr-rail { stroke: var(--fg); stroke-width: 3px; }
+  .pr-cfp { fill: var(--fg); }
+  .pr-cfp--closed { fill: none; stroke: var(--fg); stroke-width: 2px; }
+  .pr-tick { stroke: var(--fg); stroke-width: 3px; }
+  .pr-tix { stroke: var(--muted); stroke-width: 6px; }
+  .pr-tix-label { fill: var(--fg); font-weight: 800; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+  /* Dates carry a page-colored halo, so the NOW line passes behind them. */
+  .pr-date { fill: var(--fg); font-stretch: 62%; font-weight: 900; font-size: 30px; text-transform: uppercase; paint-order: stroke; stroke: var(--bg); stroke-width: 8px; stroke-linejoin: round; }
+  .pr-date--event { font-size: 34px; }
+  .pr-name { fill: var(--fg); font-weight: 800; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; paint-order: stroke; stroke: var(--bg); stroke-width: 6px; }
+  .pr-month { fill: var(--muted); font-weight: 600; font-size: 12px; }
+  .pr-now-halo { stroke: var(--bg); stroke-width: 8px; }
+  .pr-now-line { stroke: var(--action); stroke-width: 3px; }
+  .pr-tag rect { fill: var(--action); }
+  .pr-tag text { fill: var(--on-action); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .pr-tag--start, .pr-tag--end, .pr-now.at-start .pr-tag--mid, .pr-now.at-end .pr-tag--mid { display: none; }
+  .pr-now.at-start .pr-tag--start, .pr-now.at-end .pr-tag--end { display: inline; }
 
-  /* Wide screens: each item sits under its stretch of the strip. While tickets have no sale day, the
-     call for proposals' column runs through February and Tickets is one slim line under the list. */
-  @media (min-width: 1100px) {
-    .tl-it--sched { grid-column: 4; }
-    .tl-it--event { grid-column: 5; }
-    .tl-list--no-tix-day .tl-it--cfp { grid-column: 2 / span 2; }
-    .tl-list--no-tix-day .tl-it--tix { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-top: 18px; padding: 10px 0 0; border-left: 0; border-top: 1px solid var(--line); }
-    .tl-list--no-tix-day .tl-it--tix .it-st, .tl-list--no-tix-day .tl-it--tix .it-dt { margin-top: 0; }
-  }
+  /* The cards: what each date means. */
+  .pr-cards { --cols: 4; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 20px; margin-top: 18px; }
+  .pr-cards--5 { --cols: 5; }
+  .pr-card { padding-top: 14px; border-top: 3px solid var(--fg); }
+  .it-name { font-weight: 800; font-size: 14px; line-height: 1.25; letter-spacing: 0.03em; text-transform: uppercase; }
+  .it-st { display: inline-block; margin-top: 10px; padding: 3px 7px 2px; border: 2px solid currentColor; font-weight: 800; font-size: 12px; line-height: 1.2; letter-spacing: 0.05em; text-transform: uppercase; }
+  .pr-card--echo .it-st { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  .it-dt { margin-top: 10px; max-width: 20em; font-size: 15px; line-height: 1.4; color: var(--muted); }
+  .pr-card--past { color: var(--muted); border-top-color: var(--line); }
+  .pr-card--event { border-top-color: var(--signal); }
+  .pr-card--undated { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .pr-card--undated .it-st, .pr-card--undated .it-dt { margin-top: 0; }
 
   @media (max-width: 1099px) {
-    .tl-months i { display: none; }
-    .tl-list { display: block; margin-top: 18px; }
-    .tl-it { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: baseline; padding: 10px 0; border-left: 0; border-top: 1px solid var(--line); }
-    .tl-it:last-child { border-bottom: 1px solid var(--line); }
-    .it-name { grid-column: 1; grid-row: 1; font-size: 16px; }
-    .it-st { grid-column: 2; grid-row: 1; margin: 0; font-size: 20px; text-align: right; }
-    .it-dt { grid-column: 1 / -1; margin-top: 2px; }
+    .pr-cards, .pr-cards--5 { --cols: 2; }
   }
   @media (max-width: 599px) {
-    .tl-months { font-size: 14px; }
-    .tl-months span { padding-left: 4px; }
-    .tl-event-label { font-size: 11px; letter-spacing: 0.02em; }
-    .it-st { font-size: 19px; }
+    .pr-svg--wide { display: none; }
+    .pr-svg--narrow { display: block; }
+    .pr-svg--narrow .pr-date { font-size: 17px; stroke-width: 6px; }
+    .pr-svg--narrow .pr-month { font-size: 10px; }
+    .pr-svg--narrow .pr-tag text { font-size: 10px; }
+    .pr-cards, .pr-cards--5 { --cols: 1; }
   }
 }

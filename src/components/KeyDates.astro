@@ -1,53 +1,108 @@
 ---
-// Key dates: a tour strip from October to April. Every bar and mark sits at its date, computed at
-// build time from the Edition file. "As of" is the build day: the day the statuses were last checked.
-// "Now" starts there, and /now.js moves it to today between builds (the owner's A50). After the strip
-// ends, there is no "Now" (owner, 2026-10-03).
+// Key dates as a poster rail: one 3 px rail from Oct 1 to Apr 23, drawn to scale. The call for proposals is a
+// bar from Nov 1 through Jan 31, Mar 1 (the Speakers, keynotes and Schedule) a tick, and Apr 23 the approved
+// 2027 badge (unchanged; the KCD icon only with CNCF's file, A37). Big dates sit above the marks. NOW is a
+// magenta line with its tag in its own row; /now.js moves it between builds, and from May 1 there is none.
+// Under the rail, four equal cards say what each date means; tickets without a sale day are one line under them.
+// Positions are SVG attributes only: the build forbids inline styles.
+import { getImage } from 'astro:assets';
 import { home } from '../data/home';
-import { asOfDay, edition2027, shortDateYear, timeline, timelinePercent } from '../data/edition-2027';
+import { asOfDay, edition2027, timeline, timelinePercent } from '../data/edition-2027';
 import { contact, prospectus } from '../data/site';
 import { paths } from '../data/nav';
+import { badge } from '../lib/images';
 
+type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string; until?: string; undated?: boolean; echo?: boolean };
 const e = edition2027;
-const pct = (day: string) => `${timelinePercent(day).toFixed(2)}%`;
-const width = (from: string, to: string) => `${(timelinePercent(to) - timelinePercent(from)).toFixed(2)}%`;
-const eventMonth = `${e.eventDay.slice(0, 8)}01`;
+const d = home.dates;
+const items = d.items as Item[];
 const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl, sponsors: paths.sponsors, cfp: paths.cfp };
-const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
-// Tickets get their bar only once CNCF sets the sale day. Until then, on wide screens the call for
-// proposals' column runs through February and Tickets is one slim line under the list, so no column
-// suggests a month for it (dates.css).
-const tixDay = e.tickets.onSale;
-// "Now" sits left of its line, except near the strip's start, where it would run off the edge.
-const nowLeft = timelinePercent(asOfDay) > 6;
+const link = (detail: Item['detail']) => ('href' in detail ? hrefs[detail.href as string] : undefined);
+const cards = items.filter((it) => !it.undated);
+const undated = items.find((it) => it.undated);
+
+const next = (day: string) => { const t = new Date(`${day}T12:00:00Z`); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
+const pct = (day: string) => `${timelinePercent(day).toFixed(2)}%`;
+const cfpEnd = next(e.cfp.closes);
+const closed = asOfDay > e.cfp.closes;
+const cfpMid = `${((timelinePercent(e.cfp.opens) + timelinePercent(cfpEnd)) / 2).toFixed(2)}%`;
+const tix = e.tickets.onSale;
 const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
+const nowPct = timelinePercent(asOfDay);
+const edge = nowPct < 3 ? 'at-start' : nowPct > 97 ? 'at-end' : '';
+const months = [['Oct', '2026-10-01'], ['Nov', '2026-11-01'], ['Dec', '2026-12-01'], ['Jan', '2027-01-01'], ['Feb', '2027-02-01'], ['Mar', '2027-03-01'], ['Apr', '2027-04-01']];
+// The header's own badge file (same width and quality), so the marker adds no download.
+const mark = await getImage({ src: badge, width: 240, quality: 70 });
+// The rail's dates, on the wide and the narrow drawing.
+const byKey = (key: string) => items.find((it) => it.key === key)!;
+const dates = [
+  { x: pct(e.cfp.opens), text: byKey('cfp').big, anchor: 'start' },
+  { x: pct(cfpEnd), text: byKey('cfp').bigTo!, anchor: 'end' },
+  { x: pct(e.schedule), text: byKey('sched').big, anchor: 'middle' },
+];
 ---
 
 <section class="dates" aria-labelledby="dates-title">
   <div class="wrap">
-    <h2 id="dates-title" class="dates-title">Key dates <span>As of {shortDateYear(asOfDay)}</span></h2>
-    <div class="tl" aria-hidden="true" data-tl-start={timeline.start} data-tl-end={timeline.end}>
-      <div class="tl-months">{months.map((m) => m === 'Jan' ? <span>Jan <i>{e.year}</i></span> : <span>{m}</span>)}</div>
-      <svg class="tl-track" focusable="false">
-        <line class="tl-axis" x1="0" x2="100%" y1="50%" y2="50%" />
-        <line class="tl-past" x1="0" x2={pct(asOfDay)} y1="50%" y2="50%" />
-        <rect class="tl-bar--cfp" x={pct(e.cfp.opens)} width={width(e.cfp.opens, e.cfp.closes)} y="11" height="12" />
-        {tixDay && <rect class="tl-bar--tix" x={pct(tixDay)} width={width(tixDay, eventMonth)} y="11" height="12" />}
-        <svg x={pct(e.schedule)} y="17" overflow="visible"><rect class="tl-mark" x="-7" y="-7" width="14" height="14" transform="rotate(45)" /></svg>
-        <rect class="tl-event" x={pct(eventMonth)} width={width(eventMonth, timeline.end)} y="0" height="34" />
-        <text class="tl-event-label" x={`${((timelinePercent(eventMonth) + 100) / 2).toFixed(2)}%`} y="17" text-anchor="middle" dominant-baseline="central">{e.city}</text>
-        {showNow && <line class="tl-now" x1={pct(asOfDay)} x2={pct(asOfDay)} y1="-10" y2="44" />}
-        {showNow && <text class="tl-now-label" x={pct(asOfDay)} dx={nowLeft ? -7 : 7} y="9" text-anchor={nowLeft ? 'end' : 'start'} dominant-baseline="central">Now</text>}
+    <h2 id="dates-title" class="pr-title">{d.title}</h2>
+    <div class="pr" aria-hidden="true" data-pr data-start={timeline.start} data-end={timeline.end}>
+      <svg class="pr-svg pr-svg--wide" focusable="false">
+        {showNow && (
+          <svg class:list={['pr-now', edge]} x={`${nowPct.toFixed(2)}%`} y="0" overflow="visible">
+            <line class="pr-now-halo" x1="0" x2="0" y1="24" y2="132" />
+            <line class="pr-now-line" x1="0" x2="0" y1="24" y2="132" />
+            <g class="pr-tag pr-tag--mid"><rect x="-25" y="0" width="50" height="20" /><text x="0" y="14" text-anchor="middle">Now</text></g>
+            <g class="pr-tag pr-tag--start"><rect x="0" y="0" width="50" height="20" /><text x="25" y="14" text-anchor="middle">Now</text></g>
+            <g class="pr-tag pr-tag--end"><rect x="-50" y="0" width="50" height="20" /><text x="-25" y="14" text-anchor="middle">Now</text></g>
+          </svg>
+        )}
+        <line class="pr-rail" x1="0" x2={pct(e.eventDay)} y1="88" y2="88" />
+        <rect class:list={['pr-cfp', { 'pr-cfp--closed': closed }]} x={pct(e.cfp.opens)} width={`${(timelinePercent(cfpEnd) - timelinePercent(e.cfp.opens)).toFixed(2)}%`} y="81" height="14" />
+        <line class="pr-tick" x1={pct(e.schedule)} x2={pct(e.schedule)} y1="76" y2="100" />
+        {tix && <line class="pr-tix" x1={pct(tix)} x2={pct(e.eventDay)} y1="128" y2="128" />}
+        {tix && <text class="pr-tix-label" x={pct(tix)} y="148">Tickets · {byKey('tix').big}</text>}
+        <svg x={pct(e.eventDay)} y="0" overflow="visible"><image href={mark.src} x="-28" y="58" width="56" height="56" /></svg>
+        {dates.map((t) => <text class="pr-date" x={t.x} y="62" text-anchor={t.anchor}>{t.text}</text>)}
+        <text class="pr-date pr-date--event" x={pct(e.eventDay)} dx="-34" y="62" text-anchor="end">{byKey('event').big}</text>
+        <text class="pr-name" x={cfpMid} y="118" text-anchor="middle">{byKey('cfp').name}</text>
+        <text class="pr-name" x={pct(e.schedule)} y="118" text-anchor="middle">Speakers &amp; Schedule</text>
+        {months.map(([m, day]) => <text class="pr-month" x={pct(day)} dx="2" y="168">{m}</text>)}
+      </svg>
+      <svg class="pr-svg pr-svg--narrow" focusable="false">
+        {showNow && (
+          <svg class:list={['pr-now', edge]} x={`${nowPct.toFixed(2)}%`} y="0" overflow="visible">
+            <line class="pr-now-halo" x1="0" x2="0" y1="18" y2="70" />
+            <line class="pr-now-line" x1="0" x2="0" y1="18" y2="70" />
+            <g class="pr-tag pr-tag--mid"><rect x="-19" y="0" width="38" height="16" /><text x="0" y="11.5" text-anchor="middle">Now</text></g>
+            <g class="pr-tag pr-tag--start"><rect x="0" y="0" width="38" height="16" /><text x="19" y="11.5" text-anchor="middle">Now</text></g>
+            <g class="pr-tag pr-tag--end"><rect x="-38" y="0" width="38" height="16" /><text x="-19" y="11.5" text-anchor="middle">Now</text></g>
+          </svg>
+        )}
+        <line class="pr-rail" x1="0" x2={pct(e.eventDay)} y1="56" y2="56" />
+        <rect class:list={['pr-cfp', { 'pr-cfp--closed': closed }]} x={pct(e.cfp.opens)} width={`${(timelinePercent(cfpEnd) - timelinePercent(e.cfp.opens)).toFixed(2)}%`} y="50" height="12" />
+        <line class="pr-tick" x1={pct(e.schedule)} x2={pct(e.schedule)} y1="46" y2="66" />
+        {tix && <line class="pr-tix" x1={pct(tix)} x2={pct(e.eventDay)} y1="76" y2="76" />}
+        <svg x={pct(e.eventDay)} y="0" overflow="visible"><image href={mark.src} x="-20" y="38" width="36" height="36" /></svg>
+        {dates.map((t) => <text class="pr-date" x={t.x} y="38" text-anchor={t.anchor}>{t.text}</text>)}
+        <text class="pr-date" x="100%" y="34" text-anchor="end">{byKey('event').big}</text>
+        {months.map(([m, day]) => <text class="pr-month" x={pct(day)} dx="2" y="92">{m}</text>)}
       </svg>
     </div>
-    <ol class:list={['tl-list', { 'tl-list--no-tix-day': !tixDay }]}>
-      {home.dates.items.map((it) => (
-        <li class={`tl-it tl-it--${it.key}`}>
+    <ol class:list={['pr-cards', `pr-cards--${cards.length}`]}>
+      {cards.map((it) => (
+        <li class:list={['pr-card', `pr-card--${it.key}`, { 'pr-card--echo': it.echo && it.key !== 'spons', 'pr-card--past': it.until && it.until < asOfDay }]}>
           <p class="it-name">{it.name}</p>
           <p class="it-st">{it.status}</p>
-          <p class="it-dt">{'href' in it.detail ? <a href={hrefs[it.detail.href as string]}>{it.detail.text}</a> : it.detail.text}</p>
+          <p class="it-dt">{link(it.detail) ? <a href={link(it.detail)}>{it.detail.text}</a> : it.detail.text}</p>
         </li>
       ))}
+      {undated && (
+        <li class="pr-card pr-card--tix pr-card--undated">
+          <p class="it-name">{undated.name}</p>
+          <p class="it-st">{undated.status}</p>
+          <p class="it-dt">{link(undated.detail) ? <a href={link(undated.detail)}>{undated.detail.text}</a> : undated.detail.text}</p>
+        </li>
+      )}
     </ol>
   </div>
   <script is:inline src="/now.js" defer></script>
