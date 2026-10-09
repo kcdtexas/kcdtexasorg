@@ -3,7 +3,7 @@ import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
 import { cfpPath, paths } from './nav';
 import { sponsors2027 } from './sponsors-2027';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, phase, programSample, programState, programStatus, shortDate, shortDateYear, sponsorshipsOpen, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, phase, programSample, programState, programStatus, shortDate, shortDateYear, sponsorAsk, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -43,7 +43,7 @@ const bills: Record<typeof phase, { notes: Note[]; end: { label: string; href?: 
     notes: [
       { label: 'Tickets:', text: lowerFirst(tixNow) },
       { label: 'Schedule:', text: programStatus() },
-      ...(sponsorshipsOpen() ? [{ label: 'Sponsorships:', text: lowerFirst(sponsNow) }] : []),
+      ...(sponsorAsk() ? [{ label: 'Sponsorships:', text: lowerFirst(sponsNow) }] : []),
     ],
     end: { label: `Watch the ${edition2026.year} talks`, href: `${paths.edition2026}#program` },
   },
@@ -77,7 +77,8 @@ export const home = {
     // day; tickets have no day until CNCF sets one, and no span then. Each detail says something the date doesn't.
     items: [
       { key: 'spons', name: 'Sponsorships', status: sponsNow, big: sponsNow, echo: true,
-        detail: sponsNow === 'Closed' ? { text: `Thanks to every ${e.year} sponsor.` } : { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
+        // From Event Day the site asks no one to sponsor (sponsorAsk), so the row thanks them, though still open.
+        detail: !sponsorAsk() ? { text: `Thanks to every ${e.year} sponsor.` } : { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpNow, big: shortDate(e.cfp.opens), bigTo: shortDate(e.cfp.closes), echo: cfpNow.startsWith('Opens'),
         from: e.cfp.opens, until: e.cfp.closes,
         detail: cfpNow === 'Closed' ? { text: 'Thanks to everyone who sent a proposal.' } : { text: 'Read the CFP guide', href: 'cfp' } },

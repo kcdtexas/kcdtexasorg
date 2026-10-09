@@ -130,6 +130,11 @@ export function ticketsSentence(day = asOfDay): string {
 /** Sponsorships are open on `day`: through their last day (sponsorshipsStatus). */
 export const sponsorshipsOpen = (day = asOfDay): boolean => sponsorshipsStatus(day) === 'Open now';
 
+/** The site asks for sponsors on `day`: sponsorships are open and Event Day hasn't come. Sponsorships run through
+ *  Event Day, but that day's pages ask no one to sponsor: the Sponsor buttons, the pitch and the open wall slot
+ *  stay through Apr 22. The key dates and the sponsors page follow sponsorshipsOpen() and close from Apr 24. */
+export const sponsorAsk = (day = asOfDay): boolean => sponsorshipsOpen(day) && day < edition2027.eventDay;
+
 /** Tickets are on sale on `day`: the sale day has come and CNCF's ticket link is in. */
 export const ticketsOnSale = (day = asOfDay): boolean => ticketsStatus(day) === 'On sale now' && Boolean(edition2027.tickets.url);
 

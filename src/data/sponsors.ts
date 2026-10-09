@@ -5,7 +5,7 @@ import { home } from './home';
 import { prospectus } from './site';
 
 const e = edition2027;
-// From Apr 1 (sponsorships close Mar 31) the page says thank you instead of asking.
+// From Apr 24 (sponsorships run through Event Day, Apr 23) the page says thank you instead of asking.
 const open = sponsorshipsOpen();
 
 export const sponsors = {

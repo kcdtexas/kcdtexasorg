@@ -2,7 +2,7 @@
 // the hero's doors and the tickets button. Each comes from the four facts in edition-2027.ts, never from a date.
 import { contact, prospectus } from './site';
 import { cfpPath, paths } from './nav';
-import { cfpStatus, edition2027, phase, programPublic, sponsorshipsOpen, ticketsOnSale } from './edition-2027';
+import { cfpStatus, edition2027, phase, programPublic, sponsorAsk, sponsorshipsOpen, ticketsOnSale } from './edition-2027';
 
 export interface Action { href: string; label: string }
 
@@ -28,9 +28,9 @@ export const headerCta: Action = phase === 'cfp'
 
 /** The hero's doors, the filled one first; the hero keeps exactly one filled button (release 4 critique).
  *  CFP Phase: sponsors first, then "Submit a talk". Countdown: tickets, then the prospectus while sponsorships
- *  are open. Event Day and the Recap: the header's button alone. */
+ *  are open (through Apr 22). Event Day and the Recap: the header's button alone. */
 export const heroDoors: (Action & { line?: boolean })[] = phase === 'cfp'
   ? [{ href: prospectus.href, label: prospectus.label }, { href: cfpPath, label: 'Submit a talk', line: true }]
   : phase === 'countdown'
-    ? [ticketsAction, ...(sponsorshipsOpen() ? [{ href: prospectus.href, label: prospectus.label, line: true }] : [])]
+    ? [ticketsAction, ...(sponsorAsk() ? [{ href: prospectus.href, label: prospectus.label, line: true }] : [])]
     : [afterAction];

@@ -2,13 +2,13 @@
 // The sponsor wall by tier: equal cells per tier, each logo centered in its cell (see wall.css).
 // The home page uses the defaults: the 2026 wall and the open 2027 spot until the first 2027 sponsor; then 2027
 // leads, with the 2026 wall below it as thanks in the CFP Phase only (plan-release-5, "The sponsor analysis").
-// The open spot shows while sponsorships are open. The sponsors page passes an edition, its own title and a year
+// The open spot shows while the site asks for sponsors, through Apr 22. The sponsors page passes an edition, its own title and a year
 // before each tier name, without the spot.
 import SponsorTiers from './SponsorTiers.astro';
 import { home } from '../data/home';
 import { edition2026 } from '../data/edition-2026';
 import { sponsors2027 } from '../data/sponsors-2027';
-import { phase, sponsorshipsOpen } from '../data/edition-2027';
+import { phase, sponsorAsk } from '../data/edition-2027';
 import { paths } from '../data/nav';
 
 interface Props {
@@ -29,7 +29,7 @@ const lead: 2026 | 2027 = edition ?? (sponsors2027.length > 0 ? 2027 : 2026);
 const title = Astro.props.title ?? (lead === 2027 ? home.wall.title2027 : home.wall.title);
 // The 2026 wall stays under the 2027 one as proof through the CFP Phase, on the home page only.
 const thanks2026 = !edition && lead === 2027 && phase === 'cfp';
-const slot = next && sponsorshipsOpen();
+const slot = next && sponsorAsk();
 ---
 
 <section class:list={['wall', { 'wall--bare': bare }]} aria-labelledby={titleId}>

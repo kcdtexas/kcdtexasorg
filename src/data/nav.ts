@@ -1,5 +1,5 @@
 // Same-site paths that several components link to, and the menus built from them.
-import { phase, sponsorshipsOpen } from './edition-2027';
+import { phase, sponsorAsk } from './edition-2027';
 
 export const cfpPath = '/2027/cfp/';
 
@@ -20,10 +20,10 @@ export const paths = {
 
 // The header keeps Round 1's labels; each one now opens its page. Two follow the state (plan-release-5):
 // "Speak" becomes "Program", the schedule page, once the call closes (Feb 1), and "Sponsor" becomes "Sponsors"
-// once sponsorships close (Apr 1). The footer keeps every page.
+// once the site stops asking for sponsors (Event Day, Apr 23). The footer keeps every page.
 export const mainNav = [
   phase === 'cfp' ? { href: paths.cfp, label: 'Speak' } : { href: paths.schedule, label: 'Program' },
-  { href: paths.sponsors, label: sponsorshipsOpen() ? 'Sponsor' : 'Sponsors' },
+  { href: paths.sponsors, label: sponsorAsk() ? 'Sponsor' : 'Sponsors' },
   { href: paths.tickets, label: 'Attend' },
   { href: paths.edition2026, label: '2026 talks' },
   { href: paths.about, label: 'About' },
