@@ -35,6 +35,9 @@ const whenOf = (it: Item): string[] => (it.key === 'spons' || it.key === 'event'
 const stateOf = (it: Item) => {
   if (it.key === 'event') return day > e.eventDay ? 'past' : day === e.eventDay ? 'live' : 'future';
   const s = spanOf(it);
+  // The Schedule's row reads the same before and after Mar 1 (its status only repeats the date, so no stamp
+  // shows) and /now.js fills its bar, so it stays 'future' until Event Day and Mar 1 needs no rebuild.
+  if (it.key === 'sched') return day >= s![1] ? 'past' : 'future';
   return !s || day < s[0] ? 'future' : day >= s[1] ? 'past' : 'live';
 };
 // A status that only repeats the dates is hidden on screen and from screen readers; "Opens Nov 1" keeps its
