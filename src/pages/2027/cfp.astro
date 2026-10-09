@@ -26,6 +26,7 @@ const canSubmit = status === 'Open now' && cfp.submitUrl !== '';
       ) : (
         <p class="page-callout cfp-callout">
           <b>{status}.</b> {status === 'Closed' ? cfp.closed : cfp.submit}
+          {status === 'Closed' && <span class="cfp-next">{cfp.next.before} <a href={paths.schedule}>{cfp.next.schedule}</a> {cfp.next.and} <a href={paths.tickets}>{cfp.next.tickets}</a>.</span>}
         </p>
       )}
     </PageHead>

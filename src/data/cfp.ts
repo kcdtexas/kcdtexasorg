@@ -1,12 +1,14 @@
 // The 2027 CFP page's words (Session Committee). Dates come from the Edition file.
 import { edition2026 } from './edition-2026';
-import { edition2027, longDate, shortDateYear } from './edition-2027';
+import { edition2027, longDate, phase, programStatus, shortDateYear, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 
 export const cfp = {
   title: `Speak at KCD Texas ${e.year}`,
-  description: `The KCD Texas ${e.year} call for proposals opens ${shortDateYear(e.cfp.opens)}, and closes ${shortDateYear(e.cfp.closes)}. What we look for, and how to submit.`,
+  description: phase === 'cfp'
+    ? `The KCD Texas ${e.year} call for proposals opens ${shortDateYear(e.cfp.opens)}, and closes ${shortDateYear(e.cfp.closes)}. What we look for, and how to submit.`
+    : `The KCD Texas ${e.year} call for proposals closed on ${shortDateYear(e.cfp.closes)}. Thanks to everyone who sent a proposal.`,
   kicker: 'Call for proposals',
   lead: `Tell us how your team runs Kubernetes and cloud native in production. The call for proposals runs from ${shortDateYear(e.cfp.opens)}, to ${shortDateYear(e.cfp.closes)}.`,
   dates: [
@@ -23,6 +25,13 @@ export const cfp = {
   // Before the call opens, and while it is open without a link.
   submit: 'The link to submit is coming soon.',
   closed: `The call for proposals closed on ${shortDateYear(e.cfp.closes)}.`,
+  // After the close: where to go next (plan-release-5), the Schedule by the program's gate, then tickets.
+  next: {
+    before: 'What’s next:',
+    schedule: `the Schedule (${programStatus()})`,
+    and: 'and',
+    tickets: `tickets (${ticketsStatus()[0].toLowerCase()}${ticketsStatus().slice(1)})`,
+  },
 
   lookFor: {
     title: 'What we look for',

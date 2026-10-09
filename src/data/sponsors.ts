@@ -1,14 +1,22 @@
 // The 2027 sponsors page's words (Sponsor Committee). Figures come from the Edition files.
 import { edition2026 } from './edition-2026';
-import { edition2027, longDate } from './edition-2027';
+import { edition2027, longDate, sponsorshipsOpen } from './edition-2027';
 import { home } from './home';
 import { prospectus } from './site';
 
 const e = edition2027;
+// From Apr 1 (sponsorships close Mar 31) the page says thank you instead of asking.
+const open = sponsorshipsOpen();
 
 export const sponsors = {
-  title: `Sponsor KCD Texas ${e.year}`,
-  description: `Sponsor KCD Texas ${e.year} in ${e.city} on ${longDate(e.eventDay)}: who you'll meet, the ${edition2026.year} sponsors, what their Sponsor Tiers included, and the ${e.year} prospectus${prospectus.url ? '' : ', coming soon'}.`,
+  title: open ? `Sponsor KCD Texas ${e.year}` : `The KCD Texas ${e.year} sponsors`,
+  description: open
+    ? `Sponsor KCD Texas ${e.year} in ${e.city} on ${longDate(e.eventDay)}: who you'll meet, the ${edition2026.year} sponsors, what their Sponsor Tiers included, and the ${e.year} prospectus${prospectus.url ? '' : ', coming soon'}.`
+    : `Sponsorships for KCD Texas ${e.year} are closed. Thank you to every sponsor.`,
+  closed: {
+    lead: 'Sponsorships are closed.',
+    text: `Thank you to every KCD Texas ${e.year} sponsor.`,
+  },
   kicker: 'Sponsor',
   lead: `KCD Texas is where Texas teams that run Kubernetes meet the companies that build their tools. KCD Texas ${e.year} is in ${e.city} on ${longDate(e.eventDay)}.`,
 
@@ -22,6 +30,7 @@ export const sponsors = {
   },
 
   wall: {
+    title2027: `KCD Texas ${e.year} is made possible by`,
     title: `${edition2026.sponsorCount} sponsors backed KCD Texas ${edition2026.year}`,
     tierPrefix: String(edition2026.year),
   },
