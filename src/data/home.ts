@@ -1,10 +1,11 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, sponsorshipsStatus, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
+const sponsNow = sponsorshipsStatus();
 const cfpNow = cfpStatus();
 const tixNow = ticketsStatus();
 const eventNow = eventStatus();
@@ -18,7 +19,7 @@ export const home = {
     // What's open first, in the CFP Phase's order (sponsors, then speakers). Same words as before in another
     // order, so the fitted bill sizes in hero.css still hold.
     bill: [
-      { label: 'Sponsorships:', text: lowerFirst(e.sponsorships.status) },
+      { label: 'Sponsorships:', text: lowerFirst(sponsNow) },
       { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
       { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
     ],
@@ -36,11 +37,11 @@ export const home = {
     title: 'Key dates',
     // In date order. `big` is the poster line and `bigTo` a range's end; `echo` marks a status that only repeats
     // `big`, so the key dates can hide it on screen; `from` and `until` (YYYY-MM-DD) place NOW (nowOn() in
-    // edition-2027.ts, and /now.js between builds). Sponsorships are open throughout, and tickets have no day
-    // until CNCF sets one, so neither has a span then. Each detail says something the date doesn't.
+    // edition-2027.ts, and /now.js between builds). Sponsorships read "Open now", then "Closed" after their last
+    // day; tickets have no day until CNCF sets one, and no span then. Each detail says something the date doesn't.
     items: [
-      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, big: e.sponsorships.status, echo: true,
-        detail: { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
+      { key: 'spons', name: 'Sponsorships', status: sponsNow, big: sponsNow, echo: true,
+        detail: sponsNow === 'Closed' ? { text: `Thanks to every ${e.year} sponsor.` } : { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpNow, big: shortDate(e.cfp.opens), bigTo: shortDate(e.cfp.closes), echo: cfpNow.startsWith('Opens'),
         from: e.cfp.opens, until: e.cfp.closes,
         detail: cfpNow === 'Closed' ? { text: 'Thanks to everyone who sent a proposal.' } : { text: 'Read the CFP guide', href: 'cfp' } },

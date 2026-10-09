@@ -2,12 +2,13 @@
 // Key dates as a phase rail: one row per phase, with its name, its start and end, and its link, beside a bar
 // drawn to scale on a shared calendar from Oct 1 to Apr 30. Text never sits on the calendar, so the magenta NOW
 // line crosses only bars and month names. A phase still to come is an outline, a running one fills magenta up
-// to NOW, and a finished one turns grey. Sponsorships have no end yet, so their bar runs to NOW with an arrow.
-// Apr 23 is a gold mark with a gold line. /now.js moves NOW and the fills between builds; there is no NOW after
-// Event Day, and on Event Day only its tag. Tickets get a row once they have a day; until then they are one line under the rows. Owner's
+// to NOW, and a finished one turns grey; no bar runs past Event Day. Sponsorships read "Open now": until their
+// last day is set, their bar runs to NOW with an arrow. The Schedule has a start day only and runs into Event
+// Day. Apr 23 is a gold mark with a gold line. /now.js moves NOW and the fills between builds; there is no NOW
+// after Event Day, and on Event Day only its tag. Tickets get a row once they have a day; until then they are one line under the rows. Owner's
 // direction 2026-10-09: phases with start and end instead of dates on the rail, and no badge.
 import { home } from '../data/home';
-import { asOfDay, edition2027, shortDate, timeline, timelinePercent } from '../data/edition-2027';
+import { asOfDay, edition2027, shortDate, sponsorshipsCloses, timeline, timelinePercent } from '../data/edition-2027';
 import { contact, prospectus } from '../data/site';
 import { paths } from '../data/nav';
 
@@ -22,21 +23,26 @@ const pct = (day: string) => timelinePercent(day);
 const fmt = (n: number) => `${n.toFixed(2)}%`;
 const day = asOfDay;
 
-// Each bar runs from a phase's first day to the day after its last. Sponsorships run to NOW, never past Event
-// Day; the Schedule and tickets run into Event Day; the event itself is a mark.
+// Each phase runs from its first day to the day after its last, which is when it turns grey. Sponsorships run
+// through their last day (Event Day until one is set), the Schedule through Event Day; tickets run into Event
+// Day; the event itself is a mark. A bar is drawn no further than Event Day.
 const spanOf = (it: Item): [string, string] | null =>
-  it.key === 'spons' ? [timeline.start, e.eventDay]
+  it.key === 'spons' ? [timeline.start, next(sponsorshipsCloses())]
   : it.key === 'cfp' ? [e.cfp.opens, next(e.cfp.closes)]
-  : it.key === 'sched' ? [e.schedule, e.eventDay]
+  : it.key === 'sched' ? [e.schedule, next(e.eventDay)]
   : it.key === 'tix' && e.tickets.onSale ? [e.tickets.onSale, e.eventDay]
   : null;
-// Start and end as shown: "Nov 1 – Jan 31"; "Open now" alone for Sponsorships (no end yet); one day for the event.
-const whenOf = (it: Item): string[] => (it.key === 'spons' || it.key === 'event' ? [it.big] : [it.big, it.bigTo ?? shortDate(e.eventDay)]);
+const drawnTo = (s: [string, string]) => (s[1] > e.eventDay ? e.eventDay : s[1]);
+// Sponsorships without a last day: no outline, and an arrow at NOW.
+const openEnded = (it: Item) => it.key === 'spons' && !e.sponsorships.closes;
+// Start and end as shown: "Nov 1 – Jan 31"; "Open now" or "Closed" alone for Sponsorships; the start alone
+// for the Schedule; one day for the event.
+const whenOf = (it: Item): string[] => (['spons', 'sched', 'event'].includes(it.key) ? [it.big] : [it.big, it.bigTo ?? shortDate(e.eventDay)]);
 const stateOf = (it: Item) => {
   if (it.key === 'event') return day > e.eventDay ? 'past' : day === e.eventDay ? 'live' : 'future';
   const s = spanOf(it);
   // The Schedule's row reads the same before and after Mar 1 (its status only repeats the date, so no stamp
-  // shows) and /now.js fills its bar, so it stays 'future' until Event Day and Mar 1 needs no rebuild.
+  // shows) and /now.js fills its bar, so it stays 'future' through Event Day and Mar 1 needs no rebuild.
   if (it.key === 'sched') return day >= s![1] ? 'past' : 'future';
   return !s || day < s[0] ? 'future' : day >= s[1] ? 'past' : 'live';
 };
@@ -49,7 +55,7 @@ const tix = items.find((it) => it.undated);
 const showNow = day >= timeline.start && day <= e.eventDay;
 const nowPct = pct(day);
 const nowClass = ['pr-now', nowPct < 3 && 'at-start', nowPct > 94 && 'at-end', day === e.eventDay && 'at-event'];
-const done = (s: [string, string]) => fmt(Math.max(0, Math.min(nowPct, pct(s[1])) - pct(s[0])));
+const done = (s: [string, string]) => fmt(Math.max(0, Math.min(nowPct, pct(drawnTo(s))) - pct(s[0])));
 const months = [['Oct', '2026-10-01'], ['Nov', '2026-11-01'], ['Dec', '2026-12-01'], ['Jan', '2027-01-01'], ['Feb', '2027-02-01'], ['Mar', '2027-03-01'], ['Apr', '2027-04-01']];
 ---
 
@@ -72,9 +78,9 @@ const months = [['Oct', '2026-10-01'], ['Nov', '2026-11-01'], ['Dec', '2026-12-0
               </div>
               <svg class="pr-bar" aria-hidden="true" focusable="false">
                 <line class="pr-track" x1="0" x2="100%" y1="9" y2="9" />
-                {s && it.key !== 'spons' && <rect class="pr-span" x={fmt(pct(s[0]))} width={fmt(pct(s[1]) - pct(s[0]))} y="3" height="12" />}
+                {s && !openEnded(it) && <rect class="pr-span" x={fmt(pct(s[0]))} width={fmt(pct(drawnTo(s)) - pct(s[0]))} y="3" height="12" />}
                 {s && <rect class:list={['pr-done', { 'is-past': day >= s[1] }]} x={fmt(pct(s[0]))} width={done(s)} y="3" height="12" data-from={s[0]} data-to={s[1]} />}
-                {it.key === 'spons' && showNow && (
+                {openEnded(it) && showNow && (
                   <svg class="pr-now pr-now--arrow" x={fmt(nowPct)} y="0" overflow="visible"><polygon class="pr-arrow" points="0,1 11,9 0,17" /></svg>
                 )}
                 {it.key === 'event' && (

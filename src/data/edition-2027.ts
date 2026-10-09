@@ -11,10 +11,14 @@ if (sampleTicketsDay && !/^\d{4}-\d{2}-\d{2}$/.test(sampleTicketsDay)) throw new
 /** True only in a test build with a sample ticket day. */
 export const ticketsSample = Boolean(sampleTicketsDay);
 
+// The last day sponsorships are open (the owner: they close before Event Day); null until it is set, and
+// sponsorships then stay open through Event Day. Setting it adds the day after to scripts/rebuild-dates.mjs.
+const sponsorshipsLastDay: string | null = null;
+
 export const edition2027 = {
   year: 2027,
   city: 'Dallas',
-  sponsorships: { status: 'Open now' },
+  sponsorships: { closes: sponsorshipsLastDay },
   cfp: {
     opens: '2026-11-01',
     closes: '2027-01-31',
@@ -65,6 +69,14 @@ export const shortDate = (day: string) => new Intl.DateTimeFormat('en-US', { tim
 export const shortDateYear = (day: string) => `${shortDate(day)}, ${day.slice(0, 4)}`;
 /** "April 23, 2027" */
 export const longDate = (day: string) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' }).format(at(day));
+
+/** The last day sponsorships are open: the day set above, or Event Day until one is set. */
+export const sponsorshipsCloses = (): string => edition2027.sponsorships.closes ?? edition2027.eventDay;
+
+/** "Open now" through the last day of sponsorships, then "Closed", for sponsorships on the build day. */
+export function sponsorshipsStatus(day = asOfDay): string {
+  return day <= sponsorshipsCloses() ? 'Open now' : 'Closed';
+}
 
 /** "Opens Nov 1", "Open now" or "Closed", for the CFP on the build day. */
 export function cfpStatus(day = asOfDay): string {

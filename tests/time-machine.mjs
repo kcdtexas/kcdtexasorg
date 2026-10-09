@@ -27,6 +27,9 @@ const overlayNow = (html) => nowTags(html).find((c) => !c.includes('pr-now--tick
 const dated = (html) => lanes(html).filter((l) => l.key !== 'tix');
 const cardOf = (html) => html.match(/<meta property="og:image" content="[^"]*\/cards\/([a-z-]+)\.png"/)?.[1];
 const cfpCallout = (html) => html.match(/<p class="page-callout cfp-callout">\s*<b>([^<]*)<\/b>/)?.[1];
+// Whether a row's fill is grey (finished), and whether the Sponsorships row says "Closed" exactly when it is grey.
+const fillPast = (html, key) => new RegExp(`<li class="pr-lane pr-lane--${key} [^"]*">(?:(?!</li>)[\\s\\S])*<rect class="pr-done is-past"`).test(html);
+const sponsorsAgree = (html) => (lane(html, 'spons').state === 'past') === (lane(html, 'spons').when === 'Closed');
 const sections = (html) => [...html.matchAll(/<section [^>]*class="([a-z]+)"/g)].map((m) => m[1]).join();
 
 /** What each key day must show. `home` and `cfp` are the built HTML of / and /2027/cfp/. */
@@ -36,8 +39,9 @@ export const DAYS = {
     'phase rail: Sponsorships live': lane(home, 'spons').state === 'live',
     'phase rail: CFP future': lane(home, 'cfp').state === 'future',
     'key dates: CFP "Opens Nov 1", hidden on screen': keyDates(home)['Call for proposals'] === 'Opens Nov 1' && !lane(home, 'cfp').onScreen,
-    'phase rail: the ranges read "Nov 1 to Jan 31", "Mar 1 to Apr 23", "Apr 23"':
-      lane(home, 'cfp').when === 'Nov 1 to Jan 31' && lane(home, 'sched').when === 'Mar 1 to Apr 23' && lane(home, 'event').when === 'Apr 23',
+    'phase rail: the rows read "Open now", "Nov 1 to Jan 31", "Mar 1" (no end) and "Apr 23"':
+      lane(home, 'spons').when === 'Open now' && lane(home, 'cfp').when === 'Nov 1 to Jan 31' && lane(home, 'sched').when === 'Mar 1' && lane(home, 'event').when === 'Apr 23',
+    'hero: "Sponsorships: open now"': /Sponsorships: open now/.test(text(home)),
     'CFP page: "Opens Nov 1."': cfpCallout(cfp) === 'Opens Nov 1.',
     '/2027/cfp/ uses the default card': cardOf(cfp) === 'default',
     'home page sections in the one order for every width': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,attend',
@@ -69,11 +73,15 @@ export const DAYS = {
   '2027-04-23': ({ home }) => ({
     'phase rail: event live, "Today · Dallas"': lane(home, 'event').state === 'live' && keyDates(home)['KCD Texas 2027'] === 'Today · Dallas',
     'NOW tag with at-event': Boolean(overlayNow(home)?.includes('at-event')),
+    'phase rail: the Schedule still runs on Event Day': lane(home, 'sched').state !== 'past' && !fillPast(home, 'sched'),
+    'phase rail: Sponsorships are grey only when they read "Closed"': sponsorsAgree(home),
   }),
   '2027-04-24': ({ home }) => ({
     'key dates: "Apr 23 · Dallas" again': keyDates(home)['KCD Texas 2027'] === 'Apr 23 · Dallas',
     'no NOW in the built page': !/pr-now/.test(home),
     'every dated row past': dated(home).length === 4 && dated(home).every((l) => l.state === 'past'),
+    'phase rail: Sponsorships "Closed", with the thank-you line': lane(home, 'spons').when === 'Closed' && /Thanks to every 2027 sponsor\./.test(home),
+    'hero: "Sponsorships: closed"': /Sponsorships: closed/.test(text(home)),
   }),
   '2027-05-01': ({ home }) => ({
     'no NOW in the built page': !/pr-now/.test(home),
