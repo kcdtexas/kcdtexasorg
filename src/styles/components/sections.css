@@ -1,20 +1,5 @@
-/* The numbers band, the sponsor block, the speak block, the photo band and the attend block. */
+/* The sponsor block, the speak block, the photo band and the attend block. */
 @layer components {
-  /* The numbers band: who was in the room in 2026. Verified figures in --figure; survey figures in text color. */
-  .room { padding-top: 80px; }
-  .figs { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto auto; column-gap: var(--gutter); margin-top: 36px; }
-  .fig-set { display: grid; grid-row: span 2; grid-template-rows: subgrid; column-gap: var(--gutter); }
-  .fig-set--report { grid-column: 1 / span 2; }
-  .fig-set--survey { grid-column: 3 / -1; grid-template-columns: 2fr 2fr 3fr 3fr; }
-  .fig { display: flex; flex-direction: column; padding-top: 16px; border-top: 3px solid var(--fg); }
-  .num { font-stretch: 62%; font-weight: 900; font-size: clamp(60px, 6.6vw, 96px); line-height: 0.8; letter-spacing: -0.005em; white-space: nowrap; text-box: trim-both cap alphabetic; }
-  .num--verified { color: var(--figure); }
-  .num sup { font-stretch: 100%; font-weight: 700; font-size: 0.26em; vertical-align: 2.3em; }
-  .num .about { font-stretch: 100%; font-weight: 700; font-size: 16px; letter-spacing: 0; }
-  .lbl { margin-top: 14px; max-width: 17em; font-size: 17px; line-height: 1.4; text-wrap: pretty; }
-  .fig-set .src { grid-column: 1 / -1; grid-row: 2; margin-top: 20px; padding-top: 8px; border-top: 1px solid var(--fg); color: var(--fg); font-weight: 600; }
-  .room .more { margin-top: 28px; }
-
   /* Sponsor block */
   .sponsor { padding-top: var(--sec); }
   .sponsor > .wrap, .attend > .wrap, .day > .wrap { border-top: 3px solid var(--fg); padding-top: 28px; }
@@ -86,32 +71,17 @@
   .attend-photo img { aspect-ratio: 3 / 2; object-fit: cover; }
 
   @media (max-width: 1099px) {
-    .figs { row-gap: 40px; grid-template-rows: none; }
-    .fig-set { grid-row: auto; grid-template-rows: none; }
-    .fig-set .src { grid-row: auto; }
-    .fig-set--report { grid-column: 1 / span 3; }
-    .fig-set--survey { grid-column: 4 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 32px; }
     .sponsor-head, .sponsor-main { grid-column: 1 / span 7; }
     .sponsor-side { grid-column: 8 / -1; grid-row: 2; }
     .speak-main { grid-column: 1 / span 8; }
     .speak-photo { grid-column: 9 / -1; }
   }
   @media (max-width: 899px) {
-    .fig-set--report, .fig-set--survey { grid-column: 1 / -1; }
     .sponsor-head, .sponsor-main, .sponsor-side { grid-column: 1 / -1; grid-row: auto; }
     .speak-main, .attend-main, .attend-photo { grid-column: 1 / -1; }
     .speak-photo { grid-column: 1 / span 6; justify-self: start; }
   }
   @media (max-width: 599px) {
-    .room { padding-top: 72px; }
-    .figs { row-gap: 28px; margin-top: 24px; }
-    .fig-set--survey { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 24px; }
-    .fig-set--survey .fig:nth-child(n + 3) { grid-column: 1 / -1; }
-    .fig-set--report .fig { flex-direction: row; align-items: flex-end; gap: 16px; }
-    .fig-set--report .lbl { margin: 0; }
-    .num { font-size: 56px; }
-    .lbl { margin-top: 10px; font-size: 16px; }
-    .fig-set .src { margin-top: 14px; }
     .sponsor .lead, .speak .lead, .attend .lead { font-size: 17px; }
     .dallas { grid-template-columns: 1fr; row-gap: 4px; margin-top: 24px; }
     .dallas-text { font-size: 17px; }

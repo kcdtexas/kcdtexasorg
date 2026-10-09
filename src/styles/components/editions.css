@@ -11,7 +11,6 @@
   .ed-link { margin-top: 12px; font-weight: 700; }
   .ed-src { margin-top: 12px; font-size: 15px; line-height: 1.5; color: var(--muted); }
   .eds + .page-soon { max-width: 40em; margin-top: 28px; }
-  .ed-note { max-width: 40em; margin-top: 16px; font-size: 15px; color: var(--muted); }
 
   @media (max-width: 599px) {
     .eds { margin-top: 40px; }

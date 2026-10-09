@@ -26,7 +26,6 @@ export const editions = {
       title: 'KCD Texas 2026',
       place: `${e.city}, ${e.date}, at ${e.venue}`,
       facts: [
-        `${e.checkedIn} Attendees checked in`,
         `${e.speakers} Speakers and ${e.hosts} hosts`,
         `${e.sponsorCount} sponsors`,
         `${e.recordings} talk recordings`,
@@ -39,14 +38,12 @@ export const editions = {
       title: 'KCD Texas 2025',
       place: `${e.city}, at the Austin Central Library. The first independent KCD Texas.`,
       facts: [
-        '213 Attendees checked in',
         '29 Speakers on 3 stages',
         `${e.proposals2025} proposals submitted`,
         'Keynotes by Chris Aniszczyk (CNCF) and Ricardo Rocha (CERN)',
       ],
       link: null,
-      source: { text: 'CNCF transparency reports, 2025 and 2026', href: e.report2025Url },
-      sourceNote: 'The check-in figure is from the 2026 report.',
+      source: { text: 'CNCF transparency report, 2025', href: e.report2025Url },
     },
     {
       year: 2024,
@@ -55,10 +52,8 @@ export const editions = {
       facts: [],
       link: null,
       source: { text: 'CNCF transparency report, 2026', href: e.reportUrl },
-      sourceNote: 'The 2026 report compares its attendance with 2024’s.',
     },
   ],
 
   canceled: 'The 2023 Edition was canceled.',
-  sources: 'The figures count Attendees who checked in, never Registrations.',
 } as const;

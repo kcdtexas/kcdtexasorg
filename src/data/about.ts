@@ -18,8 +18,8 @@ export const about = {
     rows: [
       { year: '2023', text: 'Canceled.' },
       { year: '2024', text: 'Austin, co-located with Texas Linux Fest.' },
-      { year: '2025', text: `Austin Central Library. The first independent KCD Texas. ${edition2026.checkedIn2025} attendees checked in.` },
-      { year: String(edition2026.year), text: `TCEA, ${edition2026.city}, ${edition2026.date}. ${edition2026.checkedIn} attendees checked in, with ${edition2026.speakers} Speakers and ${edition2026.sponsorCount} sponsors.` },
+      { year: '2025', text: 'Austin Central Library. The first independent KCD Texas.' },
+      { year: String(edition2026.year), text: `TCEA, ${edition2026.city}, ${edition2026.date}, with ${edition2026.speakers} Speakers and ${edition2026.sponsorCount} sponsors.` },
       { year: String(e.year), text: `${e.city}, ${longDate(e.eventDay)}.`, current: true },
     ],
     source: 'Source: CNCF transparency reports for',
@@ -49,10 +49,25 @@ export const about = {
     title: 'Organizers',
     soon: `The ${e.year} Organizers, with their employers, are listed here soon.`,
     past: { text: 'Meet the 2026 Organizers', href: '/2026/#organizers' },
+    pastAfter: { before: 'The 2026 Organizers are on', text: 'the 2026 page', href: '/2026/#organizers' },
   },
-  // The 2027 Organizer roster. Empty until the roster form comes back with each person's consent (A28);
-  // while empty, the page shows the "soon" line above.
-  organizers2027: [] as { name: string; employer: string; role: string }[],
+  // The 2027 Organizers: everyone who said OK to be listed (owner-actions A28; the owner's workbook,
+  // 2026-10-07), in its order. Employer and title only where given; photos in src/assets/organizers/2027.
+  // While the list is empty, the page shows the "soon" line above.
+  organizers2027: [
+    { name: 'Rich Boyd', employer: '', title: 'Principal DevOps Engineer', photo: 'rich-boyd' },
+    { name: 'Mars Toktonaliev', employer: '', title: 'Senior System Engineer at KGPCo', photo: 'mars-toktonaliev' },
+    { name: 'Harsha Thirimanna', employer: '', title: 'Head of IAM CS | US & LATAM', photo: 'harsha-thirimanna' },
+    { name: 'Cris Nevares', employer: '', title: 'Senior Software Engineer 2', photo: 'cris-nevares' },
+    { name: 'Mara Ruvalcaba', employer: '', title: 'Marketing', photo: 'mara-ruvalcaba' },
+    { name: 'Joel Hernandez', employer: 'Red Hat', title: 'Senior Technical Account Manager', photo: 'joel-hernandez' },
+    { name: 'Srihari Nagaram', employer: '', title: 'Sr. Platform engineer', photo: 'srihari-nagaram' },
+    { name: 'Vishwa Gandhi', employer: '', title: 'software engineer', photo: 'vishwa-gandhi' },
+    { name: 'Amy Marrich', employer: 'Red Hat', title: '', photo: 'amy-marrich' },
+    { name: 'Akshay Mittal', employer: '', title: '', photo: 'akshay-mittal' },
+    { name: 'Myroslav Mishov', employer: 'Tech Evolvers', title: '', photo: 'myroslav-mishov' },
+    { name: 'Jamie Prince', employer: 'Red Hat', title: 'Product Manager', photo: 'jamie-prince' },
+  ] as { name: string; employer: string; title: string; photo: string }[],
 
   involved: {
     title: 'Get involved',

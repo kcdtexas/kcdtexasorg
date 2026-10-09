@@ -24,8 +24,8 @@ export const edition2026 = {
   // from our domain: its photos recompressed as JPEG, the text and vectors unchanged (Sponsor Committee, question 4).
   prospectusPdf: { url: '/2026/kcd-texas-2026-sponsorship-prospectus.pdf', size: '5 MB' },
 
-  // Verified: the transparency report counts check-ins, not Registrations.
-  checkedIn: 207,
+  // Attendance and the pre-registration survey stay off the site (the Organizers, 2026-10-08); the
+  // figures are in the private research notes. The counts below are from the transparency report.
   speakers: 27,
   hosts: 3,
   firstTimeSpeakers: 2,
@@ -34,21 +34,6 @@ export const edition2026 = {
   recordings: 18,
   // 2025 Edition, from the 2025 transparency report.
   proposals2025: '200+',
-  checkedIn2025: 213,
-
-  // 2026 pre-registration survey: describes the people who answered it.
-  survey: [
-    { value: '79%', label: 'came from Texas' },
-    { value: '70%', label: 'were at their first KCD Texas' },
-    { about: true, value: '7 in 10', label: 'were DevOps, SRE and sysadmin staff, developers or architects' },
-    { about: true, value: '1 in 4', label: 'worked at an End-User company, one that runs Kubernetes rather than sells it' },
-  ],
-  // The same survey's top three roles (26.0%, 22.8%, 20.1% in the report).
-  surveyRoles: [
-    { value: '26%', label: 'DevOps, SRE and sysadmin staff' },
-    { value: '23%', label: 'developers' },
-    { value: '20%', label: 'architects' },
-  ],
 
   sponsors: {
     platinum: [

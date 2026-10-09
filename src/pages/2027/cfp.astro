@@ -12,7 +12,7 @@ const status = cfpStatus();
 // The "call for proposals is open" card only once it is open; the rebuild on the opening day switches it.
 const card = status === 'Open now' ? 'cfp' : 'default';
 // A real button only when the call is open and the Session Committee has sent the link.
-const canSubmit = status === 'Open now' && cfp.sessionizeUrl !== '';
+const canSubmit = status === 'Open now' && cfp.submitUrl !== '';
 ---
 
 <Base title={`${cfp.title} · KCD Texas`} description={cfp.description} card={card}>
@@ -22,11 +22,10 @@ const canSubmit = status === 'Open now' && cfp.sessionizeUrl !== '';
         {cfp.dates.map((d) => <div><dt>{d.term}</dt><dd>{d.text}</dd></div>)}
       </dl>
       {canSubmit ? (
-        <div class="actions"><a class="btn" href={cfp.sessionizeUrl}>{cfp.submitButton}</a></div>
+        <div class="actions"><a class="btn" href={cfp.submitUrl}>{cfp.submitButton}</a></div>
       ) : (
         <p class="page-callout cfp-callout">
           <b>{status}.</b> {status === 'Closed' ? cfp.closed : cfp.submit}
-          {status !== 'Closed' && <span>{status === 'Open now' ? cfp.openNoLink : cfp.submitNote}</span>}
         </p>
       )}
     </PageHead>

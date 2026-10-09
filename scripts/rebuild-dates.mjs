@@ -21,7 +21,8 @@ export function rebuildDates() {
   const changes = [
     { day: e.cfp.opens, why: 'the call for proposals opens: "Open now", and /2027/cfp/ gets the cfp card' },
     { day: next(e.cfp.closes), why: 'the call for proposals is closed: "Closed", and the home page leaves the CFP Phase order' },
-    { day: e.tickets.onSale, why: 'tickets: "On sale now" on the key dates' },
+    // Only once CNCF sets the sale day; until then the key dates say "Coming soon" every day.
+    ...(e.tickets.onSale ? [{ day: e.tickets.onSale, why: 'tickets: "On sale now" on the key dates' }] : []),
     { day: e.eventDay, why: 'Event Day: "Today" on the key dates' },
     { day: next(e.eventDay), why: 'the day after Event Day: the key dates show the date again' },
     { day: timeline.end, why: 'the key-dates strip ends: no "Now" line in the built page' },

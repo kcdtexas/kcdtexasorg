@@ -12,17 +12,16 @@ export const cfp = {
   dates: [
     { term: 'Opens', text: shortDateYear(e.cfp.opens) },
     { term: 'Closes', text: `${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
-    { term: 'Speakers announced', text: e.speakersAnnounced },
+    { term: 'Speakers announced', text: `${shortDateYear(e.schedule)}, with the Schedule` },
     { term: 'Event', text: `${longDate(e.eventDay)}, ${e.city}` },
   ],
 
-  // The Session Committee sends the Sessionize link. While it's empty, the page links nowhere.
-  sessionizeUrl: '',
-  submitButton: 'Submit on Sessionize',
-  submit: 'Proposals go through Sessionize.',
-  submitNote: 'The link goes here when the call for proposals opens.',
-  // If the call opens before the link arrives, and after it closes.
-  openNoLink: 'The Sessionize link goes here shortly.',
+  // The link to submit, from the Session Committee once its platform is set. The page names no
+  // platform until then (a Co-Organizer, 2026-10-08), and while the link is empty it links nowhere.
+  submitUrl: '',
+  submitButton: 'Submit a proposal',
+  // Before the call opens, and while it is open without a link.
+  submit: 'The link to submit is coming soon.',
   closed: `The call for proposals closed on ${shortDateYear(e.cfp.closes)}.`,
 
   lookFor: {
@@ -55,7 +54,7 @@ export const cfp = {
   },
   choose: {
     title: 'How we choose',
-    text: `The Session Committee selects the Sessions, and the selected Speakers are announced together in ${e.speakersAnnounced}.`,
+    text: `The Session Committee selects the Sessions. The selected Speakers, the keynotes and the Schedule are announced together on ${shortDateYear(e.schedule)}.`,
     proposals: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.`,
     proposalsSource: 'CNCF transparency report, 2025',
   },

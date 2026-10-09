@@ -1,10 +1,16 @@
 ---
-// The footer: about, contact, community, past Editions, sources, the 2026 Organizers and the privacy line.
+// The footer: about, contact, community, past Editions, sources, the current Organizers and the privacy line.
 import { Image } from 'astro:assets';
 import { edition2026, dallasMetro, drives, pastEditions } from '../data/edition-2026';
 import { contact, currentEdition, legal, privacyLine } from '../data/site';
 import { badge } from '../lib/images';
 import { footerNav, paths } from '../data/nav';
+import { about } from '../data/about';
+
+// The current Edition's Organizers once their list is in (the About page); until then, the last Edition's.
+const team = about.organizers2027.length
+  ? { title: `The ${currentEdition.year} Organizers`, names: about.organizers2027.map((o) => o.name), note: 'Meet them on the About page', href: `${paths.about}#organizers` }
+  : { title: 'The 2026 Organizers', names: edition2026.organizers.map((o) => o.name), note: `The ${currentEdition.year} team is announced later.`, href: '' };
 
 const sources = [
   { text: 'CNCF transparency report, 2026', href: edition2026.reportUrl },
@@ -81,9 +87,9 @@ const sources = [
       </div>
     </div>
     <div class="foot-team">
-      <h2>The 2026 Organizers</h2>
-      <ul class="team">{edition2026.organizers.map((o) => <li><span>{o.name}</span></li>)}</ul>
-      <p class="foot-note">{edition2026.organizers.length} Organizers. The 2027 team is announced later.</p>
+      <h2>{team.title}</h2>
+      <ul class="team">{team.names.map((n) => <li><span>{n}</span></li>)}</ul>
+      <p class="foot-note">{team.names.length} Organizers. {team.href ? <><a href={team.href}>{team.note}</a>.</> : team.note}</p>
     </div>
     <div class="foot-base">
       <p>{privacyLine}</p>

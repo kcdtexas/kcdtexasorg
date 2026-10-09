@@ -18,7 +18,7 @@ const s = home.speak;
       <p class="lead">{s.lead}</p>
       <p class="employer">{s.employer}</p>
       <dl class="facts">
-        {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
+        {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{'href' in f ? <a href={f.href}>{f.text}</a> : f.text}</dd></div>)}
         <div><dt>Conduct</dt><dd>Speakers agree to the <a href={legal.codeOfConductUrl}>CNCF Code of Conduct</a>.</dd></div>
       </dl>
       <div class="actions">

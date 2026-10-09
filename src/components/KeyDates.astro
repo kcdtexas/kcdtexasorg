@@ -13,6 +13,10 @@ const width = (from: string, to: string) => `${(timelinePercent(to) - timelinePe
 const eventMonth = `${e.eventDay.slice(0, 8)}01`;
 const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl };
 const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+// Tickets get their bar only once CNCF sets the sale day. Until then, on wide screens the call for
+// proposals' column runs through February and Tickets is one slim line under the list, so no column
+// suggests a month for it (dates.css).
+const tixDay = e.tickets.onSale;
 // "Now" sits left of its line, except near the strip's start, where it would run off the edge.
 const nowLeft = timelinePercent(asOfDay) > 6;
 const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
@@ -27,7 +31,7 @@ const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
         <line class="tl-axis" x1="0" x2="100%" y1="50%" y2="50%" />
         <line class="tl-past" x1="0" x2={pct(asOfDay)} y1="50%" y2="50%" />
         <rect class="tl-bar--cfp" x={pct(e.cfp.opens)} width={width(e.cfp.opens, e.cfp.closes)} y="11" height="12" />
-        <rect class="tl-bar--tix" x={pct(e.tickets.onSale)} width={width(e.tickets.onSale, eventMonth)} y="11" height="12" />
+        {tixDay && <rect class="tl-bar--tix" x={pct(tixDay)} width={width(tixDay, eventMonth)} y="11" height="12" />}
         <svg x={pct(e.schedule)} y="17" overflow="visible"><rect class="tl-mark" x="-7" y="-7" width="14" height="14" transform="rotate(45)" /></svg>
         <rect class="tl-event" x={pct(eventMonth)} width={width(eventMonth, timeline.end)} y="0" height="34" />
         <text class="tl-event-label" x={`${((timelinePercent(eventMonth) + 100) / 2).toFixed(2)}%`} y="17" text-anchor="middle" dominant-baseline="central">{e.city}</text>
@@ -35,7 +39,7 @@ const showNow = asOfDay >= timeline.start && asOfDay < timeline.end;
         {showNow && <text class="tl-now-label" x={pct(asOfDay)} dx={nowLeft ? -7 : 7} y="9" text-anchor={nowLeft ? 'end' : 'start'} dominant-baseline="central">Now</text>}
       </svg>
     </div>
-    <ol class="tl-list">
+    <ol class:list={['tl-list', { 'tl-list--no-tix-day': !tixDay }]}>
       {home.dates.items.map((it) => (
         <li class={`tl-it tl-it--${it.key}`}>
           <p class="it-name">{it.name}</p>

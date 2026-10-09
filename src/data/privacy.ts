@@ -39,7 +39,7 @@ export const privacy = {
       id: 'links',
       title: 'Links to other sites',
       text: [
-        'Registration and the KCD Texas chapter are on the CNCF community site, the call for proposals is on Sessionize, the recordings are on YouTube, and the 2026 prospectus is on GitHub. Each of those sites has its own privacy policy.',
+        'Registration and the KCD Texas chapter are on the CNCF community site, the recordings are on YouTube, and the 2026 prospectus is on GitHub. Each of those sites has its own privacy policy.',
       ],
     },
     {

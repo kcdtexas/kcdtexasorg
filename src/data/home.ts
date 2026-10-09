@@ -1,6 +1,7 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsStatus } from './edition-2027';
+import { prospectus } from './site';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -12,7 +13,7 @@ export const home = {
   hero: {
     promise: 'One day of Kubernetes and cloud native talks and hands-on workshops, for the platform, SRE and DevOps engineers who run production across Texas. Organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF).',
     bill: [
-      { label: 'Keynotes:', text: `announced in ${e.cfp.keynotesAnnounced}` },
+      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
       { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
       { label: 'Sponsorships:', text: lowerFirst(e.sponsorships.status) },
     ],
@@ -33,31 +34,27 @@ export const home = {
 
   dates: {
     items: [
-      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: { text: 'Email us for the prospectus', href: 'prospectus' } },
+      { key: 'spons', name: 'Sponsorships', status: e.sponsorships.status, detail: prospectus.url ? { text: 'Download the prospectus', href: 'prospectus' } : { text: 'Prospectus coming soon' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpStatus(), detail: { text: `Closes ${shortDateYear(e.cfp.closes)}` } },
       { key: 'tix', name: 'Tickets', status: ticketsStatus(), detail: { text: 'Chapter members hear first', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: `Speakers announced in ${e.speakersAnnounced}` } },
+      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), detail: { text: 'With the Speakers and keynotes' } },
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventStatus(), detail: { text: e.eventNote } },
     ],
   },
 
   wall: {
     title: `${edition2026.sponsorCount} sponsors backed KCD Texas 2026`,
-    slot: `Your logo here in ${e.year}`,
-  },
-
-  room: {
-    title: 'Who was in the room in 2026',
-    checkedInLabel: `attendees checked in, ${edition2026.city}, ${edition2026.date}`,
-    reportSource: 'CNCF transparency report',
-    surveySource: '2026 pre-registration survey, so it describes the people who answered it',
-    more: 'Read the KCD Texas 2026 transparency report',
+    // The open spot that ends the 2026 wall (the owner's wording, 2026-10-08; proof first, 2026-10-09).
+    // It holds only while no 2027 sponsor is announced: with the first, this area becomes the 2027
+    // sponsors, the spot says "Your logo here", and the 2026 wall leaves the home page (owner-actions A64).
+    slot: `Be the first ${e.year} sponsor`,
+    link: 'How to get a spot here',
   },
 
   sponsor: {
     kicker: 'Sponsor',
     title: 'Put your team in front of Texas platform engineers.',
-    lead: 'KCD Texas is where Texas teams that run Kubernetes meet the companies that build their tools. In the 2026 pre-registration survey, about 7 in 10 respondents were DevOps, SRE and sysadmin staff, developers or architects, 79% were from Texas, and about 1 in 4 worked at an End-User company.',
+    lead: 'KCD Texas is where Texas teams that run Kubernetes meet the companies that build their tools.',
     tiersTitle: 'What 2026 Sponsor Tiers included',
     tiersSource: '(from the public 2026 prospectus)',
     tiers: [
@@ -66,7 +63,7 @@ export const home = {
       'Your logo on the website, in emails, on signage and in the CNCF transparency report',
       'Full-day passes for your team',
     ],
-    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar. ${e.year} details are in the prospectus.`,
+    tiersNote: `Sponsor Tiers: Platinum, Gold, Silver and End User, plus add-ons such as the happy hour, lanyards and the coffee bar. ${e.year} details come with the prospectus.`,
     // Critique fix 8: the sponsor hall (photo 001) instead of the cut-off roll-up (136).
     photoAlt: 'Attendees, several in cowboy hats, walk between sponsor tables in the KCD Texas 2026 sponsor hall, in front of Diagrid’s backdrop.',
     photoTime: '8:41 a.m.',
@@ -82,7 +79,7 @@ export const home = {
     facts: [
       { term: 'Dates', text: `Opens ${shortDateYear(e.cfp.opens)}; closes ${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
       { term: 'Formats', text: 'Talks and hands-on workshops' },
-      { term: 'Video', text: `${edition2026.recordings} talks from 2026 are on YouTube` },
+      { term: 'Video', text: `${edition2026.recordings} talks from 2026 are on YouTube`, href: edition2026.talksUrl },
       { term: 'First time', text: 'First time speaking? Ask for a mentor when you submit.' },
       { term: 'Proposals', text: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.` },
     ],
@@ -112,7 +109,7 @@ export const home = {
 
   attend: {
     kicker: 'Attend',
-    title: `Coming to learn? Tickets go on sale ${shortDate(e.tickets.onSale)}.`,
+    title: `Coming to learn? Tickets ${ticketsSentence()}.`,
     lead: `2026 tickets cost $50 to $150, depending on when you bought. Join the KCD Texas chapter on the CNCF community site to get the email when ${e.year} tickets go on sale.`,
     letter: `An approval letter is coming in ${e.managerLetter}, with the cost and what your team gets back.`,
     photoAlt: 'Three attendees laugh together between sessions.',

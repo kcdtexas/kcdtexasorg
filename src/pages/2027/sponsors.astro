@@ -12,27 +12,16 @@ import { contact, legal, prospectus } from '../../data/site';
 <Base title={`${s.title} · KCD Texas`} description={s.description} card="sponsorships">
   <article class="page wrap sp-page">
     <PageHead kicker={s.kicker} title={s.title} lead={s.lead}>
-      <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} /></div>
+      {prospectus.url ? (
+        <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.note} /></div>
+      ) : (
+        <p class="page-callout"><b>{s.prospectusSoon.lead}</b> <span>{s.prospectusSoon.before} <a href="#tiers">{s.prospectusSoon.link}</a>.</span></p>
+      )}
     </PageHead>
 
     <section class="page-sec" aria-labelledby="meet">
       <h2 id="meet" class="page-h2">{s.meet.title}</h2>
-      <div class="sp-figs">
-        <div class="sp-fig sp-fig--verified">
-          <p class="sp-num">{edition2026.checkedIn}</p>
-          <p class="sp-lbl">{s.meet.checkedInLabel}</p>
-          <p class="src"><a href={edition2026.reportUrl}>{s.meet.reportSource}</a></p>
-        </div>
-        <div class="sp-survey">
-          <h3 class="page-h3 sp-survey-title">{s.meet.surveyTitle}</h3>
-          <ul class="sp-survey-list">
-            {s.meet.survey.map((f) => (
-              <li><p class="sp-num sp-num--sm">{'about' in f && <span class="sp-about">About </span>}{f.value}<sup>1</sup></p><p class="sp-lbl">{f.label}</p></li>
-            ))}
-          </ul>
-          <p class="src"><sup>1</sup> {s.meet.surveySource}</p>
-        </div>
-      </div>
+      <p class="sp-who">{s.meet.who}</p>
       <figure class="sp-quote">
         <blockquote><p>“{s.meet.quote}”</p></blockquote>
         <figcaption class="src">{s.meet.quoteBy}</figcaption>
@@ -58,7 +47,7 @@ import { contact, legal, prospectus } from '../../data/site';
       ) : (
         <ul class="page-list">{s.terms2027.map((t) => <li><b>{t.name}</b> {t.price}: {t.benefits.join('; ')}</li>)}</ul>
       )}
-      <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.reply} /></div>
+      {prospectus.url && <div class="sp-door"><Door href={prospectus.href} label={prospectus.label} note={prospectus.note} /></div>}
       <p class="src sp-pdf">{s.tiers.sourceLabel} <a href={edition2026.prospectusPdf.url}>{s.tiers.pdfSource}</a></p>
     </section>
 

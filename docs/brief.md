@@ -28,7 +28,7 @@ A baseline applies to all three: fast, accessible (aiming at WCAG 2.2 AA), open 
   - Tickets and travel.
   - Past Editions.
   - Short Links that keep working across years.
-- **Program**, from Sessionize:
+- **Program**, from the call-for-proposals platform:
   - Schedule with filters, Session and Speaker pages.
   - An End-User Story badge.
   - My Schedule, kept in the visitor's browser, with a calendar feed.

@@ -49,7 +49,6 @@
   .slot--logo { align-items: baseline; gap: 18px; padding: 12px 20px 11px; font-size: 30px; text-align: left; }
   .slot-sub { display: inline-flex; align-items: baseline; gap: 8px; color: var(--fg); font-stretch: 100%; font-weight: 700; font-size: 16px; text-transform: none; text-decoration: underline; text-decoration-color: var(--link-underline); text-underline-offset: 0.2em; }
   .slot:hover .slot-sub { color: var(--on-action); }
-  .wall-links { text-align: left; font-size: 15px; line-height: 1.5; color: var(--muted); }
 
   @media (max-width: 1099px) {
     .tiers { --gold-cols: 4; }
@@ -70,6 +69,5 @@
     .tier--silver .logos { --logo-size: min(calc(0.75 * var(--gold-size)), calc((var(--silver-cell) - 16px) / 2.8)); }
     .slot--logo { width: 100%; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; font-size: 27px; white-space: normal; }
     .slot-sub { white-space: normal; }
-    .wall-links { width: 100%; text-align: center; }
   }
 }

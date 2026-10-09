@@ -1,10 +1,12 @@
 ---
 // The About page (Core Event Committee). Words in src/data/about.ts.
+import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PageHead from '../components/PageHead.astro';
 import { about as a } from '../data/about';
 import { paths } from '../data/nav';
 import { contact, legal } from '../data/site';
+import { organizerPhotos2027 } from '../lib/images';
 ---
 
 <Base title={`${a.title} · KCD Texas`} description={a.description}>
@@ -36,12 +38,23 @@ import { contact, legal } from '../data/site';
       </dl>
     </section>
 
-    <section class="page-sec" aria-labelledby="organizers">
+    <section class="page-sec page-wide" aria-labelledby="organizers">
       <h2 id="organizers" class="page-h2">{a.organizers.title}</h2>
       {a.organizers2027.length === 0 ? (
         <p class="page-soon">{a.organizers.soon} <a href={a.organizers.past.href}>{a.organizers.past.text}</a></p>
       ) : (
-        <ul class="page-list">{a.organizers2027.map((o) => <li><b>{o.name}</b>, {o.employer}. {o.role}</li>)}</ul>
+        <>
+          <ul class="pg-org">
+            {a.organizers2027.map((o) => (
+              <li>
+                <Image class="pg-org-photo" src={organizerPhotos2027[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt="" loading="lazy" />
+                <b>{o.name}</b>
+                {(o.employer || o.title) && <span class="pg-aff">{[o.employer, o.title].filter(Boolean).join(' · ')}</span>}
+              </li>
+            ))}
+          </ul>
+          <p>{a.organizers.pastAfter.before} <a href={a.organizers.pastAfter.href}>{a.organizers.pastAfter.text}</a>.</p>
+        </>
       )}
     </section>
 
