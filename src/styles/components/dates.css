@@ -27,9 +27,11 @@
   .pr-when { word-spacing: 0.06em; }
   .pr-dash { margin-inline: 0.22em; }
   .pr-lane--event .pr-when { justify-self: start; padding: 7px 10px 5px; background: var(--signal); color: var(--on-signal); }
-  /* Stamps: a running state is filled ink; any other state is a tinted tag; one that repeats the dates is hidden. */
+  /* Stamps: a running state is filled ink, one still to come an outline, a finished one a tinted tag; one that
+     repeats the dates is hidden. */
   .it-st { display: inline-block; margin-top: 8px; padding: 4px 8px 3px; background: var(--surface); font-weight: 800; font-size: 12px; line-height: 1.2; letter-spacing: 0.05em; text-transform: uppercase; }
   .pr-lane--live .it-st { background: var(--fg); color: var(--bg); }
+  .pr-lane--future .it-st, .pr-tix-line:not(.pr-lane--live) .it-st { padding: 2px 6px 1px; background: none; border: 2px solid currentColor; }
   .pr-lane--echo .it-st { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
   .it-dt { margin-top: 6px; max-width: 22em; font-size: 15px; line-height: 1.4; color: var(--muted); }
   .it-dt a { display: inline-block; padding-block: 2px; }
@@ -78,6 +80,8 @@
     .pr-now-line { stroke: Highlight; }
     .pr-tag rect { fill: Highlight; }
     .pr-tag text { fill: HighlightText; }
+    /* The gold plate's fill is gone in forced colors, so Apr 23 gets a frame. */
+    .pr-lane--event .pr-when { outline: 2px solid CanvasText; outline-offset: -2px; }
   }
   @media (max-width: 1099px) {
     /* The start and end move under the name. */
