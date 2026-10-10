@@ -6,6 +6,8 @@
 export const sessionize = {
   /** The API v2 base. Only tests point it elsewhere (KCD_PROGRAM_TEST_BASE, src/lib/program-source/remote.mjs). */
   base: 'https://sessionize.com/api/v2',
+  /** Speaker photos come from this host or its subdomains (cdn.sessionize.com); a photo anywhere else is dropped. */
+  photoHost: 'sessionize.com',
   /** The category whose item names the Session's format. */
   formatCategory: 'Session format',
   /** A category of this name (any item but a "no"), an item of this name in any category, or a question of this

@@ -8,7 +8,7 @@
 // Every error message is redacted: it names the variables, never their values.
 import { adaptCsv } from './csv.mjs';
 import { publicProgram, programVersion } from './model.mjs';
-import { fetchable, fetchBytes, ProgramSourceError, redact, sessionizeBase } from './remote.mjs';
+import { fetchable, fetchBytes, ProgramSourceError, redact, sessionizeBase, sessionizePhoto } from './remote.mjs';
 import { adaptSessionize } from './sessionize.mjs';
 
 /**
@@ -50,7 +50,8 @@ export async function readPlatform(choice, env) {
       const { body } = await fetchBytes(url, { env, what: 'Sessionize (the All view of SESSIONIZE_ENDPOINT_ID)', accept: 'application/json' });
       let data;
       try { data = JSON.parse(body.toString('utf8')); } catch { throw new Error('Sessionize (the All view of SESSIONIZE_ENDPOINT_ID): the response is not JSON'); }
-      return adaptSessionize(data);
+      // Photos only from Sessionize's hosts; the CSV's may be on any https host.
+      return adaptSessionize(data, undefined, (url) => sessionizePhoto(url, env));
     }
     if (choice.kind === 'csv') {
       const { body } = await fetchBytes(env.PROGRAM_CSV_URL ?? '', { env, what: 'The program CSV (PROGRAM_CSV_URL)', accept: 'text/csv, text/plain' });

@@ -40,6 +40,14 @@ export function fetchable(raw, env) {
   return url.protocol === 'http:' && LOOPBACK.has(url.hostname) && localTestsAllowed(env);
 }
 
+/** True for a Speaker photo the Sessionize reader keeps: https on Sessionize's own host or one of its subdomains, or
+ *  a local test server where tests are allowed. Every other photo address is dropped. */
+export function sessionizePhoto(raw, env) {
+  if (!fetchable(raw, env)) return false;
+  const { protocol, hostname } = new URL(raw);
+  return protocol === 'http:' || hostname === sessionize.photoHost || hostname.endsWith(`.${sessionize.photoHost}`);
+}
+
 /** A test variable's address on this machine, or null when it's unset. Refused on Netlify and in GitHub Actions. */
 export function localTestUrl(name, env) {
   const test = env[name];
@@ -70,10 +78,24 @@ export async function fetchBytes(url, { env, what, maxBytes = 20 * 1024 * 1024, 
   }
   if (res.url && !fetchable(res.url, env)) throw new ProgramSourceError(`${what}: redirected to an address that isn't https`, env);
   if (!res.ok) throw new ProgramSourceError(`${what}: the platform answered HTTP ${res.status}`, env);
-  const length = Number(res.headers.get('content-length') ?? 0);
-  if (length > maxBytes) throw new ProgramSourceError(`${what}: the response is larger than ${maxBytes} bytes`, env);
-  let body;
-  try { body = Buffer.from(await res.arrayBuffer()); } catch { throw new ProgramSourceError(`${what}: the response was cut off`, env); }
-  if (body.length > maxBytes) throw new ProgramSourceError(`${what}: the response is larger than ${maxBytes} bytes`, env);
-  return { body, type: res.headers.get('content-type') ?? '' };
+  const tooLarge = () => new ProgramSourceError(`${what}: the response is larger than ${maxBytes} bytes`, env);
+  if (Number(res.headers.get('content-length') ?? 0) > maxBytes) {
+    await res.body?.cancel().catch(() => {});
+    throw tooLarge();
+  }
+  // The body as it streams in, stopped at the cap, so a response without a Content-Length is never read past it.
+  const chunks = [];
+  let size = 0;
+  try {
+    for await (const chunk of res.body ?? []) {
+      size += chunk.byteLength;
+      // Leaving the loop cancels the stream, which closes the connection.
+      if (size > maxBytes) break;
+      chunks.push(chunk);
+    }
+  } catch {
+    throw new ProgramSourceError(`${what}: the response was cut off`, env);
+  }
+  if (size > maxBytes) throw tooLarge();
+  return { body: Buffer.concat(chunks), type: res.headers.get('content-type') ?? '' };
 }

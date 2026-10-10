@@ -23,7 +23,7 @@ import { linkKind } from '../src/lib/program-source/links.mjs';
 import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
-import { fetchable, redact, sessionizeBase } from '../src/lib/program-source/remote.mjs';
+import { fetchable, fetchBytes, redact, sessionizeBase, sessionizePhoto } from '../src/lib/program-source/remote.mjs';
 import { adaptSessionize, validateAll } from '../src/lib/program-source/sessionize.mjs';
 
 const failures = [];
@@ -43,24 +43,34 @@ const speakersOnly = { speakersPublic: true, schedulePublic: false };
 const closed = { speakersPublic: false, schedulePublic: false };
 const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
 
-// The local stand-in for every remote address.
-const state = { mode: 'ok', fixture: fixtureText, live: null, requests: [] };
+// The local stand-in for every remote address. The Sessionize fixture's photos on Sessionize's host, and the CSV's
+// on any host, come from here; Fixture Person D's photo, on another host, stays where it is, so a request for it
+// would fail.
+const state = { mode: 'ok', fixture: fixtureText, live: null, requests: [], endlessClosed: false };
 const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
 const server = createServer((req, res) => {
   state.requests.push(req.url);
   const send = (status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body); };
-  const local = (s) => s.replaceAll('https://photos.fixture.invalid/', `${origin}/photos/`);
+  const local = (s, from) => s.replaceAll(from, `${origin}/photos/`);
   if (req.url === `/api/v2/${ID}/view/All`) {
     if (state.mode === '500') return send(500, 'text/plain', 'down');
     if (state.mode === 'notjson') return send(200, 'application/json', '<html>');
     if (state.mode === 'invalid') return send(200, 'application/json', JSON.stringify({ sessions: 'none' }));
-    return send(200, 'application/json', local(state.fixture));
+    return send(200, 'application/json', local(state.fixture, 'https://cdn.sessionize.com/fixture/'));
   }
-  if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(csvText));
+  if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(csvText, 'https://photos.fixture.invalid/'));
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
   if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
   if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
   if (req.url === '/live/program-version.txt' && state.live !== null) return send(200, 'text/plain', state.live);
+  // A response with no Content-Length that never ends, until the client closes the connection.
+  if (req.url === '/endless') {
+    res.writeHead(200, { 'content-type': 'image/jpeg' });
+    const chunk = Buffer.alloc(64 * 1024, 7);
+    const timer = setInterval(() => res.write(chunk), 2);
+    res.on('close', () => { clearInterval(timer); state.endlessClosed = true; });
+    return undefined;
+  }
   return send(404, 'text/plain', 'not found');
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -134,9 +144,20 @@ try {
   // The allowlist and the gates: the planted marker never reaches the model.
   const model = publicProgram(raw, { schedulePublic: true });
   expect(!JSON.stringify(model).includes(marker), 'the planted marker reaches the model');
-  expect(!JSON.stringify(model).includes('instagram') && !JSON.stringify(model).includes('sessionize.com') && !JSON.stringify(model).includes('live.fixture'), 'a dropped link or field reaches the model');
+  expect(!JSON.stringify(model).includes('instagram') && !model.speakers.some((s) => s.links.some((l) => /sessionize\.com/.test(l.url))) && !JSON.stringify(model).includes('live.fixture'), 'a dropped link or field reaches the model');
   expect(model.speakers.length === 4 && !model.speakers.some((s) => s.name.includes('Person E')), 'a Speaker with no accepted Session reaches the model');
-  expect(model.speakers.find((s) => s.name.endsWith(' A'))?.photo === 'https://photos.fixture.invalid/a.jpg', 'the photo address is not kept for download');
+  // Photos: only from Sessionize's host or its subdomains. Fixture Person D's, on another host, is dropped.
+  expect(model.speakers.find((s) => s.name.endsWith(' A'))?.photo === 'https://cdn.sessionize.com/fixture/a.jpg', 'a photo on Sessionize\'s host is not kept for download');
+  expect(model.speakers.find((s) => s.name.endsWith(' D'))?.photo === null, 'a photo on another host is kept in Sessionize data');
+  for (const [url, env, want] of [
+    ['https://cdn.sessionize.com/image/a.jpg', {}, true], ['https://sessionize.com/image/a.jpg', {}, true],
+    ['https://photos.example.com/a.jpg', {}, false], ['https://notsessionize.com/a.jpg', {}, false],
+    ['https://sessionize.com.example.net/a.jpg', {}, false], ['http://cdn.sessionize.com/a.jpg', {}, false],
+    ['https://u:p@cdn.sessionize.com/a.jpg', {}, false], ['not an address', {}, false],
+    [`${origin}/photos/a.jpg`, {}, true], [`${origin}/photos/a.jpg`, { NETLIFY: 'true' }, false],
+  ]) expect(sessionizePhoto(url, env) === want, `sessionizePhoto(${url}, ${JSON.stringify(env)}) is ${!want}`);
+  // The CSV's photos may be on any https host.
+  expect(publicModel(adaptCsv(csvText), both, prodCsv).model.speakers.find((s) => s.id === 'p1')?.photo === 'https://photos.fixture.invalid/a.jpg', 'a CSV photo on another https host is dropped');
   expect(model.sessions.find((s) => s.id === '1002')?.recording === 'https://www.youtube.com/watch?v=fixture1002', 'the recording is dropped');
   const early = publicProgram(raw, { schedulePublic: false });
   expect(early.sessions.every((s) => s.start === null && s.end === null && s.room === null) && !early.rooms.length && !early.breaks.length, 'speakersPublic alone keeps times, rooms or breaks');
@@ -255,6 +276,7 @@ try {
   expect(state.requests.includes(`/api/v2/${ID}/view/All`) && live.sessions.length === 5, 'readPlatform does not read the All view');
   const viaServer = publicModel(live, both, prodSessionize);
   expect(viaServer.model.speakers.find((s) => s.name.endsWith(' A'))?.photo === `${origin}/photos/a.jpg`, 'a local test photo is dropped');
+  expect(live.speakers.find((s) => s.name.endsWith(' D'))?.photo === null, 'readPlatform keeps a Sessionize photo on another host');
   const viaCsv = await readPlatform(chooseSource(both, prodCsv), prodCsv);
   expect(viaCsv.sessions.length === 3, 'readPlatform does not read the CSV');
   const noServer = { ...prodSessionize, KCD_PROGRAM_TEST_BASE: 'http://127.0.0.1:9/api/v2' };
@@ -278,6 +300,12 @@ try {
   await rejects(() => downloadPhoto(`${origin}/photos/text.jpg`, 'Speaker 3', {}), (m) => /not an image/.test(m), 'a photo that is HTML');
   await rejects(() => downloadPhoto(`${origin}/photos/broken.jpg`, 'Speaker 4', {}), (m) => /could not be read/.test(m), 'a broken photo');
   await rejects(() => downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 5', { NETLIFY: 'true' }), (m) => /must be https/.test(m), 'a plain-http photo on Netlify');
+  // Every download stops at its cap as it streams: a response with no Content-Length is never read past it.
+  const started = Date.now();
+  await rejects(() => fetchBytes(`${origin}/endless`, { env: {}, what: 'An endless download', maxBytes: 1_000_000 }), (m) => m === 'An endless download: the response is larger than 1000000 bytes', 'a response with no Content-Length that never ends');
+  await rejects(() => downloadPhoto(`${origin}/endless`, 'Speaker 6', {}), (m) => /Speaker 6's photo: the response is larger than \d+ bytes/.test(m), 'an endless photo');
+  for (let i = 0; i < 50 && !state.endlessClosed; i += 1) await new Promise((r) => setTimeout(r, 20));
+  expect(state.endlessClosed && Date.now() - started < 15_000, `an endless response is still read after the cap (${Date.now() - started} ms, closed ${state.endlessClosed})`);
 
   // 4. scripts/program-check.mjs.
   const out = join(outDir, 'output');

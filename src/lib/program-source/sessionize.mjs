@@ -11,11 +11,13 @@
 //   - links are mapped by their address (links.mjs);
 //   - service sessions (registration, lunch, sponsor callouts) become breaks: a plenum one spans every room;
 //   - isPlenumSession doesn't mean keynote: the 2026 keynotes weren't plenum;
-//   - times are event-local with no offset, so they're Central (central.mjs).
+//   - times are event-local with no offset, so they're Central (central.mjs);
+//   - Speaker photos are on Sessionize's own hosts, so a photo address anywhere else is dropped (remote.mjs).
 // Only accepted Sessions are read. Errors name a record by its position and field, never by its content.
 import { formatNames, no, sessionize as names, yes } from './config.mjs';
 import { toCentral } from './central.mjs';
 import { mapLinks } from './links.mjs';
+import { sessionizePhoto } from './remote.mjs';
 
 const str = (v) => typeof v === 'string';
 const optStr = (v) => v === null || v === undefined || typeof v === 'string';
@@ -71,8 +73,10 @@ export function validateAll(data) {
  * The All view as raw program records. Throws when the data doesn't validate or a Session's format is missing.
  * @param {any} data the parsed JSON
  * @param {typeof names} [settings]
+ * @param {(url: string) => boolean} [photoAllowed] the photo addresses kept: Sessionize's hosts; readPlatform passes
+ *   the build's environment, which decides whether a local test server counts too
  */
-export function adaptSessionize(data, settings = names) {
+export function adaptSessionize(data, settings = names, photoAllowed = (url) => sessionizePhoto(url, {})) {
   const problems = validateAll(data);
   if (problems.length) {
     const shown = problems.slice(0, 10).join('; ');
@@ -124,7 +128,7 @@ export function adaptSessionize(data, settings = names) {
     name: (str(p.fullName) && p.fullName.trim() ? p.fullName : [p.firstName, p.lastName].filter(str).join(' ')).trim(),
     tagline: p.tagLine ?? null,
     bio: p.bio ?? null,
-    photo: p.profilePicture ?? null,
+    photo: str(p.profilePicture) && photoAllowed(p.profilePicture) ? p.profilePicture : null,
     links: mapLinks((p.links ?? []).map((l) => ({ url: l.url, type: l.linkType ?? null, title: l.title ?? null }))),
   }));
 

@@ -179,7 +179,7 @@
       "fullName": "Fixture Person A",
       "bio": "Fixture Person A is made up for the adapter tests.",
       "tagLine": "Platform Engineer, Fixture Company",
-      "profilePicture": "https://photos.fixture.invalid/a.jpg",
+      "profilePicture": "https://cdn.sessionize.com/fixture/a.jpg",
       "isTopSpeaker": true,
       "links": [
         { "title": "Github", "url": "https://github.com/fixture-person-a", "linkType": "Other" },
@@ -198,7 +198,7 @@
       "fullName": "Fixture Person B",
       "bio": "Fixture Person B is made up too.",
       "tagLine": "Site Reliability Engineer",
-      "profilePicture": "https://photos.fixture.invalid/b.jpg",
+      "profilePicture": "https://cdn.sessionize.com/fixture/b.jpg",
       "isTopSpeaker": false,
       "links": [
         { "title": "LinkedIn", "url": "https://www.linkedin.com/in/fixture-person-b", "linkType": "LinkedIn" },
@@ -217,7 +217,7 @@
       "fullName": "Fixture Person C",
       "bio": null,
       "tagLine": "Developer Advocate",
-      "profilePicture": "https://photos.fixture.invalid/c.jpg",
+      "profilePicture": "https://cdn.sessionize.com/fixture/c.jpg",
       "isTopSpeaker": false,
       "links": [
         { "title": "Blog", "url": "https://blog.fixture-c.example/", "linkType": "Blog" },
@@ -235,7 +235,7 @@
       "fullName": "Fixture Person D",
       "bio": null,
       "tagLine": null,
-      "profilePicture": null,
+      "profilePicture": "https://photos.fixture.invalid/d.jpg",
       "isTopSpeaker": false,
       "links": [],
       "sessions": [1004, 1005],
