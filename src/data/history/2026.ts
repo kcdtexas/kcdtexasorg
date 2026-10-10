@@ -1,7 +1,8 @@
 // The 2026 Edition's history, for the loyalty credits (src/lib/loyalty.ts). Every list comes from the data the 2026
 // page prints, as listed on the 2026 Event Page: the Organizers and the sponsors (by logo file name) from
-// edition-2026.ts, and the Speakers from program-2026.ts (keynotes and talks; the hosts didn't speak). A list is
-// complete when it matches the transparency report's count.
+// edition-2026.ts, and the Speakers from program-2026.ts (keynotes and talks; the hosts didn't speak). The Speakers'
+// and the sponsors' lists are complete when they match the transparency report's counts. The Organizers' list is
+// set complete with no count to check it against: it is the Event Page's organizer cards.
 import { edition2026 } from '../edition-2026';
 import { keynotes2026, speakers2026 } from '../program-2026';
 
