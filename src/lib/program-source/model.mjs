@@ -24,7 +24,7 @@ function allowSpeaker(r, photoAllowed) {
     name: String(r.name).trim(),
     tagline: text(r.tagline),
     bio: text(r.bio),
-    // The photo's source address: never loaded by a page (ADR 0007).
+    // The photo's source address, downloaded at build time (src/lib/program-source/photos.mjs).
     photo: typeof r.photo === 'string' && photoAllowed(r.photo) ? r.photo : null,
     links: (Array.isArray(r.links) ? r.links : [])
       .filter((l) => LINK_KINDS.includes(l?.kind) && isHttps(l?.url))

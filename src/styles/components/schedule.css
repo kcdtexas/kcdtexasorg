@@ -86,6 +86,7 @@
   .spk-photo--sm { width: 56px; font-size: 22px; }
   .spk-photo--md { width: 72px; font-size: 28px; }
   .spk-photo--lg { width: 200px; font-size: 72px; }
+  .spk-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .spk-head { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 28px; }
   .spk-tagline { margin-top: 16px; }
   .spk-head .credit { margin-top: 14px; font-size: 16px; }

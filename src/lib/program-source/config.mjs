@@ -28,3 +28,7 @@ export const formatNames = {
 /** Answers and category items that mean yes or no. */
 export const yes = ['yes', 'y', 'true', '1', 'on', 'x', 'checked'];
 export const no = ['no', 'n', 'false', '0', 'off', 'none', ''];
+
+/** Speaker photos: the two sizes the pages use, square, as WebP. */
+export const photoSizes = { small: 160, large: 400 };
+export const photoQuality = 72;

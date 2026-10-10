@@ -1,9 +1,9 @@
 // The program platform's tests (src/lib/program-source/), with no real network: a local HTTP server stands in
-// for Sessionize.
+// for Sessionize and the photo host.
 //   1. The Sessionize adapter on tests/fixtures/sessionize-all.json, each quirk, Central time across DST, the
 //      validation failures and the allowlist (the planted marker never reaches the model).
-//   2. The rules: which builds read the platform, the redaction of the endpoint ID in every error, and the
-//      test-only address refused on Netlify and in GitHub Actions.
+//   2. The rules: which builds read the platform, the redaction of the endpoint ID in every error, the
+//      test-only address refused on Netlify and in GitHub Actions, and the photos.
 //   3. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
 //      run and restored after: production from the local Sessionize, a deploy preview (the test data, no
 //      request), production with no variable, and production with a failing platform.
@@ -12,9 +12,11 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/central.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
 import { publicProgram } from '../src/lib/program-source/model.mjs';
+import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
 import { fetchable, redact, sessionizeBase } from '../src/lib/program-source/remote.mjs';
 import { adaptSessionize, validateAll } from '../src/lib/program-source/sessionize.mjs';
@@ -34,8 +36,9 @@ const speakersOnly = { speakersPublic: true, schedulePublic: false };
 const closed = { speakersPublic: false, schedulePublic: false };
 const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
 
-// The local stand-in for Sessionize.
+// The local stand-in for Sessionize and the photo host.
 const state = { mode: 'ok', fixture: fixtureText, requests: [] };
+const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
 const server = createServer((req, res) => {
   state.requests.push(req.url);
   const send = (status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body); };
@@ -46,6 +49,9 @@ const server = createServer((req, res) => {
     if (state.mode === 'invalid') return send(200, 'application/json', JSON.stringify({ sessions: 'none' }));
     return send(200, 'application/json', local(state.fixture));
   }
+  if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
+  if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
+  if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
   return send(404, 'text/plain', 'not found');
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -179,7 +185,7 @@ try {
   expect(sessionizeBase({}) === 'https://sessionize.com/api/v2' && sessionizeBase(testEnv) === `${origin}/api/v2`, 'the Sessionize base is wrong');
   for (const extra of [{ NETLIFY: 'true' }, { GITHUB_ACTIONS: 'true' }]) {
     await rejects(() => sessionizeBase({ ...testEnv, ...extra }), (m) => /refused on Netlify and in GitHub Actions/.test(m), `KCD_PROGRAM_TEST_BASE with ${Object.keys(extra)[0]}`);
-    expect(!fetchable(`${origin}/api/v2`, extra), `a plain-http address is allowed with ${Object.keys(extra)[0]}`);
+    expect(!fetchable(`${origin}/photos/a.jpg`, extra), `a plain-http photo is allowed with ${Object.keys(extra)[0]}`);
   }
   await rejects(() => sessionizeBase({ KCD_PROGRAM_TEST_BASE: 'https://evil.example/api' }), (m) => /a server on this machine/.test(m), 'a remote KCD_PROGRAM_TEST_BASE');
   expect(fetchable('https://cdn.example/a.jpg', { NETLIFY: 'true' }) && !fetchable('http://cdn.example/a.jpg', {}) && !fetchable('https://u:p@cdn.example/a.jpg', {}), 'fetchable is wrong');
@@ -188,7 +194,8 @@ try {
   state.requests.length = 0;
   const live = await readPlatform(chooseSource(both, prodSessionize), prodSessionize);
   expect(state.requests.includes(`/api/v2/${ID}/view/All`) && live.sessions.length === 5, 'readPlatform does not read the All view');
-  expect(publicModel(live, both, prodSessionize).model.sessions.length === 5, 'publicModel drops a Session');
+  const viaServer = publicModel(live, both, prodSessionize);
+  expect(viaServer.model.speakers.find((s) => s.name.endsWith(' A'))?.photo === `${origin}/photos/a.jpg`, 'a local test photo is dropped');
   const noServer = { ...prodSessionize, KCD_PROGRAM_TEST_BASE: 'http://127.0.0.1:9/api/v2' };
   for (const [mode, env, pattern] of [
     ['500', prodSessionize, /HTTP 500/], ['notjson', prodSessionize, /not JSON/], ['invalid', prodSessionize, /sessions is not a list/],
@@ -200,23 +207,48 @@ try {
   state.mode = 'ok';
   expect(!redact(`https://sessionize.com/api/v2/${ID}/view/All and ${encodeURIComponent(ID)}`, prodSessionize).includes(ID), 'redact keeps the endpoint ID');
 
+  // The photos: square WebP in two sizes, from our server only.
+  const pic = await downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 1', {});
+  const [small, large] = await Promise.all([sharp(pic.small).metadata(), sharp(pic.large).metadata()]);
+  expect(small.format === 'webp' && small.width === 160 && small.height === 160 && large.width === 400 && large.height === 400, `the photo sizes are ${small.width}x${small.height} and ${large.width}x${large.height}`);
+  expect(!small.exif && !large.exif, 'a photo keeps its metadata');
+  await rejects(() => downloadPhoto(`${origin}/photos/missing.png`, 'Speaker 2', {}), (m) => /Speaker 2's photo: the platform answered HTTP 404/.test(m), 'a missing photo');
+  await rejects(() => downloadPhoto(`${origin}/photos/text.jpg`, 'Speaker 3', {}), (m) => /not an image/.test(m), 'a photo that is HTML');
+  await rejects(() => downloadPhoto(`${origin}/photos/broken.jpg`, 'Speaker 4', {}), (m) => /could not be read/.test(m), 'a broken photo');
+  await rejects(() => downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 5', { NETLIFY: 'true' }), (m) => /must be https/.test(m), 'a plain-http photo on Netlify');
+
   // 3. Full builds with a gate open.
   if (!process.argv.includes('--no-builds')) {
     const build = (env, flags = []) => run('bash', ['scripts/build.sh', '--skip-install', ...flags], env);
     const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
     const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
     await withGates(both, async () => {
-      // Production, from the local Sessionize: the pages, and nothing dropped.
+      // Production, from the local Sessionize: the pages, the photos, and nothing dropped.
       state.requests.length = 0;
       let b = await build(prodSessionize);
       expect(b.status === 0, `the production build from Sessionize fails:\n${b.log.slice(-2500)}`);
       if (b.status === 0) {
         expect(!b.log.includes(ID) && !b.log.includes(marker), 'the production build log contains the endpoint ID or the marker');
         expect(!walk('dist').some((f) => readFileSync(f).includes(ID)), 'a built file contains the endpoint ID');
-        expect(state.requests.join() === `/api/v2/${ID}/view/All`, `the build made ${state.requests.join(', ')} requests, not one All view`);
+        expect(state.requests.filter((u) => u.startsWith('/api/')).length === 1 && state.requests.filter((u) => u.startsWith('/photos/')).length === 3, `the build made ${state.requests.join(', ')} requests, not one All view and three photos`);
         const speakers = readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory()).sort();
         expect(speakers.join() === 'fixture-person-a,fixture-person-b,fixture-person-c,fixture-person-d', `Speaker pages: ${speakers.join()}`);
         expect(readdirSync('dist/2027/sessions').filter((n) => n.endsWith('.ics')).length === 5, 'not every accepted Session has a calendar file');
+        const photos = readdirSync('dist/2027/speakers').filter((n) => n.endsWith('.webp')).sort();
+        expect(photos.join() === ['a', 'b', 'c'].flatMap((x) => [`fixture-person-${x}-large.webp`, `fixture-person-${x}-small.webp`]).join(), `photo files: ${photos.join()}`);
+        const page = readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8');
+        expect(/<img src="\/2027\/speakers\/fixture-person-a-large\.webp"/.test(page), 'the Speaker page does not load its photo from our domain');
+        expect(/<span>FD<\/span>|<span>FP<\/span>/.test(readFileSync('dist/2027/speakers/fixture-person-d/index.html', 'utf8')), 'a Speaker with no photo lacks the placeholder');
+        expect((await sharp(readFileSync('dist/2027/speakers/fixture-person-a-small.webp')).metadata()).width === 160, 'the small photo is not 160 px');
+        // check-dist refuses an image from another host, in a page or in a stylesheet.
+        const css = walk('dist').find((f) => f.endsWith('.css'));
+        const [pageBefore, cssBefore] = [page, readFileSync(css, 'utf8')];
+        writeFileSync('dist/2027/speakers/fixture-person-a/index.html', page.replace('</body>', '<p data-photo="https://cdn.sessionize.example/fx.jpg"></p></body>'));
+        writeFileSync(css, `${cssBefore}\n.fx{background:url("https://cdn.sessionize.example/fx.png")}`);
+        const guard = await run(process.execPath, ['scripts/check-dist.mjs'], {});
+        expect(guard.status === 1 && /an image from another host: https:\/\/cdn\.sessionize\.example\/fx\.jpg/.test(guard.log) && /loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.png/.test(guard.log), `check-dist passes an external image:\n${guard.log.slice(-800)}`);
+        writeFileSync('dist/2027/speakers/fixture-person-a/index.html', pageBefore);
+        writeFileSync(css, cssBefore);
         expect(!/\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')), 'the production Schedule says "Sample"');
         for (const f of served()) {
           const body = readFileSync(f, 'utf8');

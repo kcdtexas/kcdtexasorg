@@ -9,7 +9,8 @@
 // A test build with --program-sample opens both on test data: the 2026 Schedule (src/data/program-2026-schedule.ts)
 // moved to the 2027 Event Day, plus the made-up fixture (src/data/program-fixture.ts). The pages label it "Sample".
 // Real data comes from Sessionize (src/lib/program-source/), read only in a production build (CONTEXT=production)
-// with a gate open; scripts/build.sh gives every other build with a gate open the test data.
+// with a gate open; scripts/build.sh gives every other build with a gate open the test data. Speaker photos are
+// downloaded and resized at build time and served from /2027/speakers/ (ADR 0007).
 import { edition2026 } from '../data/edition-2026';
 import { edition2027, programDataSample } from '../data/edition-2027';
 import { home } from '../data/home';
@@ -18,6 +19,7 @@ import { breaks2026, rooms2026, sessions2026 } from '../data/program-2026-schedu
 import { fixtureSessions, fixtureSpeakers } from '../data/program-fixture';
 import { norm, speakerCredit, type Credit } from './loyalty';
 import { LINK_KINDS } from './program-source/model.mjs';
+import { downloadPhotos } from './program-source/photos.mjs';
 import { chooseSource, publicModel, readPlatform } from './program-source/platform.mjs';
 
 export type Format = 'keynote' | 'talk' | 'workshop' | 'panel';
@@ -57,8 +59,9 @@ export interface Speaker {
   /** The tagline as printed. */
   tagline: string | null;
   bio: string | null;
-  /** Downloaded at build time once photos are set up; null shows the placeholder. */
-  photo: string | null;
+  /** The photo, downloaded at build time and served from our domain, in two square sizes; null shows the
+   *  placeholder (the test data has none). */
+  photo: { small: string; large: string } | null;
   links: { kind: LinkKind; url: string }[];
   /** "Speaker since": a Returning Speaker (CONTEXT.md), from src/lib/loyalty.ts. */
   credit: Credit | null;
@@ -161,7 +164,9 @@ async function source(): Promise<Source> {
   return { ...raw, edition: () => edition2027.year };
 }
 
-function build(src: Source, open: { speakersPublic: boolean; schedulePublic: boolean }): Program {
+interface Built { program: Program; photos: Map<string, { small: Buffer; large: Buffer }> }
+
+async function build(src: Source, open: { speakersPublic: boolean; schedulePublic: boolean }): Promise<Built> {
   const { model } = publicModel(src, open, env);
   const sessions = model.sessions.map((s) => ({ ...s, format: s.format as Format }));
   const order = (s: Omit<Session, 'slug'>) => `${s.start ?? ''} ${String(model.rooms.indexOf(s.room ?? '')).padStart(3, '0')} ${s.title}`;
@@ -173,27 +178,34 @@ function build(src: Source, open: { speakersPublic: boolean; schedulePublic: boo
     .map((s) => {
       // The credit counts only this Edition's Sessions: test data from 2026 never credits itself.
       const here = sessions.some((x) => x.speakerIds.includes(s.id) && src.edition(x.id) === edition2027.year);
-      // The photo's source address stays out of the pages until photos are downloaded at build time.
-      return { ...s, links: s.links as Speaker['links'], photo: null, slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
+      return { ...s, links: s.links as Speaker['links'], slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
     });
+  // The photos, downloaded and resized now; a Speaker without one keeps the placeholder.
+  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: `Speaker ${i + 1} (${s.id})` }] : [])), env);
   return {
-    sample: programDataSample,
-    schedulePublic: open.schedulePublic,
-    day: edition2027.eventDay,
-    sessions: sessions.map((s) => ({ ...s, slug: slugify(s.title, takenSessions) })),
-    speakers,
-    rooms: model.rooms,
-    breaks: model.breaks,
+    photos,
+    program: {
+      sample: programDataSample,
+      schedulePublic: open.schedulePublic,
+      day: edition2027.eventDay,
+      sessions: sessions.map((s) => ({ ...s, slug: slugify(s.title, takenSessions) })),
+      speakers: speakers.map((s) => ({ ...s, photo: photos.has(s.slug) ? { small: `/2027/speakers/${s.slug}-small.webp`, large: `/2027/speakers/${s.slug}-large.webp` } : null })),
+      rooms: model.rooms,
+      breaks: model.breaks,
+    },
   };
 }
 
 /** The gates this build uses: the Edition's, or both open in a --program-sample test build. */
 export const gates = programDataSample ? { speakersPublic: true, schedulePublic: true } : edition2027.program;
 
-/** The program, or null while both gates are closed (then no source is read at all). Read once per build. */
-export const program: Program | null = gates.speakersPublic || gates.schedulePublic
-  ? build(await source(), gates)
-  : null;
+// Read once per build while a gate is open; a closed gate reads no source at all.
+const built = gates.speakersPublic || gates.schedulePublic ? await build(await source(), gates) : null;
+
+/** The program, or null while both gates are closed. */
+export const program: Program | null = built?.program ?? null;
+/** The Speaker photos as WebP, by Speaker slug, for src/pages/2027/speakers/[photo].webp.ts. */
+export const speakerPhotos: ReadonlyMap<string, { small: Buffer; large: Buffer }> = built?.photos ?? new Map();
 
 // Helpers for the pages.
 export const speakersOf = (s: Session) => s.speakerIds.map((id) => program!.speakers.find((p) => p.id === id)!);

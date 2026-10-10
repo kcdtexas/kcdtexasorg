@@ -3,7 +3,7 @@
 // never its value, and never the address built from it.
 //
 // Addresses must be https. The one exception is for tests: a plain-http server on this machine (127.0.0.1,
-// localhost or [::1]) stands in for the platform, and KCD_PROGRAM_TEST_BASE points the
+// localhost or [::1]) stands in for the platform and the photo host, and KCD_PROGRAM_TEST_BASE points the
 // Sessionize reader at it. Both are refused on Netlify and in GitHub Actions (NETLIFY or GITHUB_ACTIONS set), so
 // a real production build can't be redirected, and even elsewhere they reach only this machine.
 import { sessionize } from './config.mjs';

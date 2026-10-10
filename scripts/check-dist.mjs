@@ -59,6 +59,8 @@ const BUDGETS = {
 const DIST = 'dist';
 /** The file scripts/build.sh writes into dist/ for any build with a test flag. */
 export const TEST_BUILD_MARKER = '.test-build';
+// An image address on a host other than ours.
+const EXTERNAL_IMAGE = /(?:https?:)?\/\/(?!kcdtexas\.org\/)[^\s"'()<>/]+\/[^\s"'()<>]*?\.(?:jpe?g|png|webp|avif|gif|svg)(?=[\s"'()<>?#]|$)/gi;
 
 function check() {
   const failures = [];
@@ -119,12 +121,19 @@ function check() {
     for (const m of html.matchAll(/<link[^>]+href="(https?:\/\/[^"]+)"[^>]*>/gi)) {
       if (!/rel="canonical"/.test(m[0])) failures.push(`${file}: <link> to another host: ${m[1]}`);
     }
+    // No image from another host anywhere on the page, outside a plain link: Speaker photos are downloaded at
+    // build time (src/lib/program-source/photos.mjs).
+    for (const m of html.replace(/<a\b[^>]*>/gi, '').matchAll(EXTERNAL_IMAGE)) failures.push(`${file}: an image from another host: ${m[0]}`);
     for (const marker of findDraftMarkers(html)) failures.push(`${file}: draft marker ${marker}`);
     if (/(^|\/)404\.html$/.test(file)) {
       // The 404 page is served at any unknown address: no canonical address, and noindex.
       if (/rel="canonical"/.test(html)) failures.push(`${file}: the 404 page has a canonical link`);
       if (!/<meta name="robots" content="noindex">/.test(html)) failures.push(`${file}: the 404 page lacks noindex`);
     } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
+  }
+
+  for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {
+    for (const m of readFileSync(file, 'utf8').matchAll(/url\(\s*['"]?((?:https?:)?\/\/[^'")\s]+)/gi)) failures.push(`${file}: loads from another host: ${m[1]}`);
   }
 
   // The planted marker (src/data/program-fixture.ts) sits in a field the program allowlist drops (ADR 0009): it
@@ -181,7 +190,8 @@ function check() {
   //
   // A page "has photos" when an <img> or <source> on it references a raster image (.webp, .avif,
   // .jpg, .jpeg, .png) under /_astro/, other than the KCD Texas badge in the header and footer
-  // (/_astro/badge-*), or a sponsor logo (img.sp-logo): a logo wall is image content, like photos.
+  // (/_astro/badge-*), a Speaker photo (/2027/speakers/*.webp), or a sponsor logo (img.sp-logo): a logo wall is
+  // image content, like photos.
   // Budgets: the home page under 1 MB (v1 has photos on every screen), other pages with photos
   // under 500 KB, pages without photos under 150 KB.
   const weights = new Map();
@@ -204,7 +214,7 @@ function check() {
       const candidates = (srcset ? srcset.split(',').map((c) => c.trim().split(/\s+/)[0]) : [tag.match(/\ssrc="([^"]+)"/)?.[1]])
         .filter((c) => c?.startsWith('/'));
       if (!candidates.length) continue;
-      if (candidates.some((c) => /^\/_astro\/(?!badge-)[^/]+\.(?:webp|avif|jpe?g|png)$/i.test(c))) photos = true;
+      if (candidates.some((c) => /^\/(?:_astro\/(?!badge-)|2027\/speakers\/)[^/]+\.(?:webp|avif|jpe?g|png)$/i.test(c))) photos = true;
       if (/\bclass="sp-logo"/.test(tag)) photos = true;
       // A <picture>'s <img> fallback is only fetched where no <source> matches; count every candidate set once.
       files.add(candidates.reduce((a, b) => (wire(b) < wire(a) ? b : a)));

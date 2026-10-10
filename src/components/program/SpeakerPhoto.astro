@@ -1,11 +1,17 @@
 ---
-// A Speaker's photo. Until photos are downloaded at build time (a platform adapter), a placeholder with the
-// Speaker's initials; it's decorative, since the name is always next to it.
+// A Speaker's photo, downloaded and resized at build time and served from our domain (src/lib/program.ts), or a
+// placeholder with the Speaker's initials when there's none. It's decorative, since the name is always next to it.
 import type { Speaker } from '../../lib/program';
 
 interface Props { speaker: Speaker; size?: 'sm' | 'md' | 'lg' }
 const { speaker: p, size = 'md' } = Astro.props;
 const initials = p.name.split(/\s+/).filter((w) => /^\p{L}/u.test(w)).map((w) => w[0]).slice(0, 2).join('');
+// The small file (160 px) covers the 56 and 72 px places at 2x; the large one (400 px) the 200 px place.
+const px = { sm: 56, md: 72, lg: 200 }[size];
 ---
 
-<span class={`spk-photo spk-photo--${size}`} aria-hidden="true"><span>{initials}</span></span>
+<span class={`spk-photo spk-photo--${size}`} aria-hidden="true">{p.photo
+  ? (size === 'lg'
+    ? <img src={p.photo.large} srcset={`${p.photo.small} 160w, ${p.photo.large} 400w`} sizes="(max-width: 599px) 120px, 200px" width={px} height={px} alt="" decoding="async" />
+    : <img src={p.photo.small} width={px} height={px} alt="" loading="lazy" decoding="async" />)
+  : <span>{initials}</span>}</span>
