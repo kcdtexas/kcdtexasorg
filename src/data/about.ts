@@ -51,7 +51,7 @@ export const about = {
     past: { text: 'Meet the 2026 Organizers', href: '/2026/#organizers' },
     pastAfter: { before: 'The 2026 Organizers are on', text: 'the 2026 page', href: '/2026/#organizers' },
     // build.sh --program-sample: the "Organizer since" credits are a prototype (src/lib/loyalty.ts).
-    creditsSample: 'Sample: the “Organizer since” credits are a prototype in this test build.',
+    creditsSample: 'Sample: the credits for returning Organizers are a prototype in this test build.',
   },
   // The 2027 Organizers: everyone who said OK to be listed (owner-actions A28; the owner's workbook,
   // 2026-10-07), in its order. Employer and title only where given; photos in src/assets/organizers/2027.
