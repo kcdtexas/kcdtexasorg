@@ -36,13 +36,18 @@ function allowSpeaker(r, photoAllowed) {
   };
 }
 
+/** How an error names a record: by the source's own reference when it gives one (a CSV row, whose ids are the
+ *  Organizers' own and stay out of the logs), else by the platform's id. */
+const nameOf = (r, fallback) => (typeof r.ref === 'string' ? r.ref : fallback);
+
 /** @returns {PublicSession} */
 function allowSession(r, schedule) {
+  const name = nameOf(r, `Session ${r.id}`);
   const format = String(r.format ?? '').toLowerCase();
-  if (!FORMATS.includes(format)) throw new Error(`Session ${r.id}: the format is not one of ${FORMATS.join(', ')}`);
-  if (typeof r.title !== 'string' || !r.title.trim()) throw new Error(`Session ${r.id}: no title`);
-  if (schedule && !(isTime(r.start) && isTime(r.end) && text(r.room))) throw new Error(`Session ${r.id}: the Schedule is public, but it has no time or room`);
-  if (schedule && r.end <= r.start) throw new Error(`Session ${r.id}: it ends before it starts`);
+  if (!FORMATS.includes(format)) throw new Error(`${name}: the format is not one of ${FORMATS.join(', ')}`);
+  if (typeof r.title !== 'string' || !r.title.trim()) throw new Error(`${name}: no title`);
+  if (schedule && !(isTime(r.start) && isTime(r.end) && text(r.room))) throw new Error(`${name}: the Schedule is public, but it has no time or room`);
+  if (schedule && r.end <= r.start) throw new Error(`${name}: it ends before it starts`);
   return {
     id: String(r.id),
     title: r.title.trim(),
@@ -59,7 +64,7 @@ function allowSession(r, schedule) {
 
 /** @returns {PublicBreak} */
 function allowBreak(b, i) {
-  if (!text(b.title) || !isTime(b.start) || !isTime(b.end) || b.end <= b.start) throw new Error(`Break ${i + 1}: it needs a title and a start before its end`);
+  if (!text(b.title) || !isTime(b.start) || !isTime(b.end) || b.end <= b.start) throw new Error(`${nameOf(b, `Break ${i + 1}`)}: it needs a title and a start before its end`);
   return { title: b.title.trim(), start: b.start, end: b.end, room: text(b.room) };
 }
 
@@ -72,17 +77,18 @@ function allowBreak(b, i) {
  */
 export function publicProgram(src, { schedulePublic, speakersPublic = true, photoAllowed = isHttps }) {
   const sessions = src.sessions.map((r) => allowSession(r, schedulePublic));
+  const name = (i) => nameOf(src.sessions[i], `Session ${sessions[i].id}`);
   const ids = new Set();
-  for (const s of sessions) {
-    if (ids.has(s.id)) throw new Error(`Session ${s.id}: the id is used twice`);
+  sessions.forEach((s, i) => {
+    if (ids.has(s.id)) throw new Error(`${name(i)}: the id is used twice`);
     ids.add(s.id);
-  }
+  });
   const speaking = new Set(sessions.flatMap((s) => s.speakerIds));
   const speakers = src.speakers.filter((r) => speaking.has(String(r.id))).map((r) => allowSpeaker(r, photoAllowed));
-  for (const s of sessions) {
+  sessions.forEach((s, i) => {
     const missing = s.speakerIds.filter((id) => !speakers.some((p) => p.id === id));
-    if (missing.length) throw new Error(`Session ${s.id}: unknown Speakers ${missing.join(', ')}`);
-  }
+    if (missing.length) throw new Error(`${name(i)}: unknown Speakers${typeof src.sessions[i].ref === 'string' ? '' : ` ${missing.join(', ')}`}`);
+  });
   // An empty program would build an empty Schedule or Speakers list, and the Schedule's calendar link would lead
   // nowhere: the platform, or its API settings, left the accepted Sessions out.
   if (schedulePublic && !sessions.length) throw new Error('the Schedule is public (schedulePublic), but the program has no Sessions. Check that the platform lists the accepted Sessions.');

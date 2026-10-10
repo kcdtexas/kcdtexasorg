@@ -17,7 +17,7 @@ The build downloads the file from the address in the host environment variable `
 - Only in a production build (`CONTEXT=production` on Netlify), and only while a program gate is open (`program` in `src/data/edition-2027.ts`).
 - With both gates closed, the build reads nothing.
 - Deploy previews, branch deploys and local builds with a gate open use the test program, labeled "Sample", and never read the variable.
-- If a gate is open in production and neither variable is set, the build fails. It also fails when the download fails or the file doesn't follow this format, so Netlify keeps the last good deploy.
+- If a gate is open in production and neither variable is set, the build fails. It also fails when the download fails or the file doesn't follow this format, so Netlify keeps the last good deploy. The error names the row and the column, as the spreadsheet numbers them, never a value or an id.
 
 ## The format
 
@@ -28,7 +28,7 @@ The build downloads the file from the address in the host environment variable `
 | Column | Used by | What goes in it |
 | --- | --- | --- |
 | `type` | every row | `speaker`, `session` or `break` |
-| `id` | speaker, session | A unique id, such as `p1` or `s1`. Sessions name their Speakers by these ids. |
+| `id` | speaker, session | A unique id, such as `p1` or `s1`. Sessions name their Speakers by these ids. Never use names as ids. |
 | `name` | speaker | The Speaker's name, as they want it printed |
 | `tagline` | speaker | Their role and company, as printed under the name |
 | `bio` | speaker | The bio, as the Speaker wrote it |

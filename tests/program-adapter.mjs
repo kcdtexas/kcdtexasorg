@@ -46,7 +46,7 @@ const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^
 // The local stand-in for every remote address. The Sessionize fixture's photos on Sessionize's host, and the CSV's
 // on any host, come from here; Fixture Person D's photo, on another host, stays where it is, so a request for it
 // would fail.
-const state = { mode: 'ok', fixture: fixtureText, live: null, requests: [], endlessClosed: false };
+const state = { mode: 'ok', fixture: fixtureText, csv: csvText, live: null, requests: [], endlessClosed: false };
 const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
 const server = createServer((req, res) => {
   state.requests.push(req.url);
@@ -58,7 +58,7 @@ const server = createServer((req, res) => {
     if (state.mode === 'invalid') return send(200, 'application/json', JSON.stringify({ sessions: 'none' }));
     return send(200, 'application/json', local(state.fixture, 'https://cdn.sessionize.com/fixture/'));
   }
-  if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(csvText, 'https://photos.fixture.invalid/'));
+  if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(state.csv, 'https://photos.fixture.invalid/'));
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
   if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
   if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
@@ -237,6 +237,20 @@ try {
     ['a bad time', 'type,id,title,name,format,start\nsession,1,x,,talk,noon\n', /row 2, start/],
     ['an open quote', 'type,id,title,name\nspeaker,1,,"x\n', /never closed/],
   ]) await rejects(() => adaptCsv(text), (m) => pattern.test(m), `the CSV on ${what}`);
+  // Errors name the CSV's rows as the spreadsheet numbers them (empty rows count), never its ids: the refresh
+  // check's log is public, and an id could be a name. The allowlist's errors on a CSV's records do too.
+  expect(JSON.stringify(parseCsv('a\n\n,\nb\n', { keepEmpty: true })) === JSON.stringify([['a'], [''], ['', ''], ['b']]) && JSON.stringify(parseCsv('a\n\n,\nb\n')) === JSON.stringify([['a'], ['b']]), 'parseCsv keeps or drops empty rows wrongly');
+  const secretId = 'jane-q-example';
+  for (const [what, text, pattern] of [
+    ['a speaker id used twice, after an empty row', `type,id,title,name\nspeaker,${secretId},,A\n,,,\nspeaker,${secretId},,B\n`, /row 4, id: an earlier speaker row has the same id/],
+    ['a session id used twice', `type,id,title,name,format,speakers\nspeaker,p1,,A\nsession,${secretId},T1,,talk,p1\nsession,${secretId},T2,,talk,p1\n`, /row 4, id: an earlier session row has the same id/],
+    ['an unknown Speaker', `type,id,title,name,format,speakers\nspeaker,p1,,A\nsession,s1,T1,,talk,p1;${secretId}\n`, /row 3, speakers: an id matches no speaker row/],
+  ]) await rejects(() => adaptCsv(text), (m) => pattern.test(m) && !m.includes(secretId), `the CSV on ${what}`);
+  for (const [what, text, pattern] of [
+    ['a Session with no time or room', `type,id,title,name,format,speakers\nspeaker,p1,,A\nsession,${secretId},T1,,talk,p1\n`, /^row 3: the Schedule is public, but it has no time or room/],
+    ['a Session that ends before it starts', `type,id,title,name,format,speakers,start,end,room\nspeaker,p1,,A\n\nsession,${secretId},T1,,talk,p1,2027-04-23 10:00,2027-04-23 09:00,Hall\n`, /^row 4: it ends before it starts/],
+    ['a break that ends before it starts', `type,id,title,name,format,speakers,start,end,room\nspeaker,p1,,A\nsession,s1,T1,,talk,p1,2027-04-23 10:00,2027-04-23 11:00,Hall\nbreak,,Lunch,,,,2027-04-23 13:00,2027-04-23 12:00,\n`, /^row 4: it needs a title and a start before its end/],
+  ]) await rejects(() => publicProgram(adaptCsv(text), { schedulePublic: true }), (m) => pattern.test(m) && !m.includes(secretId), `the allowlist on a CSV with ${what}`);
 
   // 3. The rules. A Proxy proves which variables a choice reads.
   const watched = (env) => {
@@ -345,6 +359,11 @@ try {
     state.fixture = fixtureText;
     res = await check({ ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
     expect(res.status === 0 && res.out === 'changed\n', `the CSV check: ${JSON.stringify(res.out)} ${res.err}`);
+    // The check's log is public: a bad CSV row is named by its row number, never by an id.
+    state.csv = `${csvText}session,${secretId},Fixture Talk: One More,,Talk,no,ghost-${secretId}\n`;
+    res = await check({ ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+    expect(res.status === 1 && res.out === '' && /row 9, speakers: an id matches no speaker row/.test(res.err) && !res.err.includes(secretId), `program-check with a bad CSV row: exit ${res.status}, stderr ${res.err.trim()}`);
+    state.csv = csvText;
     for (const [label, env, pattern] of [
       ['no variable', { ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined }, /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL/],
       ['a failing platform', checkEnv, /HTTP 500/],

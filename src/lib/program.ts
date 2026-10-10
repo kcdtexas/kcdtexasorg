@@ -182,8 +182,10 @@ async function build(src: Source, open: { speakersPublic: boolean; schedulePubli
       const here = sessions.some((x) => x.speakerIds.includes(s.id) && src.edition(x.id) === edition2027.year);
       return { ...s, links: s.links as Speaker['links'], slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
     });
-  // The photos, downloaded and resized now; a Speaker without one keeps the placeholder.
-  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: `Speaker ${i + 1} (${s.id})` }] : [])), env);
+  // The photos, downloaded and resized now; a Speaker without one keeps the placeholder. An error names the Speaker
+  // by the source's reference when it gives one (a CSV row: its ids stay out of the logs), else by place and id.
+  const refs = new Map(src.speakers.map((r) => [String(r.id), typeof r.ref === 'string' ? r.ref : null]));
+  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: refs.get(s.id) ?? `Speaker ${i + 1} (${s.id})` }] : [])), env);
   return {
     version,
     photos,
