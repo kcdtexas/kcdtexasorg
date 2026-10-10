@@ -8,6 +8,6 @@ const { notes, end } = home.hero.bill;
 ---
 
 <div class="bill27">
-  <h2 class="sr-only">The 2027 bill</h2>
+  <h2 class="sr-only">2027 at a glance</h2>
   <ul class:list={['slots', { 'slots--statement': !end.href }]}>{notes.map((n) => <li class="note"><b>{n.label}</b> {n.text}</li>)}<li class="open">{end.href ? <a class="eu-link" href={end.href}><span class="eu-label">{end.label}</span><span class="arrow" aria-hidden="true">→</span></a> : <span class="eu-link bill-statement">{end.label}</span>}</li></ul>
 </div>

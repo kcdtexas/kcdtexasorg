@@ -197,6 +197,14 @@ try {
       const violations = await axe(tab);
       expect(!violations.length, `${label}: accessibility: ${violations.join(' | ')}`);
 
+      // The header lockup reads as the two names in either theme: one KCD logo is hidden, the badge is decorative.
+      const lockups = await tab.locator('header').getByRole('link', { name: 'Kubernetes Community Days KCD Texas', exact: true }).count();
+      expect(lockups === 1, `${label}: the header lockup link isn't named "Kubernetes Community Days KCD Texas"`);
+      if (page.path === '/') {
+        const glance = await tab.getByRole('heading', { level: 2, name: '2027 at a glance', exact: true }).count();
+        expect(glance === 1, `${label}: no "2027 at a glance" heading over the hero bill`);
+      }
+
       // Phones as narrow as 360 px (the modes above use 390 px), and 320 px for reflow (WCAG 1.4.10).
       if (mode.isMobile) {
         for (const narrow of [360, 320]) {
