@@ -113,14 +113,14 @@ export function cfpSentence(day = asOfDay): string {
   return 'is closed';
 }
 
-/** "Coming soon" until the sale day is set, then "On sale Feb 1" or "On sale now", for tickets on the build day. */
+/** "Coming soon" until the sale day is set, then "On sale <day>" or "On sale now", for tickets on the build day. */
 export function ticketsStatus(day = asOfDay): string {
   const on = edition2027.tickets.onSale;
   if (!on) return 'Coming soon';
   return day < on ? `On sale ${shortDate(on)}` : 'On sale now';
 }
 
-/** "are coming soon", "go on sale Feb 1" or "are on sale now": the tickets status to end "Tickets …". */
+/** "are coming soon", "go on sale <day>" or "are on sale now": the tickets status to end "Tickets …". */
 export function ticketsSentence(day = asOfDay): string {
   const on = edition2027.tickets.onSale;
   if (!on) return 'are coming soon';
