@@ -83,7 +83,7 @@
     .kn-name { margin-top: 4px; font-size: 28px; }
     .kn-aff { margin-top: 4px; font-size: 14px; line-height: 1.35; }
     .kn-talk { margin-top: 6px; font-size: 15px; line-height: 1.35; }
-    .kn .watch { margin-top: 2px; font-size: 14px; }
+    .kn .watch { margin-top: calc(6px - var(--tap)); font-size: 14px; }
     .bill26 { margin-top: 36px; padding-top: 16px; }
     .bill26-title { margin-bottom: 12px; }
     /* Phones: the keynotes, one fitted row each, then the full bill behind a disclosure. */

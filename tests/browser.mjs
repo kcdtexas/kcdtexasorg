@@ -8,7 +8,7 @@
 // the device scheme, is applied before first paint, and works by keyboard and
 // without JS. Last, the key dates: NOW and the fills on ten days (clock fixed), and the
 // phase rail's layout from 1440 down to 360 px. And the hero bill in every variant (tests/bill-variants.mjs),
-// fitted from the font, inside its measure from 320 to 1600 px.
+// fitted from the font, inside its measure from 320 to 1600 px. And every page's tap targets (tests/targets.mjs).
 //
 // Usage: node tests/browser.mjs [baseUrl] [--shots <dir>]
 // Pages run in parallel, $BROWSER_JOBS at a time (default 4).
@@ -21,6 +21,7 @@ import { homedir } from 'node:os';
 import { join, relative, sep } from 'node:path';
 import { importTs } from '../scripts/lib/import-ts.mjs';
 import { BILL_VARIANTS, billWords } from './bill-variants.mjs';
+import { targetChecks } from './targets.mjs';
 
 const argv = process.argv.slice(2);
 const shotsIndex = argv.indexOf('--shots');
@@ -568,6 +569,13 @@ try {
     expect(result.passes > 10, `${label}: axe checked only ${result.passes} nodes`);
     expect(result.band === 'rgb(34, 38, 34)', `${label}: the band is ${result.band}, not the raised dark surface`);
     await context.close();
+  }
+
+  // Tap targets: every link and button in the header and main at least 44 px tall, on every page at 390 and 1280 px.
+  {
+    const targets = await targetChecks(browser, base, PAGES.map((p) => p.path));
+    checks += targets.checks;
+    failures.push(...targets.failures);
   }
 } finally {
   await browser.close().catch(() => {});

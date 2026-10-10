@@ -21,7 +21,7 @@
   .pg-talks > li { padding: 14px 0 10px; border-bottom: 1px solid var(--line); }
   .pg-who { margin-top: 4px; font-size: 15px; line-height: 1.4; }
   .pg-who .pg-aff::before, .pg-people .pg-aff::before { content: " · "; }
-  .pg-talks .watch { margin-top: 4px; }
+  .pg-talks .watch { margin-top: calc(8px - var(--tap)); }
 
   .page-sec > .pg-note { margin-top: 0; font-size: 15px; }
   .pg-people { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: var(--gutter); margin-top: 12px; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.4; }

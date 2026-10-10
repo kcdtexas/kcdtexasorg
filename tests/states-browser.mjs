@@ -2,7 +2,9 @@
 // it shows: the hero keeps one filled button; the header stays on one line with the nav shown from 900 px and
 // the phone button on one line; nothing scrolls sideways from 320 to 1100 px; the hero bill stays inside its
 // measure from 320 to 1600 px; the wall is third through Apr 22; nothing invites proposals after Jan 31; and
-// nothing asks for sponsors from Event Day (Apr 23) on.
+// nothing asks for sponsors from Event Day (Apr 23) on. And every page's tap targets, at 390 and 1280 px (tests/targets.mjs).
+import { distPages, targetChecks } from './targets.mjs';
+
 const range = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
 
 /** Runs the checks on `base` (a server on dist/) for a build of `day`. Returns the failures and the count. */
@@ -81,5 +83,10 @@ export async function stateChecks(browser, base, day) {
   }
   if (day <= '2027-04-22') expect(seen.sections[2] === 'wall', `${day}: the wall is not third (${seen.sections.join(', ')})`);
   await context.close();
+
+  // Every page's tap targets in this state (tests/targets.mjs).
+  const targets = await targetChecks(browser, base, distPages(), day);
+  checks += targets.checks;
+  failures.push(...targets.failures.map((f) => `${day}: ${f}`));
   return { failures, checks };
 }

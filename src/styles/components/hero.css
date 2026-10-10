@@ -31,6 +31,7 @@
      Sponsor door leads the hero. */
   .eu-link { display: inline-flex; align-items: center; gap: 0.3em; color: var(--fg); font-stretch: 62%; font-weight: 900; line-height: 1; text-decoration: none; white-space: nowrap; transition: color 0.15s; }
   .eu-label { text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 0.07em; text-underline-offset: 0.12em; text-decoration-skip-ink: none; }
+  a.eu-link { padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); }
   .eu-link:hover { color: var(--action); }
   .eu-link:hover .eu-label { text-decoration-color: var(--action); }
   /* Event Day and the Recap: one statement, no notes, filling the measure at every width. */
