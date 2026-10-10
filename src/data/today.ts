@@ -62,7 +62,8 @@ export const today = {
   map: venue.map,
   infoTitle: 'Good to know',
   info: [
-    { term: 'Wi-Fi', text: venue.wifi ? `Network: ${venue.wifi.network}.${venue.wifi.password ? ` Password: ${venue.wifi.password}.` : ''}` : soon },
+    // No final period: it could read as part of the password.
+    { term: 'Wi-Fi', text: venue.wifi ? `Network: ${venue.wifi.network}${venue.wifi.password ? ` · Password: ${venue.wifi.password}` : ''}` : soon },
     { term: 'Food', text: venue.food ?? soon },
     { term: 'Help', text: venue.help ?? soon },
   ],
