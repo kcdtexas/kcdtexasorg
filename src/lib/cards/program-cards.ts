@@ -11,7 +11,8 @@ import { chip, color, h, img, photo, type, type Node } from './kit';
 export const PROGRAM_CARD_BUDGET = 150;
 const PAD = 56;
 const domain = 'kcdtexas.org';
-const dateLine = `KCD Texas ${edition2027.year} · ${edition2027.city} · ${shortDate(edition2027.eventDay)}`;
+// The year is in the chip beside it.
+const dateLine = `KCD Texas · ${edition2027.city} · ${shortDate(edition2027.eventDay)}`;
 
 type Entry = { id: string; alt: string; draw: () => Promise<Node> };
 
@@ -20,7 +21,8 @@ const fit = (s: string, sizes: [number, number][]) => sizes.find(([max]) => s.le
 
 function sessionCard(s: Session): Entry {
   const who = speakersOf(s).map((p) => p.name).join(', ');
-  const kind = [formatName[s.format], s.endUser ? 'End-User Story' : ''].filter(Boolean).join(' · ');
+  // A no-break space: satori drops a plain one after the hyphenated word in spaced capitals.
+  const kind = [formatName[s.format], s.endUser ? 'End-User\u00a0Story' : ''].filter(Boolean).join(' · ');
   const cell = (label: string, value: string, last = false) =>
     h('div', { flex: last ? 1.4 : 1, flexDirection: 'column', gap: 6, padding: '14px 0 16px', paddingLeft: last ? 28 : 0, borderRight: last ? 'none' : `1px solid ${color.line}` },
       h('div', { fontSize: 20, color: color.muted, ...type.label }, label),
