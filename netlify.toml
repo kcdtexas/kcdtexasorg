@@ -1,5 +1,5 @@
 # Netlify build settings for kcdtexas.org. They override the settings in
-# Netlify's web UI. When and how production deploys happen: ADR 0010.
+# Netlify's web UI. When and how production deploys happen: ADRs 0010 and 0011.
 
 [build]
   # Netlify installs the dependencies from package-lock.json first.
