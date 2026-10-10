@@ -67,8 +67,8 @@ try {
     expect(res.status === 2 && /not allowed in a production build/.test(res.log), `production build accepts ${flag[0]}`);
   }
 
-  // 2. The program sample, built today (tests/browser.mjs checks today's build).
-  const sample = build(['--program-sample']);
+  // 2. The program sample with the sample sponsors, built today (tests/browser.mjs checks today's build).
+  const sample = build(['--program-sample', '--sponsors-sample']);
   if (sample.status !== 0) throw new Error(`the sample build failed:\n${sample.log.slice(-3000)}`);
   expect(!sample.log.includes(marker), 'the sample build log contains the planted marker');
   for (const f of served()) for (const d of DROPPED) expect(!readFileSync(f, 'utf8').includes(d), `${f}: contains a dropped field (${d === marker ? 'the planted marker' : d})`);
@@ -184,6 +184,29 @@ try {
   expect(await tab.locator('[data-filter="my"]').isChecked(), '/2027/schedule/#my does not open the My Schedule view');
   expect(!errors.length, `browser errors: ${errors.join(' | ')}`);
   await ctx.close();
+
+  // A credit sits in the normal flow and never covers what it credits: its box intersects no logo, sponsor name,
+  // photo or person's name, on a desktop and a phone.
+  for (const width of [1280, 390]) {
+    const c = await browser.newContext({ viewport: { width, height: 900 } });
+    const p = await c.newPage();
+    for (const path of ['/2027/sponsors/', '/about/', '/2027/speakers/', '/2027/speakers/fixture-speaker-4/']) {
+      await p.goto(`${base}${path}`);
+      const found = await p.locator('.credit').evaluateAll((credits) => credits.map((cr) => {
+        const box = cr.getBoundingClientRect();
+        const holder = cr.closest('li, header');
+        const content = [...holder.querySelectorAll('img, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e));
+        const hit = content.find((e) => {
+          const r = e.getBoundingClientRect();
+          return r.width && r.height && box.left < r.right - 0.5 && r.left < box.right - 0.5 && box.top < r.bottom - 0.5 && r.top < box.bottom - 0.5;
+        });
+        return { text: cr.textContent.trim(), hit: hit ? `${hit.tagName.toLowerCase()}.${hit.className} "${(hit.textContent || hit.alt || '').trim().slice(0, 40)}"` : null };
+      }));
+      expect(found.length > 0, `${path} at ${width}: no credit to check`);
+      for (const f of found) expect(!f.hit, `${path} at ${width}: "${f.text}" overlaps ${f.hit}`);
+    }
+    await c.close();
+  }
 
   // 5. The program sample on Event Day at 10:30 a.m.: the hero's one link, the page's stamp, and now and next,
   // which follow the browser's clock in Central time.
