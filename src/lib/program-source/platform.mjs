@@ -71,7 +71,7 @@ export async function readPlatform(choice, env) {
  */
 export function publicModel(src, gates, env) {
   try {
-    const model = publicProgram(src, { schedulePublic: gates.schedulePublic, photoAllowed: (url) => fetchable(url, env) });
+    const model = publicProgram(src, { schedulePublic: gates.schedulePublic, speakersPublic: gates.speakersPublic, photoAllowed: (url) => fetchable(url, env) });
     return { model, version: programVersion(model) };
   } catch (e) {
     throw new ProgramSourceError(`The program data is not valid: ${e instanceof Error ? e.message : String(e)}`, env);

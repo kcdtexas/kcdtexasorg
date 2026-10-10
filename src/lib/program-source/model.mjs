@@ -65,11 +65,12 @@ function allowBreak(b, i) {
 
 /**
  * The public program: the allowlisted fields, with the gates applied, and only the Speakers who have a Session.
+ * With a gate open, an empty program fails: the Schedule's gate needs a Session, and the Speakers' gate a Speaker.
  * @param {{ speakers: readonly any[], sessions: readonly any[], rooms: readonly string[], breaks: readonly any[] }} src
- * @param {{ schedulePublic: boolean, photoAllowed?: (url: string) => boolean }} options
+ * @param {{ schedulePublic: boolean, speakersPublic?: boolean, photoAllowed?: (url: string) => boolean }} options
  * @returns {PublicProgram}
  */
-export function publicProgram(src, { schedulePublic, photoAllowed = isHttps }) {
+export function publicProgram(src, { schedulePublic, speakersPublic = true, photoAllowed = isHttps }) {
   const sessions = src.sessions.map((r) => allowSession(r, schedulePublic));
   const ids = new Set();
   for (const s of sessions) {
@@ -82,6 +83,10 @@ export function publicProgram(src, { schedulePublic, photoAllowed = isHttps }) {
     const missing = s.speakerIds.filter((id) => !speakers.some((p) => p.id === id));
     if (missing.length) throw new Error(`Session ${s.id}: unknown Speakers ${missing.join(', ')}`);
   }
+  // An empty program would build an empty Schedule or Speakers list, and the Schedule's calendar link would lead
+  // nowhere: the platform, or its API settings, left the accepted Sessions out.
+  if (schedulePublic && !sessions.length) throw new Error('the Schedule is public (schedulePublic), but the program has no Sessions. Check that the platform lists the accepted Sessions.');
+  if (speakersPublic && !speakers.length) throw new Error('the Speakers are public (speakersPublic), but the program has no Speakers. Check that the platform lists the accepted Sessions and their Speakers.');
   return {
     speakers,
     sessions,

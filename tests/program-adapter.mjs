@@ -188,6 +188,13 @@ try {
   expect(validateAll(fixture()).length === 0, 'the fixture does not validate');
   await rejects(() => publicProgram(adaptSessionize(broken((d) => { d.sessions[0].endsAt = '2027-04-23T08:00:00'; })), { schedulePublic: true }), (m) => /ends before it starts/.test(m), 'a Session that ends before it starts');
   await rejects(() => publicProgram(adaptSessionize(broken((d) => { d.sessions[0].speakers.push('nobody'); })), { schedulePublic: true }), (m) => /unknown Speakers nobody/.test(m), 'a Session with an unknown Speaker');
+  // An empty program fails while a gate is open. An All view with only service sessions has no Sessions and no
+  // Speakers: it would build an empty Schedule and Speakers list, and a link to a calendar file that isn't built.
+  const onlyBreaks = broken((d) => { d.sessions = d.sessions.filter((s) => s.isServiceSession); });
+  await rejects(() => publicProgram(adaptSessionize(onlyBreaks), { schedulePublic: true }), (m) => /the Schedule is public \(schedulePublic\), but the program has no Sessions/.test(m), 'only service sessions, with the Schedule public');
+  await rejects(() => publicProgram(adaptSessionize(onlyBreaks), { schedulePublic: false }), (m) => /the Speakers are public \(speakersPublic\), but the program has no Speakers/.test(m), 'only service sessions, with only the Speakers public');
+  await rejects(() => publicModel(adaptSessionize(onlyBreaks), both, {}), (m) => /^The program data is not valid: the Schedule is public/.test(m), 'publicModel on an empty program');
+  await rejects(() => publicProgram(adaptCsv('type,id,title,name,start,end\nbreak,,Lunch,,2027-04-23 12:00,2027-04-23 13:00\n'), { schedulePublic: true }), (m) => /no Sessions/.test(m), 'a CSV with only a break');
 
   // 2. The CSV fallback.
   const rows = parseCsv('a,"b,c","d ""e""\nf"\r\n\r\n1,2,3\n');
@@ -303,6 +310,10 @@ try {
     state.fixture = fixtureText.replace('Opening the Made-Up Day', 'Opening the Made-Up Day, Updated');
     res = await check(checkEnv);
     expect(res.out === 'changed\n', 'a new title does not count as a change');
+    // An empty program fails the check: never "changed", so it can't start a deploy.
+    state.fixture = JSON.stringify(onlyBreaks);
+    res = await check(checkEnv);
+    expect(res.status === 1 && res.out === '' && readFileSync(out, 'utf8') === '' && /the program has no Sessions/.test(res.err), `program-check with an empty program: exit ${res.status}, stdout ${JSON.stringify(res.out)}, stderr ${res.err.trim()}`);
     state.fixture = fixtureText;
     res = await check({ ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
     expect(res.status === 0 && res.out === 'changed\n', `the CSV check: ${JSON.stringify(res.out)} ${res.err}`);
@@ -402,6 +413,11 @@ try {
       b = await build(prodSessionize);
       expect(b.status !== 0 && /HTTP 500/.test(b.log) && !b.log.includes(ID), `production with a failing platform doesn't fail, or prints the ID:\n${b.log.slice(-1500)}`);
       state.mode = 'ok';
+      // Production with an empty program, only service sessions: the build fails and says why.
+      state.fixture = JSON.stringify(onlyBreaks);
+      b = await build(prodSessionize);
+      expect(b.status !== 0 && /the program has no Sessions/.test(b.log) && !b.log.includes(ID), `production with an empty program doesn't fail clearly:\n${b.log.slice(-1500)}`);
+      state.fixture = fixtureText;
     });
     // A deploy preview with only the Speakers' gate open: the speakers-only test data, with no times or rooms, and no
     // request to the platform.
