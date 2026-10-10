@@ -7,7 +7,7 @@ import { edition2026 } from '../data/edition-2026';
 import { sponsors2027, type Tier2027 } from '../data/sponsors-2027';
 import { logos } from '../lib/images';
 import Credit from './program/Credit.astro';
-import { sponsorCredit, sponsorCreditsShown, type Credit as CreditData } from '../lib/loyalty';
+import { sponsorCredit, type Credit as CreditData } from '../lib/loyalty';
 
 interface Props {
   /** Put before each tier name, such as "2026". */
@@ -27,7 +27,7 @@ const tiers: { key: string; name: string; sponsors: readonly Entry[] }[] = editi
     { key: 'silver', name: 'Silver', sponsors: edition2026.sponsors.silver },
   ]
   : (Object.keys(names) as Tier2027[])
-    .map((key) => ({ key, name: names[key], sponsors: sponsors2027.filter((s) => s.tier === key).map((s) => ({ id: s.logo, name: s.alt || s.name, link: s.link, credit: sponsorCreditsShown ? sponsorCredit(s.id) : null })) }))
+    .map((key) => ({ key, name: names[key], sponsors: sponsors2027.filter((s) => s.tier === key).map((s) => ({ id: s.logo, name: s.alt || s.name, link: s.link, credit: sponsorCredit(s.id) })) }))
     .filter((t) => t.sponsors.length > 0);
 ---
 

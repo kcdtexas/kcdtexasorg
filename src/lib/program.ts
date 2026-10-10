@@ -16,7 +16,7 @@ import { home } from '../data/home';
 import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../data/program-2026';
 import { breaks2026, rooms2026, sessions2026 } from '../data/program-2026-schedule';
 import { fixtureSessions, fixtureSpeakers } from '../data/program-fixture';
-import { norm, peopleCreditsShown, speakerCredit, type Credit } from './loyalty';
+import { norm, speakerCredit, type Credit } from './loyalty';
 
 export type Format = 'keynote' | 'talk' | 'workshop' | 'panel';
 export const FORMATS: readonly Format[] = ['keynote', 'talk', 'workshop', 'panel'];
@@ -201,7 +201,7 @@ function build(src: Source, schedulePublic: boolean): Program {
     .map((s) => {
       // The credit counts only this Edition's Sessions: test data from 2026 never credits itself.
       const here = sessions.some((x) => x.speakerIds.includes(s.id) && src.edition(x.id) === edition2027.year);
-      return { ...s, slug: slugify(s.name, takenSpeakers), credit: peopleCreditsShown && here ? speakerCredit(s.name) : null };
+      return { ...s, slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
     });
   for (const s of sessions) {
     const missing = s.speakerIds.filter((id) => !speakers.some((p) => p.id === id));

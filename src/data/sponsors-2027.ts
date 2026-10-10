@@ -18,7 +18,8 @@ export interface Sponsor2027 {
   alt: string;
 }
 
-const announced: Sponsor2027[] = [];
+/** The announced 2027 Sponsorships: the real ones only, never the sample tiles. */
+export const announcedSponsors2027: Sponsor2027[] = [];
 
 // build.sh --sponsors-sample: plain text tiles, one row per tier, to see the 2027 wall in tests and design reviews.
 // No logos and no company names, real or made up; check-dist blocks "Sample" in any other build. The first tile of
@@ -26,6 +27,7 @@ const announced: Sponsor2027[] = [];
 const sample = (tier: Tier2027, name: string, n: number, returning: string): Sponsor2027[] =>
   Array.from({ length: n }, (_, i) => ({ id: i === 0 ? returning : `sample-${tier}-${i + 1}`, name: `Sample ${name} sponsor`, tier, logo: null, link: '', alt: '' }));
 
-export const sponsors2027: Sponsor2027[] = sponsorsSample
-  ? [...sample('platinum', 'Platinum', 2, 'solo'), ...sample('gold', 'Gold', 4, 'grafana'), ...sample('silver', 'Silver', 3, 'akamai')]
-  : announced;
+/** The sample tiles, which only --sponsors-sample builds show (and src/data/history-test.ts credits). */
+export const sampleSponsors2027: Sponsor2027[] = [...sample('platinum', 'Platinum', 2, 'solo'), ...sample('gold', 'Gold', 4, 'grafana'), ...sample('silver', 'Silver', 3, 'akamai')];
+
+export const sponsors2027: Sponsor2027[] = sponsorsSample ? sampleSponsors2027 : announcedSponsors2027;

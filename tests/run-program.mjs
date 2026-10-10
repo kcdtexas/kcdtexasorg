@@ -1,12 +1,15 @@
-// The program's tests (ADR 0009, plan-release-6): builds the site with the program sample (scripts/build.sh
-// --program-sample), checks what it builds, runs the smoke and browser tests on it (axe on every new page, in both
-// themes, on a desktop and a phone), then drives the program pages in a browser: the filters, My Schedule across
-// reloads, the keyboard, the calendar files and Event Day's now and next. Then it builds with the gates closed and
-// checks that no program page, card, calendar file or script reference is built, and that the planted marker
-// reaches no served file and no build log in either build. At the end dist/ is rebuilt as a normal build.
+// The program's tests (ADR 0009, plan-release-6): builds the site with the program sample and the sample sponsors
+// (scripts/build.sh --program-sample --sponsors-sample), checks what it builds (the Share Cards' "Sample" stamp,
+// the test-build marker, the credits from the test history), runs the smoke and browser tests on it (axe on every
+// new page, in both themes, on a desktop and a phone), then drives the program pages in a browser: the filters, My
+// Schedule across reloads, the keyboard, the calendar files, the credits' boxes and Event Day's now and next. It
+// adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. Then it builds with
+// the gates closed and checks that no program page, card, calendar file, script reference or credit is built, and
+// that the planted marker reaches no served file and no build log in either build. At the end dist/ is rebuilt as
+// a normal build.
 // Usage: node tests/run-program.mjs [--keep-dist]
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join, relative, sep } from 'node:path';
 import { chromium } from 'playwright-core';
@@ -30,6 +33,10 @@ function build(flags, env = {}) {
 
 // Fields the allowlist drops, from the fixture: none may reach a served file.
 const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/track'];
+
+/** Each Organizer on About and their credit's words, or null. */
+const organizerCredits = (html) => Object.fromEntries([...html.matchAll(/<li>\s*<img[^>]*class="pg-org-photo"[\s\S]*?<\/li>/g)]
+  .map((m) => [m[0].match(/<b>([^<]+)<\/b>/)[1], m[0].match(/<span class="credit">([^<]+)<\/span>/)?.[1] ?? null]));
 
 /** The calendar file rules: CRLF lines of at most 75 octets, the Chicago zone, and one event per Session. */
 function checkIcs(label, body, events) {
@@ -123,9 +130,13 @@ try {
   // The sitemap lists the program pages while a gate is open.
   const sitemap = read('sitemap.xml');
   expect(/\/2027\/speakers\/<\/loc>/.test(sitemap) && /\/2027\/sessions\//.test(sitemap) && /\/2027\/today\/<\/loc>/.test(sitemap), 'the sitemap misses the program pages');
-  // The loyalty credits on About.
+  // The loyalty credits from the test history: About (Mars Toktonaliev held), the walls and a Speaker page.
   const about = read('about/index.html');
   expect(/Organizer since 2026/.test(about) && /\bSample\b/.test(text(about)), 'About lacks "Organizer since 2026" or its Sample label');
+  expect(organizerCredits(about)['Joel Hernandez'] === 'Organizer since 2026', 'About: a 2026 and 2027 Organizer lacks "Organizer since 2026"');
+  expect(organizerCredits(about)['Mars Toktonaliev'] === null, 'About: a held Organizer shows a credit');
+  expect(organizerCredits(about)['Amy Marrich'] === null, 'About: a first-time Organizer shows a credit');
+  expect((read('2027/sponsors/index.html').match(/<span class="credit">Since 2026<\/span>/g) ?? []).length === 3, 'the 2027 wall lacks its three sample "Since 2026" credits');
   // check-dist refuses this build without its flag.
   const env = { ...process.env };
   delete env.KCD_PROGRAM_SAMPLE;
@@ -204,6 +215,10 @@ try {
       }));
       expect(found.length > 0, `${path} at ${width}: no credit to check`);
       for (const f of found) expect(!f.hit, `${path} at ${width}: "${f.text}" overlaps ${f.hit}`);
+      // The tier sizes don't change: a tile with a credit is the same size as the others in its tier.
+      const sizes = await p.locator('.tier').evaluateAll((tiers) => tiers.map((t) => [...new Set([...t.querySelectorAll('.logos > li:not(.has-credit), .sp-tile')]
+        .map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; }))]));
+      for (const tier of sizes) expect(tier.length <= 1, `${path} at ${width}: a tier's tiles differ in size (${tier.join(', ')})`);
     }
     await c.close();
   }
@@ -236,7 +251,31 @@ try {
     await c.close();
   }
 
-  // 6. The gates closed: a normal build has no program at all.
+  // 6. The history registry: a new file in src/data/history/ joins with no code change, and a bad one fails the
+  // build with its name. The test file stands in for 2025 (a copy of any real one is put back afterwards): with a
+  // complete 2025 Organizers record, a normal build prints the Organizer credits, each year from the records.
+  const historyFile = 'src/data/history/2025.ts';
+  const keptFile = existsSync(historyFile) ? `${historyFile}.kept-by-test` : null;
+  if (keptFile) renameSync(historyFile, keptFile);
+  try {
+    writeFileSync(historyFile, "export default { year: 2025, organizers: { names: ['Rich Boyd'], complete: true, source: 'https://example.com/' } };\n");
+    const joined = build([]);
+    if (joined.status !== 0) throw new Error(`the build with a test history file failed:\n${joined.log.slice(-3000)}`);
+    const credits = organizerCredits(read('about/index.html'));
+    expect(credits['Rich Boyd'] === 'Organizer since 2025', `a new history file does not join: Rich Boyd shows ${credits['Rich Boyd']}`);
+    expect(credits['Joel Hernandez'] === 'Organizer since 2026', `Joel Hernandez shows ${credits['Joel Hernandez']}, not "Organizer since 2026"`);
+    expect(credits['Mars Toktonaliev'] === null, 'a held Organizer shows a credit in a normal build');
+    expect(credits['Amy Marrich'] === null && credits['Myroslav Mishov'] === null, 'a first-time Organizer shows a credit in a normal build');
+    expect(!/\bSample\b/.test(text(read('about/index.html'))), 'a normal build labels its credits "Sample"');
+    writeFileSync(historyFile, "export default { year: 2025, speakers: { names: 'Rich Boyd', complete: true, source: 'https://example.com/' } };\n");
+    const broken = build([]);
+    expect(broken.status !== 0 && broken.log.includes(`${historyFile}: "speakers.names" must be a list`), 'a bad history file does not fail the build with its name');
+  } finally {
+    rmSync(historyFile, { force: true });
+    if (keptFile) renameSync(keptFile, historyFile);
+  }
+
+  // 7. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
   const closed = build([]);
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
@@ -248,6 +287,7 @@ try {
   for (const f of served()) {
     const body = readFileSync(f, 'utf8');
     expect(!body.includes(marker) && !/Fixture (?:Speaker|Session)/.test(body), `${f}: the fixture reaches a normal build`);
+    if (!existsSync('src/data/history/2025.ts')) expect(!/class="credit"/.test(body), `${f}: a normal build shows a credit with no 2025 record`);
   }
 } finally {
   await browser.close().catch(() => {});

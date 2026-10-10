@@ -14,3 +14,15 @@ export const returningOrganizers: readonly SameOrganizer[] = [
   { name: 'Cris Nevares', earlier: ['Cristobal Nicolas Nevares'] },
   { name: 'Vishwa Gandhi', earlier: ['Vishwa Hiren Gandhi'] },
 ];
+
+export interface HeldOrganizer {
+  /** The name on the 2027 list (about.ts). */
+  name: string;
+  /** What the credit waits for. */
+  until: string;
+}
+
+// Organizers whose credit is held until their earlier Editions are confirmed: a held person shows no credit.
+export const heldOrganizers: readonly HeldOrganizer[] = [
+  { name: 'Mars Toktonaliev', until: 'the 2024 team is confirmed' },
+];

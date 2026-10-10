@@ -1,71 +1,64 @@
-// The loyalty credits: "Sponsor since", "Organizer since" and "Speaker since" (plan-release-6). Each year comes from
-// the per-Edition records, never typed by hand, and one Edition alone gets no credit. A name matches across Editions
-// exactly (ignoring case, accents and spacing) or through the confirmed lists in src/data/returning-*.ts.
-import { about } from '../data/about';
-import { edition2026 } from '../data/edition-2026';
+// The loyalty credits: "Sponsor since", "Organizer since" and "Speaker since" (plan-release-6). One registry holds
+// every Edition's history, one file per Edition in src/data/history/, each checked when the build loads it. Every
+// year comes from those records, never typed by hand, and one Edition alone gets no credit. A name matches across
+// Editions exactly (ignoring case, accents and spacing) or through the confirmed lists in src/data/returning-*.ts.
+//
+// A kind's credits print only when every earlier Edition from where its history starts has a complete record of
+// that kind (src/lib/credits.ts), so a missing year can never print a wrong "since". Test builds add the test
+// history (src/data/history-test.ts) and start every kind's history there.
+import { editions } from '../data/editions';
 import { edition2027, programDataSample, sponsorsSample } from '../data/edition-2027';
-import { keynotes2026, speakers2026 } from '../data/program-2026';
-import { fixtureEarlierSpeakers } from '../data/program-fixture';
-import { returningOrganizers } from '../data/returning-organizers';
+import { testHistory, testHistoryFrom } from '../data/history-test';
+import { heldOrganizers, returningOrganizers } from '../data/returning-organizers';
 import { returningSpeakers } from '../data/returning-speakers';
-import { sponsors2027 } from '../data/sponsors-2027';
+import { creditFor, mergeHistory, norm, validateHistory, type Credit, type EditionHistory, type Kind } from './credits';
 
-// The credits show only in test builds (--sponsors-sample on the walls, --program-sample on
-// About and the program pages), which label them "Sample".
-export const sponsorCreditsShown = sponsorsSample;
-export const peopleCreditsShown = programDataSample;
+export { norm, type Credit };
 
-export interface Credit {
-  /** The first Edition. */
-  since: number;
-  /** How many Editions, this one included. */
-  editions: number;
-}
+/** Every Edition's year: the past ones and the current one. */
+const editionYears = [...editions.past.map((p) => p.year), edition2027.year];
+const firstEdition = Math.min(...editionYears);
 
-/** A name for matching: no accents, apostrophes or extra spaces, lower case ("Peter ONeill" is "Peter O’Neill"). */
-export const norm = (name: string) =>
-  name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[’‘']/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+// The registry: every file in src/data/history/, so a new Edition's file joins with no code change.
+const files = import.meta.glob<{ default: unknown }>('../data/history/*.ts', { eager: true });
+export const history: readonly EditionHistory[] = Object.entries(files)
+  .map(([file, mod]) => validateHistory(`src/data/history/${file.split('/').pop()}`, mod.default, editionYears))
+  .sort((a, b) => a.year - b.year);
 
-function credit(years: number[]): Credit | null {
-  const set = [...new Set(years)].sort();
-  return set.length >= 2 ? { since: set[0], editions: set.length } : null;
-}
+/**
+ * Where each kind's history starts: every Edition from this year on needs a complete record before that kind's
+ * credits print. The Organizers' starts in 2025, as the 2024 team isn't public. The Speakers' and the sponsors'
+ * start at the first Edition (null) until a year is set here.
+ */
+export const historyFrom: Record<Kind, number | null> = { organizers: 2025, speakers: null, sponsors: null };
 
-// Who spoke in each earlier Edition, from its public program. Hosts count only if they spoke, so the 2026 hosts
-// are left out. 2025 joins once a public source exists. A --program-sample build adds the fixture's made-up entry.
-const speakersByEdition: { year: number; names: Set<string> }[] = [
-  { year: 2026, names: new Set([...keynotes2026, ...speakers2026, ...(programDataSample && fixtureEarlierSpeakers.year === 2026 ? fixtureEarlierSpeakers.names.map((name) => ({ name })) : [])].map((e) => norm(e.name))) },
-];
+// Test builds: the test history, from testHistoryFrom, for the kinds their flag covers.
+const tested: Record<Kind, boolean> = { organizers: programDataSample, speakers: programDataSample, sponsors: sponsorsSample };
+const withTests = mergeHistory(history, testHistory);
+const recordsFor = (kind: Kind) => (tested[kind] ? withTests : history);
+const ruleFor = (kind: Kind, current: number) => ({
+  editions: editionYears,
+  current,
+  from: tested[kind] ? testHistoryFrom : historyFrom[kind] ?? firstEdition,
+});
 
 /** "Speaker since": a Speaker in `edition` who also spoke in an earlier Edition. */
 export function speakerCredit(name: string, edition: number = edition2027.year): Credit | null {
-  const names = new Set([norm(name), ...(returningSpeakers.find((r) => norm(r.name) === norm(name))?.earlier ?? []).map(norm)]);
-  const years = speakersByEdition.filter((e) => e.year < edition && [...names].some((n) => e.names.has(n))).map((e) => e.year);
-  return years.length ? credit([...years, edition]) : null;
+  const names = [name, ...(returningSpeakers.find((r) => norm(r.name) === norm(name))?.earlier ?? [])];
+  return creditFor(recordsFor('speakers'), 'speakers', names, ruleFor('speakers', edition));
 }
 
-// Each Edition's sponsors by their stable id (the logo's file name).
-const sponsorsByEdition: { year: number; ids: Set<string> }[] = [
-  { year: 2026, ids: new Set([...edition2026.sponsors.platinum, ...edition2026.sponsors.gold, ...edition2026.sponsors.silver].map((s) => s.id)) },
-  { year: 2027, ids: new Set(sponsors2027.map((s) => s.id)) },
-];
-
-/** "Sponsor since": a sponsor in two or more Editions. */
+/** "Sponsor since": a sponsor of this Edition that also backed an earlier one. */
 export function sponsorCredit(id: string): Credit | null {
-  return credit(sponsorsByEdition.filter((e) => e.ids.has(id)).map((e) => e.year));
+  return creditFor(recordsFor('sponsors'), 'sponsors', [id], ruleFor('sponsors', edition2027.year));
 }
 
-// Each Edition's Organizers, as publicly listed with their consent.
-const organizersByEdition: { year: number; names: Set<string> }[] = [
-  { year: 2026, names: new Set(edition2026.organizers.map((o) => norm(o.name))) },
-  { year: 2027, names: new Set(about.organizers2027.map((o) => norm(o.name))) },
-];
-
-/** "Organizer since": a 2027 Organizer who also organized an earlier Edition. */
+/** "Organizer since": a 2027 Organizer who also organized an earlier Edition, unless their credit is held. */
 export function organizerCredit(name: string): Credit | null {
-  const names = [norm(name), ...(returningOrganizers.find((r) => norm(r.name) === norm(name))?.earlier ?? []).map(norm)];
-  return credit(organizersByEdition.filter((e) => names.some((n) => e.names.has(n))).map((e) => e.year));
+  if (heldOrganizers.some((h) => norm(h.name) === norm(name))) return null;
+  const names = [name, ...(returningOrganizers.find((r) => norm(r.name) === norm(name))?.earlier ?? [])];
+  return creditFor(recordsFor('organizers'), 'organizers', names, ruleFor('organizers', edition2027.year));
 }
 
-/** "2nd year", "3rd year". */
-export const nthYear = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'} year`;
+/** True when this build's Organizer credits come from the test history: the About page then says "Sample". */
+export const organizerCreditsSample = tested.organizers;

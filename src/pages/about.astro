@@ -8,7 +8,7 @@ import { paths } from '../data/nav';
 import { contact, legal } from '../data/site';
 import { organizerPhotos2027 } from '../lib/images';
 import Credit from '../components/program/Credit.astro';
-import { organizerCredit, peopleCreditsShown } from '../lib/loyalty';
+import { organizerCredit, organizerCreditsSample } from '../lib/loyalty';
 ---
 
 <Base title={`${a.title} · KCD Texas`} description={a.description}>
@@ -42,7 +42,7 @@ import { organizerCredit, peopleCreditsShown } from '../lib/loyalty';
 
     <section class="page-sec page-wide" aria-labelledby="organizers">
       <h2 id="organizers" class="page-h2">{a.organizers.title}</h2>
-      {peopleCreditsShown && <p class="page-soon">{a.organizers.creditsSample}</p>}
+      {organizerCreditsSample && a.organizers2027.some((o) => organizerCredit(o.name)) && <p class="page-soon">{a.organizers.creditsSample}</p>}
       {a.organizers2027.length === 0 ? (
         <p class="page-soon">{a.organizers.soon} <a href={a.organizers.past.href}>{a.organizers.past.text}</a></p>
       ) : (
@@ -53,7 +53,7 @@ import { organizerCredit, peopleCreditsShown } from '../lib/loyalty';
                 <Image class="pg-org-photo" src={organizerPhotos2027[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt="" loading="lazy" />
                 <b>{o.name}</b>
                 {(o.employer || o.title) && <span class="pg-aff">{[o.employer, o.title].filter(Boolean).join(' · ')}</span>}
-                {peopleCreditsShown && <Credit credit={organizerCredit(o.name)} role="Organizer" />}
+                <Credit credit={organizerCredit(o.name)} role="Organizer" />
               </li>
             ))}
           </ul>
