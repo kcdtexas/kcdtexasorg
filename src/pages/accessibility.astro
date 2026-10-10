@@ -16,6 +16,7 @@ const mail = `mailto:${a.email}`;
     <section class="page-sec" aria-labelledby="website">
       <h2 id="website" class="page-h2">{w.title}</h2>
       {w.wcagClaim && <p><strong>{w.claim}</strong></p>}
+      {w.wcagClaim && <p>{w.claimChecked}</p>}
       {w.checks.map((c) => <p>{c}</p>)}
       <p>{w.limits} <a href={mail}>{a.email}</a></p>
     </section>
