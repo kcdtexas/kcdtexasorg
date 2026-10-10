@@ -67,3 +67,18 @@ export function parseAnnouncements(source, eventDay) {
     return { at: `${m[1]}T${m[2]}:${m[3]}`, text, link };
   }).sort((a, b) => a.at.localeCompare(b.at));
 }
+
+const monthDay = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+
+/**
+ * When an announcement was posted, as the Event Day page prints it: the time alone ("10:15 a.m.") when it was
+ * posted on the build's day, else the date too ("Apr 20, 3:00 p.m."), so an earlier day's never reads as today's.
+ * The site's styles: clock() in src/lib/program.ts and shortDate() in src/data/edition-2027.ts.
+ * @param {string} at 'YYYY-MM-DDTHH:MM', Central
+ * @param {string} day the build's Central day, 'YYYY-MM-DD'
+ */
+export function postedAt(at, day) {
+  const [h, m] = at.slice(11, 16).split(':').map(Number);
+  const time = `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'a.m.' : 'p.m.'}`;
+  return at.slice(0, 10) === day ? time : `${monthDay.format(new Date(`${at.slice(0, 10)}T12:00:00Z`))}, ${time}`;
+}

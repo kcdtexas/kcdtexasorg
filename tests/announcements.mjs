@@ -1,18 +1,19 @@
 // The Event Day announcements file's rules (src/lib/announcements.mjs) on made-up files: the text must be in double
 // quotes, so a # can't cut it short and a colon can't break the file, and no comment may sit inside an entry. The
-// example in src/data/announcements-2027.yaml and the one in docs/event-day.md must pass as written there.
+// example in src/data/announcements-2027.yaml and the one in docs/event-day.md must pass as written there. And the
+// page prints the date of an announcement posted before the build's day, so it doesn't read as today's.
 // tests/run-local.mjs runs it; tests/run-program.mjs checks the file in real builds.
 // Usage: node tests/announcements.mjs
 import { readFileSync } from 'node:fs';
 import { importTs } from '../scripts/lib/import-ts.mjs';
-import { ANNOUNCEMENTS_FILE, MAX_TEXT, parseAnnouncements } from '../src/lib/announcements.mjs';
+import { ANNOUNCEMENTS_FILE, MAX_TEXT, parseAnnouncements, postedAt } from '../src/lib/announcements.mjs';
 
 const failures = [];
 let checks = 0;
 const expect = (ok, message) => { checks += 1; if (!ok) failures.push(message); };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-const { edition2027 } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
+const { edition2027, shortDate } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
 const DAY = '2027-04-23';
 const file = (entries) => `# A header comment.\nannouncements:\n# The example comment.\n${entries}`;
 const parse = (entries) => parseAnnouncements(file(entries), DAY);
@@ -75,6 +76,17 @@ for (const [what, entry, pattern] of [
   ['the second entry', '- at: "2027-04-23 09:15"\n  text: "Doors open."\n- at: "2027-04-23 10:15"\n  text: "More."\n  link: http://example.com/\n', /^src\/data\/announcements-2027\.yaml: entry 2 \(at "2027-04-23 10:15"\): "link" must be an https address/],
 ]) expect(pattern.test(error(entry)), `${what}: ${error(entry) || 'no error'}`);
 expect(parse(`- at: "2027-04-17 08:00"\n  text: "${'x'.repeat(MAX_TEXT)}"\n`).length === 1, `${MAX_TEXT} characters, 6 days before, is refused`);
+
+// When it was posted: the time alone on the build's day; the date too on an earlier one, in the site's date style
+// (shortDate in src/data/edition-2027.ts), as on the day after Event Day.
+for (const [at, day, want] of [
+  ['2027-04-23T10:15', '2027-04-23', '10:15 a.m.'],
+  ['2027-04-23T12:00', '2027-04-23', '12:00 p.m.'],
+  ['2027-04-23T00:05', '2027-04-23', '12:05 a.m.'],
+  ['2027-04-20T15:00', '2027-04-23', `${shortDate('2027-04-20')}, 3:00 p.m.`],
+  ['2027-04-17T08:30', '2027-04-23', 'Apr 17, 8:30 a.m.'],
+  ['2027-04-23T18:45', '2027-04-24', 'Apr 23, 6:45 p.m.'],
+]) expect(postedAt(at, day) === want, `postedAt(${at}) on ${day} is "${postedAt(at, day)}", not "${want}"`);
 
 if (failures.length) {
   console.error(`Announcement tests failed (${failures.length} of ${checks}):\n  ${failures.join('\n  ')}`);
