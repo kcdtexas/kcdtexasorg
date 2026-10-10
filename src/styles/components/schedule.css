@@ -1,6 +1,6 @@
 /* The program pages: the Schedule, the Session and Speaker pages, the Speakers list, Event Day and the loyalty
-   credits. The Schedule is a list of Sessions under time headings; from 1100 px the same markup is laid out as a
-   grid, a row per time slot and a column per room (option A). The grid is only the visual layout. */
+   credits. The Schedule is a list of Sessions under time headings at every width; from 900 px each time slot is a
+   row, with every room's Session on its own line. */
 @layer components {
   /* The badges: the format in ink, an End-User Story in gold. */
   .badges { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -41,7 +41,6 @@
   .sch-my { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
 
   /* The Schedule as a list: a time heading, then its Sessions. */
-  .sch-head { display: none; }
   .sch-slot { padding: 14px 0 18px; border-top: 1px solid var(--fg); }
   .sch-time-h { margin-bottom: 10px; font-stretch: 62%; font-weight: 900; font-size: 30px; line-height: 1; text-transform: uppercase; }
   .sch-items { display: grid; gap: 10px; }
@@ -57,23 +56,22 @@
   .sch-break-title { font-weight: 700; }
   .sch-items--list { margin-top: 8px; }
 
-  /* From 1100 px, a column per room. While a filter is on, the matching Sessions show as a list instead, so no
-     room column stands empty. */
-  @media (min-width: 1100px) {
-    .sch { --time-col: 112px; }
-    .sch--rooms-1 { --rooms: 1; } .sch--rooms-2 { --rooms: 2; } .sch--rooms-3 { --rooms: 3; } .sch--rooms-4 { --rooms: 4; }
-    .sch--rooms-5 { --rooms: 5; } .sch--rooms-6 { --rooms: 6; } .sch--rooms-7 { --rooms: 7; } .sch--rooms-8 { --rooms: 8; }
-    .sch-head { display: grid; grid-template-columns: var(--time-col) repeat(var(--rooms), minmax(0, 1fr)); column-gap: 10px; padding-bottom: 8px; font-weight: 700; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-    .sch-slot { display: grid; grid-template-columns: var(--time-col) minmax(0, 1fr); column-gap: 10px; }
+  /* List-first at every width. From 900 px each time slot is a row: the time on the left, then every
+     room's Session as a line, with its room and time in the first column. */
+  @media (min-width: 900px) {
+    .sch-slot { display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 20px; }
     .sch-time-h { margin: 0; font-size: 26px; }
-    .sch-items { grid-template-columns: repeat(var(--rooms), minmax(0, 1fr)); column-gap: 10px; }
-    .sch-wide { grid-column: 1 / -1; }
-    .sch-col-1 { grid-column: 1; } .sch-col-2 { grid-column: 2; } .sch-col-3 { grid-column: 3; } .sch-col-4 { grid-column: 4; }
-    .sch-col-5 { grid-column: 5; } .sch-col-6 { grid-column: 6; } .sch-col-7 { grid-column: 7; } .sch-col-8 { grid-column: 8; }
-    .sch-items--list, .sch.is-filtered .sch-items { grid-template-columns: 1fr; }
-    .sch.is-filtered .sch-head { display: none; }
-    .sch.is-filtered .sch-item { grid-column: 1; }
-    .sch-title { font-size: 17px; }
+    .sch-items { gap: 0; }
+    .sch-item { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-content: start; column-gap: 20px; row-gap: 4px; padding: 12px 52px 14px 0; border: 0; border-bottom: 1px solid var(--line); }
+    .sch-item:first-child { padding-top: 4px; }
+    .sch-item:last-child { border-bottom: 0; }
+    .sch-item[data-format="keynote"] { border-top: 0; }
+    .sch-item > * { grid-column: 2; }
+    .sch-item .sch-meta { grid-column: 1; grid-row: 1 / span 3; flex-direction: column-reverse; justify-content: start; gap: 2px; font-size: 15px; }
+    .sch-item .sch-room { font-weight: 700; color: var(--fg); }
+    .sch-item .sch-time { font-weight: 400; color: var(--muted); }
+    .sch-break { margin-bottom: 8px; }
+    .sch-items--list .sch-item { grid-template-columns: 200px minmax(0, 1fr); }
   }
 
   /* The Speakers. The photo's place holds the initials until photos are downloaded at build time. */

@@ -34,7 +34,6 @@
     var on = {}, n = 0, total = 0;
     all('[data-filter]', board).forEach(function (i) { if (i.checked) (on[i.dataset.filter] = on[i.dataset.filter] || []).push(i.value); });
     var any = on.format || on.room || on.eu || on.my;
-    board.classList.toggle('is-filtered', !!any);
     all('.sch-item', board).forEach(function (li) {
       var D = li.dataset, ok = (!on.format || on.format.indexOf(D.format) >= 0) && (!on.room || on.room.indexOf(D.room) >= 0) &&
         (!on.eu || D.eu === '1') && (!on.my || has(D.id));
