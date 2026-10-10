@@ -1,6 +1,7 @@
 ---
-// /2027/today/: Event Day mode, once the Schedule is public. Now and next in each room, the announcements, the
-// venue map and the day's info, with the time it was built. /schedule.js moves now and next with the clock
+// /2027/today/: Event Day mode, once the Schedule is public, in the broadcast look of the stage screens and the
+// social cards (the broadcast kit): now and next in each room on a scoreboard, the announcements, the venue map
+// and the day's info, with the time it was built. /schedule.js moves now and next with the clock
 // (Central time) and reloads the page every 5 minutes; without it, the page shows the build's now and next.
 import Base from '../../../layouts/Base.astro';
 import PageHead from '../../../components/PageHead.astro';
@@ -27,38 +28,40 @@ const hm = (s: string) => `${clock(`2000-01-01T${s}`)}`;
 ---
 
 <Base title={`${t.title} · KCD Texas`} description={t.description} schedule>
-  <article class="page wrap td-page" data-today data-now={t.now} data-next={t.next}>
+  <article class="page wrap td-page td-page--gd" data-today data-now={t.now} data-next={t.next}>
     <PageHead kicker={t.kicker} title={t.title}>
       <p class="td-updated"><b>{t.updated} {clock(builtAt)} {t.zone}</b> <span>{t.live}</span></p>
       {p.sample && <p class="page-soon">{programPages.sample}</p>}
     </PageHead>
 
     <section class="page-sec page-wide" aria-labelledby="now-next">
-      <h2 id="now-next" class="page-h2">{t.nowNext}</h2>
-      <p class="td-break" data-breaks>
-        {p.breaks.map((b) => (
-          <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow}><b>{t.now}:</b> {b.title}, {timeRange(b.start, b.end)}</span>
-        ))}
-      </p>
-      <ul class="td-rooms">
-        {rooms.map((r) => (
-          <li class="td-room" data-room-block>
-            <h3 class="td-room-name">{r.room}</h3>
-            <p class="td-none" data-none-now hidden={Boolean(r.now)}>{t.nothingNow}</p>
-            <ol class="td-list">
-              {r.list.map((s) => (
-                <li class:list={['td-ses', { 'is-now': s === r.now }]} data-start={s.start} data-end={s.end} hidden={s !== r.now && s !== r.next}>
-                  <p class="td-when"><span class="td-label" data-label>{s === r.now ? t.now : t.next}</span> <span class="td-time">{timeRange(s.start!, s.end!)}</span></p>
-                  <a class="td-title" href={`${paths.sessions}${s.slug}/`}>{s.title}</a>
-                  <p class="td-who">{speakersOf(s).map((x) => x.name).join(', ')}</p>
-                </li>
-              ))}
-            </ol>
-            <p class="td-none" data-none-next hidden={Boolean(r.next)}>{t.nothingNext}</p>
-          </li>
-        ))}
-      </ul>
-      <p class="more"><a href={paths.schedule}>{t.schedule}</a></p>
+      <div class="td-board">
+        <h2 id="now-next" class="page-h2">{t.nowNext}</h2>
+        <p class="td-break" data-breaks>
+          {p.breaks.map((b) => (
+            <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow}><b>{t.now}:</b> {b.title}, {timeRange(b.start, b.end)}</span>
+          ))}
+        </p>
+        <ul class="td-rooms">
+          {rooms.map((r) => (
+            <li class="td-room" data-room-block>
+              <h3 class="td-room-name">{r.room}</h3>
+              <p class="td-none" data-none-now hidden={Boolean(r.now)}>{t.nothingNow}</p>
+              <ol class="td-list">
+                {r.list.map((s) => (
+                  <li class:list={['td-ses', { 'is-now': s === r.now }]} data-start={s.start} data-end={s.end} hidden={s !== r.now && s !== r.next}>
+                    <p class="td-when"><span class="td-label" data-label>{s === r.now ? t.now : t.next}</span> <span class="td-time">{timeRange(s.start!, s.end!)}</span></p>
+                    <a class="td-title" href={`${paths.sessions}${s.slug}/`}>{s.title}</a>
+                    <p class="td-who">{speakersOf(s).map((x) => x.name).join(', ')}</p>
+                  </li>
+                ))}
+              </ol>
+              <p class="td-none" data-none-next hidden={Boolean(r.next)}>{t.nothingNext}</p>
+            </li>
+          ))}
+        </ul>
+        <p class="more"><a href={paths.schedule}>{t.schedule}</a></p>
+      </div>
     </section>
 
     <section class="page-sec" aria-labelledby="announcements">

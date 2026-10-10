@@ -123,6 +123,26 @@
   .td-info dt { font-weight: 700; }
   .td-map { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; padding: 20px; border: 1px dashed var(--muted); background: var(--surface); color: var(--muted); text-align: center; }
 
+
+  /* Event Day in the broadcast look, from the broadcast kit. The now-and-next board is a
+     scoreboard on the reversed band in both themes: a 3 px rule on top, a cell per room split by 1 px rules, labels
+     in spaced capitals, the times in gold condensed capitals, and a gold chip for what's on now. */
+  .td-page--gd .td-updated b { padding: 4px 10px; background: var(--signal); color: var(--on-signal); font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .td-board { margin-top: 8px; padding: 22px clamp(16px, 2.4vw, 32px) 28px; background: var(--band); color: var(--band-fg); }
+  .td-board .page-h2 { color: var(--band-fg); font-stretch: 62%; font-weight: 900; text-transform: uppercase; }
+  .td-board a { color: var(--band-link); }
+  .td-board .td-break-item { background: transparent; border: 1px solid var(--band-line); color: var(--band-fg); }
+  .td-page--gd .td-rooms { gap: 0; border-top: 3px solid var(--band-fg); }
+  .td-page--gd .td-room { padding: 14px 18px 18px; border-top: 0; border-right: 1px solid var(--band-line); border-bottom: 1px solid var(--band-line); }
+  .td-page--gd .td-room-name { font-stretch: 100%; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--band-muted); }
+  .td-page--gd .td-label { border-color: var(--band-line); color: var(--band-fg); }
+  .td-page--gd .is-now .td-label { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+  .td-page--gd .td-when { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .td-page--gd .td-time { font-stretch: 62%; font-weight: 900; font-size: 26px; line-height: 1; text-transform: uppercase; color: var(--signal); }
+  .td-page--gd .td-title { font-stretch: 68%; font-weight: 800; font-size: 22px; line-height: 1.1; text-decoration-color: var(--band-line); }
+  .td-page--gd .td-who, .td-page--gd .td-none { color: var(--band-muted); }
+  .td-board .more a { color: var(--band-fg); }
+
   @media (max-width: 599px) {
     .actions .star--words { width: 100%; }
     .spk-list { grid-template-columns: 1fr; }
