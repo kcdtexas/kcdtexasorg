@@ -18,6 +18,10 @@
   .sch-who a { padding-block: 4px calc(2 * var(--tap) - 4px); }
   .spk-name, .td-title { padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); }
 
+  /* Titles, names and abstracts come from the program platform: a word longer than its line breaks instead of
+     running off a narrow screen (WCAG 1.4.10). */
+  .sch, .ses-page, .spk-page, .spk-list, .td-page { overflow-wrap: break-word; }
+
   /* The loyalty credit: a short line under a name or a logo. */
   .credit { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 700; font-size: 14px; line-height: 1.3; color: var(--fg); }
   .credit::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--signal); box-shadow: 0 0 0 1px var(--signal-edge, transparent); }
@@ -141,6 +145,7 @@
   .td-board { margin-top: 8px; padding: 22px clamp(16px, 2.4vw, 32px) 28px; background: var(--band); color: var(--band-fg); }
   .td-board .page-h2 { color: var(--band-fg); font-stretch: 62%; font-weight: 900; text-transform: uppercase; }
   .td-board a { color: var(--band-link); }
+  .td-board :focus-visible { outline-color: var(--band-fg); }
   .td-board .td-break-item { background: transparent; border: 1px solid var(--band-line); color: var(--band-fg); }
   .td-page--gd .td-rooms { gap: 0; border-top: 3px solid var(--band-fg); }
   .td-page--gd .td-room { padding: 14px 18px 18px; border-top: 0; border-right: 1px solid var(--band-line); border-bottom: 1px solid var(--band-line); }
