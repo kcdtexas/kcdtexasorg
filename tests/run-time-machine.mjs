@@ -1,14 +1,15 @@
 // The time machine: builds the site as if each key day were today (scripts/build.sh --now) and checks
 // the date-driven text (tests/time-machine.mjs). It also proves scripts/rebuild-dates.mjs: two builds
 // differ, beyond where NOW sits and how far each phase is filled, exactly when a rebuild date falls between them.
-// Then it builds once per test-only run (the sample ticket day, --program-public, --sponsors-sample) and checks
+// Then it builds once per test-only run (the sample ticket day, --program-public, --sponsors-sample, and the test
+// program in the Countdown, on Event Day at 10:30 a.m., the day after and with only the Speakers public) and checks
 // those, with the Sample guard in scripts/check-dist.mjs. Every build also gets the browser checks in
 // tests/states-browser.mjs, and its hero bill is measured again from the font (src/lib/bill-fit.ts): it must
 // match the build's fit values and be one of the variants tests/browser.mjs checks (tests/bill-variants.mjs).
 // Each build takes about 10 seconds and its browser checks about as long; at the end dist/ is rebuilt for today.
 // Usage: node tests/run-time-machine.mjs [--keep-dist] [--no-browser]
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
@@ -42,11 +43,19 @@ function build(flags = []) {
     throw new Error(`the build ${flags.join(' ')} failed`);
   }
 }
+// The program's files are '' where the build has none.
+const maybe = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : '');
 const read = () => ({
   home: readFileSync('dist/index.html', 'utf8'),
   cfp: readFileSync('dist/2027/cfp/index.html', 'utf8'),
   schedule: readFileSync('dist/2027/schedule/index.html', 'utf8'),
   sponsors: readFileSync('dist/2027/sponsors/index.html', 'utf8'),
+  privacy: readFileSync('dist/privacy/index.html', 'utf8'),
+  speakers: maybe('dist/2027/speakers/index.html'),
+  today: maybe('dist/2027/today/index.html'),
+  ics: maybe('dist/2027/schedule.ics'),
+  sw: maybe('dist/sw.js'),
+  js: maybe('dist/schedule.js'),
 });
 
 // billFits from src/lib/bill-fit.ts. It reads the font relative to the working directory, the repo root.
@@ -142,9 +151,9 @@ try {
     }
     checkBill(run.name, pages.home);
     await inBrowser(run.name, day);
-    if (run.flags.includes('--program-public') || run.flags.includes('--sponsors-sample')) {
+    if (run.flags.some((f) => /^--(?:program-public|sponsors-sample|program-sample)/.test(f))) {
       const env = { ...process.env };
-      delete env.KCD_TICKETS_DAY; delete env.KCD_PROGRAM_PUBLIC; delete env.KCD_SPONSORS_SAMPLE;
+      delete env.KCD_TICKETS_DAY; delete env.KCD_PROGRAM_PUBLIC; delete env.KCD_SPONSORS_SAMPLE; delete env.KCD_PROGRAM_SAMPLE;
       const guard = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env });
       checks += 1;
       if (guard.status === 0 || !/Sample/.test(guard.stdout + guard.stderr)) failures.push(`${run.name}: check-dist passes the sample build without its flag`);
