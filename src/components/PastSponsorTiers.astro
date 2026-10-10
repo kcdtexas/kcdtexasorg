@@ -1,0 +1,31 @@
+---
+// An earlier Edition's sponsors by tier, in the walls' markup (see wall.css): equal cells per tier, each logo
+// centered in its cell, and a sponsor without an official logo file shown by name as a text tile. Each tier takes
+// the cell size of a 2026 tier (`size`). A logo's aspect ratio comes from its file, so every logo in a tier covers
+// the same area (past.css sets each logo's aspect ratio).
+import { Image } from 'astro:assets';
+import type { PastTier } from '../data/edition-2025';
+import { logos } from '../lib/images';
+
+interface Props {
+  tiers: readonly PastTier[];
+}
+const { tiers } = Astro.props;
+---
+
+<div class="tiers">
+  {tiers.map((t) => (
+    <div class={`tier tier--${t.size} tier--n${t.sponsors.length}`}>
+      <h3 class="tier-name">{t.name}</h3>
+      <ul class="logos">
+        {t.sponsors.map((s) => (
+          <li>
+            {s.logo
+              ? <Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} />
+              : <span class="sp-name">{s.name}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</div>

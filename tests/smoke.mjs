@@ -35,7 +35,7 @@ const REQUIRED_HEADERS = {
 // scripts/check-dist.mjs; from then on a broken link to it fails.
 const V1_PAGES = [
   '/', '/2027/cfp/', '/2027/sponsors/', '/2027/tickets/', '/2027/travel/', '/2027/schedule/',
-  '/2026/', '/editions/', '/about/', '/code-of-conduct/', '/privacy/', '/accessibility/',
+  '/2026/', '/2025/', '/2024/', '/editions/', '/about/', '/code-of-conduct/', '/privacy/', '/accessibility/',
 ];
 const pending = (path) => V1_PAGES.includes(path) && !REQUIRED_PAGES.includes(path);
 const shortLinks = parse(readFileSync('src/data/short-links.yaml', 'utf8'));

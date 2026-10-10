@@ -14,6 +14,8 @@ export const paths = {
   sessions: '/2027/sessions/',
   today: '/2027/today/',
   edition2026: '/2026/',
+  edition2025: '/2025/',
+  edition2024: '/2024/',
   editions: '/editions/',
   about: '/about/',
   conduct: '/code-of-conduct/',

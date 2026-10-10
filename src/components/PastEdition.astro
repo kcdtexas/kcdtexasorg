@@ -1,0 +1,112 @@
+---
+// An earlier Edition's page (/2025/, /2024/), laid out like /2026/: the figures with their sources, the keynotes,
+// the program, the sponsors and Partners, the Organizers and the links to look back. People appear by name only.
+// A section the Edition has nothing for is left out.
+import Base from '../layouts/Base.astro';
+import PageHead from './PageHead.astro';
+import PastSponsorTiers from './PastSponsorTiers.astro';
+import { youtube } from '../data/edition-2026';
+import { printedLine, type PastSession } from '../data/past-program';
+import type { PastPage } from '../data/past-page';
+
+interface Props {
+  p: PastPage;
+}
+const { p } = Astro.props;
+const names = (s: PastSession) => s.speakers.map((x) => x.name).join(', ');
+const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i === 0 ? '' : i === list.length - 1 ? ' and ' : ', ' }));
+---
+
+<Base title={p.title} description={p.description}>
+  <article class="page wrap">
+    <PageHead kicker={p.kicker} title={p.heading} lead={p.lead} />
+    <dl class="page-facts">
+      {p.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
+    </dl>
+    <p class="pg-src">Sources: {joinLinks(p.factsSources).map(({ l, sep }) => <>{sep}<a href={l.href}>{l.text}</a></>)}.</p>
+
+    <section class="page-sec" aria-labelledby="keynotes">
+      <h2 id="keynotes" class="page-h2">{p.keynotes.title}</h2>
+      <ul class="pg-keynotes pg-keynotes--text">
+        {p.keynotes.sessions.map((k) => (
+          <li>
+            <h3 class="pg-kn-name">{names(k)}</h3>
+            <p class="pg-aff">{k.speakers.map(printedLine).join('; ')}</p>
+            <p class="pg-title">{k.title}</p>
+            {k.youtube ? <a class="watch" href={youtube(k.youtube)}>{p.program.watch}<span class="sr-only">: {k.title}</span></a> : <p class="pg-none">{p.keynotes.noRecording}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="program">
+      <h2 id="program" class="page-h2">{p.program.title}</h2>
+      <p>{p.program.intro}</p>
+      {p.program.recorded.length > 0 && (
+        <>
+          <h3 class="page-h3">{p.program.recordedTitle}</h3>
+          <ul class="pg-talks">
+            {p.program.recorded.map((s) => (
+              <li>
+                <p class="pg-title">{s.title}</p>
+                {s.speakers.map((x) => <p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>)}
+                <a class="watch" href={youtube(s.youtube!)}>{p.program.watch}<span class="sr-only">: {s.title}</span></a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {p.program.others.length > 0 && (
+        <>
+          <h3 class="page-h3">{p.program.otherTitle}</h3>
+          <p class="pg-note">{p.program.otherNote}</p>
+          <ul class="pg-talks">
+            {p.program.others.map((s) => (
+              <li>
+                <p class="pg-title">{s.title}</p>
+                {s.speakers.map((x) => <p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>)}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {p.program.hosts.length > 0 && (
+        <>
+          <h3 class="page-h3">{p.program.hostsTitle}</h3>
+          <ul class="pg-people">
+            {p.program.hosts.map((s) => <li><b>{s.name}</b>{s.printed.length > 0 && <span class="pg-aff">{printedLine(s)}</span>}</li>)}
+          </ul>
+        </>
+      )}
+      <p class="pg-src">{p.program.asPrinted} Sources: {joinLinks(p.program.sources).map(({ l, sep }) => <>{sep}<a href={l.href}>{l.text}</a></>)}.</p>
+      <ul class="pg-more">
+        {p.program.more.map((l) => <li><a href={l.href}>{l.text}</a></li>)}
+      </ul>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="sponsors">
+      <h2 id="sponsors" class="page-h2">{p.sponsors.title}</h2>
+      <PastSponsorTiers tiers={p.sponsors.tiers} />
+      <p class="pg-src">{p.sponsors.note} Source: <a href={p.sponsors.source.href}>{p.sponsors.source.text}</a>.</p>
+      <h3 class="page-h3">{p.sponsors.partnersTitle}</h3>
+      <dl class="pg-partners">
+        {p.sponsors.partnerGroups.map((g) => <div><dt>{g.type}</dt><dd>{g.names.join(', ')}</dd></div>)}
+      </dl>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="organizers">
+      <h2 id="organizers" class="page-h2">{p.organizers.title}</h2>
+      <ul class="pg-people">
+        {p.organizers.names.map((n) => <li><b>{n}</b></li>)}
+      </ul>
+      <p class="pg-src">{p.organizers.note} Source: <a href={p.organizers.source.href}>{p.organizers.source.text}</a>.</p>
+    </section>
+
+    <section class="page-sec" aria-labelledby="look-back">
+      <h2 id="look-back" class="page-h2">{p.lookBack.title}</h2>
+      <ul class="page-list">
+        {p.lookBack.links.map((l) => <li><a href={l.href}>{l.text}</a> <span class="pg-aff">{l.note}</span></li>)}
+      </ul>
+    </section>
+  </article>
+</Base>
