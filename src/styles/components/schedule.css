@@ -1,0 +1,133 @@
+/* The program pages: the Schedule, the Session and Speaker pages, the Speakers list, Event Day and the loyalty
+   credits. The Schedule is a list of Sessions under time headings; from 1100 px the same markup is laid out as a
+   grid, a row per time slot and a column per room (option A). The grid is only the visual layout. */
+@layer components {
+  /* The badges: the format in ink, an End-User Story in gold. */
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { padding: 2px 7px; border: 1px solid var(--fg); font-weight: 700; font-size: 12px; line-height: 1.4; letter-spacing: 0.08em; text-transform: uppercase; }
+  .badge--keynote { background: var(--fg); color: var(--bg); }
+  .badge--eu { background: var(--signal); border-color: var(--signal-edge, var(--signal)); color: var(--on-signal); }
+
+  /* The loyalty credit: a short line under a name or a logo. */
+  .credit { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 700; font-size: 14px; line-height: 1.3; color: var(--fg); }
+  .credit::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--signal); box-shadow: 0 0 0 1px var(--signal-edge, transparent); }
+
+  /* The star: "Add to My Schedule". */
+  .star { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--fg); font: inherit; cursor: pointer; }
+  .star-icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+  .star[data-on="true"] .star-icon { fill: var(--signal); stroke: var(--fg); }
+  .star:hover .star-icon { stroke-width: 2.4; }
+  .star--words { padding: 0 18px; border: 2px solid var(--action); background: var(--action); color: var(--on-action); font-weight: 700; font-size: 16px; }
+  .star--words:hover { background: var(--action-hover); border-color: var(--action-hover); }
+  .star--words .star-icon { stroke: currentColor; }
+  .star--words[data-on="true"] { background: transparent; color: var(--fg); border-color: var(--fg); }
+
+  /* The filters, shown by /schedule.js. */
+  .sch-links { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 20px; font-weight: 700; }
+  .sch-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 32px; margin-bottom: 28px; padding: 16px 0; border-top: 3px solid var(--fg); border-bottom: 1px solid var(--line); }
+  .sch-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+  .sch-group legend { float: left; width: 100%; margin-bottom: 6px; font-weight: 700; font-size: 14px; color: var(--muted); }
+  .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--fg); font-weight: 700; font-size: 15px; cursor: pointer; }
+  .chip input { width: 18px; height: 18px; margin: 0; accent-color: var(--fg); }
+  .chip:has(input:checked) { background: var(--fg); color: var(--bg); }
+  .chip:has(input:checked) input { accent-color: var(--bg); }
+  .chip:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .sch-more { flex: 1 1 auto; }
+  .sch-more > summary { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; cursor: pointer; }
+  .sch-more-body { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-top: 8px; }
+  .sch-more[open] > summary { margin-bottom: 0; }
+  .sch-count { flex-basis: 100%; font-weight: 700; }
+  .sch-count:empty { display: none; }
+  .sch-my { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+
+  /* The Schedule as a list: a time heading, then its Sessions. */
+  .sch-head { display: none; }
+  .sch-slot { padding: 14px 0 18px; border-top: 1px solid var(--fg); }
+  .sch-time-h { margin-bottom: 10px; font-stretch: 62%; font-weight: 900; font-size: 30px; line-height: 1; text-transform: uppercase; }
+  .sch-items { display: grid; gap: 10px; }
+  .sch-item { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px 52px 14px 14px; border: 1px solid var(--line); background: var(--bg); }
+  .sch-item[data-format="keynote"] { border-color: var(--fg); border-top-width: 3px; }
+  .sch-item .star { position: absolute; top: 4px; right: 4px; }
+  .sch-title { font-weight: 700; font-size: 18px; line-height: 1.3; text-wrap: pretty; }
+  .sch-title a { color: var(--fg); }
+  .sch-who { font-size: 15px; line-height: 1.4; }
+  .sch-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 14px; color: var(--muted); }
+  .sch-time { font-weight: 700; color: var(--fg); }
+  .sch-break { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 10px 14px; background: var(--surface); }
+  .sch-break-title { font-weight: 700; }
+  .sch-items--list { margin-top: 8px; }
+
+  /* Option A: from 1100 px, a column per room. */
+  @media (min-width: 1100px) {
+    .sch { --time-col: 112px; }
+    .sch--rooms-1 { --rooms: 1; } .sch--rooms-2 { --rooms: 2; } .sch--rooms-3 { --rooms: 3; } .sch--rooms-4 { --rooms: 4; }
+    .sch--rooms-5 { --rooms: 5; } .sch--rooms-6 { --rooms: 6; } .sch--rooms-7 { --rooms: 7; } .sch--rooms-8 { --rooms: 8; }
+    .sch-head { display: grid; grid-template-columns: var(--time-col) repeat(var(--rooms), minmax(0, 1fr)); column-gap: 10px; padding-bottom: 8px; font-weight: 700; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .sch-slot { display: grid; grid-template-columns: var(--time-col) minmax(0, 1fr); column-gap: 10px; }
+    .sch-time-h { margin: 0; font-size: 26px; }
+    .sch-items { grid-template-columns: repeat(var(--rooms), minmax(0, 1fr)); column-gap: 10px; }
+    .sch-wide { grid-column: 1 / -1; }
+    .sch-col-1 { grid-column: 1; } .sch-col-2 { grid-column: 2; } .sch-col-3 { grid-column: 3; } .sch-col-4 { grid-column: 4; }
+    .sch-col-5 { grid-column: 5; } .sch-col-6 { grid-column: 6; } .sch-col-7 { grid-column: 7; } .sch-col-8 { grid-column: 8; }
+    .sch-items--list { grid-template-columns: 1fr; }
+    .sch-title { font-size: 17px; }
+  }
+
+  /* The Speakers. The photo's place holds the initials until photos are downloaded at build time. */
+  .page-sec > .spk-list, .page-sec > .td-rooms { max-width: none; }
+  .spk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: var(--gutter); margin-top: 8px; border-top: 3px solid var(--fg); }
+  .spk-list--rows { grid-template-columns: 1fr; }
+  .spk-card { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .spk-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .spk-name { font-weight: 700; font-size: 18px; line-height: 1.3; }
+  .spk-tag, .spk-ses { font-size: 15px; line-height: 1.4; color: var(--muted); }
+  .spk-ses { margin-top: 4px; color: var(--fg); }
+  .spk-photo { position: relative; display: flex; align-items: center; justify-content: center; flex: none; aspect-ratio: 1; background: var(--surface); color: var(--muted); font-stretch: 62%; font-weight: 900; text-transform: uppercase; }
+  .spk-photo--sm { width: 56px; font-size: 22px; }
+  .spk-photo--md { width: 72px; font-size: 28px; }
+  .spk-photo--lg { width: 200px; font-size: 72px; }
+  .spk-head { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 28px; }
+  .spk-tagline { margin-top: 16px; }
+  .spk-head .credit { margin-top: 14px; font-size: 16px; }
+  .spk-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 16px; font-weight: 700; }
+
+  /* A Session's page. */
+  .ses-page .badges { margin-bottom: 12px; }
+  .ses-title { font-size: clamp(44px, 6vw, 84px); }
+  .ses-actions { margin-top: 28px; }
+  .ses-abstract { white-space: pre-line; }
+
+  /* Event Day: now and next in each room. */
+  .td-updated { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 20px; }
+  .td-updated b { font-size: 20px; }
+  .td-updated span { color: var(--muted); }
+  .td-break { margin-bottom: 16px; }
+  .td-break-item { display: block; padding: 10px 14px; background: var(--surface); }
+  .td-rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 28px var(--gutter); }
+  .td-room { padding-top: 10px; border-top: 3px solid var(--fg); }
+  .td-room-name { font-stretch: 68%; font-weight: 800; font-size: 26px; line-height: 1.1; }
+  .td-list { display: grid; gap: 14px; margin-top: 12px; }
+  .td-ses { display: flex; flex-direction: column; gap: 4px; }
+  .td-when { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+  .td-label { padding: 2px 8px; border: 1px solid var(--fg); font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .is-now .td-label { background: var(--fg); color: var(--bg); }
+  .td-time { font-weight: 700; }
+  .td-title { font-weight: 700; font-size: 18px; line-height: 1.3; }
+  .td-who { font-size: 15px; color: var(--muted); }
+  .td-none { margin-top: 12px; color: var(--muted); }
+  .td-news li { padding: 10px 0; border-top: 1px solid var(--line); }
+  .td-news time { margin-right: 10px; font-weight: 700; }
+  .td-info-sec { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
+  .td-info > div { padding: 10px 0; border-top: 1px solid var(--line); }
+  .td-info dt { font-weight: 700; }
+  .td-map { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; padding: 20px; border: 1px dashed var(--muted); background: var(--surface); color: var(--muted); text-align: center; }
+
+  @media (max-width: 599px) {
+    .spk-list { grid-template-columns: 1fr; }
+    .spk-head { grid-template-columns: 1fr; gap: 16px; }
+    .spk-photo--lg { width: 120px; font-size: 44px; }
+    .td-info-sec { grid-template-columns: 1fr; }
+    .sch-time-h { font-size: 26px; }
+    .chip { padding: 0 12px; font-size: 14px; }
+  }
+}

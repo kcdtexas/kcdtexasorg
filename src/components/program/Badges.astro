@@ -1,0 +1,12 @@
+---
+// A Session's format and, for an End-User Story, its badge (CONTEXT.md: the Schedule labels these publicly).
+import { formatName, type Session } from '../../lib/program';
+
+interface Props { session: Session }
+const { session: s } = Astro.props;
+---
+
+<p class="badges">
+  <span class={`badge badge--${s.format}`}>{formatName[s.format]}</span>
+  {s.endUser && <span class="badge badge--eu">End-User Story</span>}
+</p>

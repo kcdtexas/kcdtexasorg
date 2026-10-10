@@ -1,0 +1,65 @@
+---
+// /2027/sessions/<slug>/: one Session, once a program gate is open (src/lib/program.ts). The time, the room and
+// "Add to calendar" come with the Schedule's gate.
+import Base from '../../../layouts/Base.astro';
+import Badges from '../../../components/program/Badges.astro';
+import Star from '../../../components/program/Star.astro';
+import Credit from '../../../components/program/Credit.astro';
+import SpeakerPhoto from '../../../components/program/SpeakerPhoto.astro';
+import { paths } from '../../../data/nav';
+import { programPages } from '../../../data/program-pages';
+import { program, speakersOf, timeRange, type Session } from '../../../lib/program';
+import { programCard } from '../../../lib/cards/program-cards';
+
+export const getStaticPaths = () => (program?.sessions ?? []).map((s) => ({ params: { slug: s.slug }, props: { session: s } }));
+
+const { session: s } = Astro.props as { session: Session };
+const w = programPages.session;
+const who = speakersOf(s);
+const card = programCard('session', s.slug);
+---
+
+<Base title={`${s.title} · KCD Texas ${programPages.year}`} description={w.description(s)} card={card ?? undefined} schedule>
+  <article class="page wrap ses-page">
+    <header class="page-head">
+      <p class="kicker"><a href={paths.schedule}>{w.kicker}</a></p>
+      <Badges session={s} />
+      <h1 class="page-title ses-title">{s.title}</h1>
+      {program!.sample && <p class="page-soon">{programPages.sample}</p>}
+      {program!.schedulePublic && s.start && s.end && (
+        <dl class="page-facts">
+          <div><dt>{w.time}</dt><dd>{timeRange(s.start, s.end)}</dd></div>
+          <div><dt>{w.room}</dt><dd>{s.room}</dd></div>
+          <div><dt>{w.day}</dt><dd>{programPages.dayLine}</dd></div>
+        </dl>
+      )}
+      <div class="actions ses-actions">
+        <Star session={s} words />
+        {program!.schedulePublic && <a class="btn btn--sm btn--line" href={`${paths.sessions}${s.slug}.ics`} download>{w.calendar}</a>}
+      </div>
+    </header>
+
+    <section class="page-sec" aria-labelledby="about-session">
+      <h2 id="about-session" class="page-h2">{w.about}</h2>
+      {s.abstract ? <p class="ses-abstract">{s.abstract}</p> : <p class="pg-none">{w.noAbstract}</p>}
+    </section>
+
+    <section class="page-sec" aria-labelledby="speakers">
+      <h2 id="speakers" class="page-h2">{who.length > 1 ? w.speakers : w.speaker}</h2>
+      <ul class="spk-list spk-list--rows">
+        {who.map((p) => (
+          <li class="spk-card">
+            <SpeakerPhoto speaker={p} size="sm" />
+            <div class="spk-text">
+              <a class="spk-name" href={`${paths.speakers}${p.slug}/`}>{p.name}</a>
+              {p.tagline && <span class="spk-tag">{p.tagline}</span>}
+              <Credit credit={p.credit} role="Speaker" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <p class="more"><a href={paths.schedule}>{w.back}</a></p>
+  </article>
+</Base>

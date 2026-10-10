@@ -118,7 +118,12 @@ export type CardId = keyof typeof cards;
 
 /** Draws a card as an optimized PNG (palette-quantized, so photo cards stay under 300 KB). */
 export async function renderCard(id: CardId): Promise<Buffer> {
-  const svg = await satori((await cards[id].draw()) as never, { ...CARD, fonts });
+  return renderNode(await cards[id].draw());
+}
+
+/** Draws any card node as an optimized PNG; the program's Share Cards use it too (program-cards.ts). */
+export async function renderNode(node: Node): Promise<Buffer> {
+  const svg = await satori(node as never, { ...CARD, fonts });
   const raw = new Resvg(svg, { fitTo: { mode: 'width', value: CARD.width }, font: { loadSystemFonts: false } }).render().asPng();
   return sharp(raw).png({ palette: true, quality: 90, effort: 10, compressionLevel: 9 }).toBuffer();
 }

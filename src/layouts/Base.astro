@@ -11,18 +11,23 @@ interface Props {
   description: string;
   /** The page's main element class, for page-level layout. */
   mainClass?: string;
-  /** The page's link-preview card (src/pages/cards); the title card when the page has none of its own. */
-  card?: CardId;
+  /** The page's link-preview card (src/pages/cards): a site card, or a program page's own card with its alt text;
+   *  the title card when the page has none of its own. */
+  card?: CardId | { id: string; alt: string };
+  /** The program pages' script (/schedule.js): My Schedule, the filters and Event Day's now and next. */
+  schedule?: boolean;
   /** Structured data for search engines, as a JSON-LD object (src/lib/structured-data.ts). */
   jsonLd?: object;
   /** The 404 page: no canonical address of its own (hosts serve it at many), and kept out of search results. */
   notFound?: boolean;
 }
 
-const { title, description, mainClass, card = 'default', jsonLd, notFound = false } = Astro.props;
+const { title, description, mainClass, card = 'default', jsonLd, notFound = false, schedule = false } = Astro.props;
+const cardId = typeof card === 'string' ? card : card.id;
+const cardAlt = typeof card === 'string' ? cards[card].alt : card.alt;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 // Link previews need an absolute image URL. Preview builds set CARD_ORIGIN to their own address.
-const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Astro.site);
+const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || Astro.site);
 ---
 
 <!doctype html>
@@ -40,6 +45,7 @@ const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Ast
     <meta name="theme-color" content={themeColor.dark} media="(prefers-color-scheme: dark)" data-for="dark" data-light={themeColor.light} data-dark={themeColor.dark} />
     <!-- Applies a remembered theme before the first paint. Same-origin, so the CSP needs no inline code. -->
     <script is:inline src="/theme.js"></script>
+    {schedule && <script is:inline src="/schedule.js" defer></script>}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KCD Texas" />
     <meta property="og:title" content={title} />
@@ -49,7 +55,7 @@ const cardUrl = new URL(`/cards/${card}.png`, import.meta.env.CARD_ORIGIN || Ast
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content={String(CARD.width)} />
     <meta property="og:image:height" content={String(CARD.height)} />
-    <meta property="og:image:alt" content={cards[card].alt} />
+    <meta property="og:image:alt" content={cardAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd && <script is:inline type="application/ld+json" set:html={jsonLdText(jsonLd)} />}
   </head>

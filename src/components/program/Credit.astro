@@ -1,0 +1,14 @@
+---
+// A loyalty credit (src/lib/loyalty.ts): "Speaker since 2026", "Organizer since 2026", or "Since 2026" under a
+// sponsor's logo. Nothing for a first Edition.
+import type { Credit } from '../../lib/loyalty';
+
+interface Props {
+  credit: Credit | null;
+  /** "Speaker" or "Organizer"; none for a sponsor tile. */
+  role?: string;
+}
+const { credit, role } = Astro.props;
+---
+
+{credit && <span class="credit">{role ? `${role} since ${credit.since}` : `Since ${credit.since}`}</span>}

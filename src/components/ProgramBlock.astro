@@ -6,6 +6,7 @@ import EndUserTalks from './EndUserTalks.astro';
 import { home } from '../data/home';
 import { paths } from '../data/nav';
 import { phase, programState } from '../data/edition-2027';
+import { program } from '../lib/program';
 
 const p = home.program;
 const out = programState() === 'out';
@@ -24,7 +25,7 @@ const late = !out && (phase === 'event-day' || phase === 'recap');
         {out ? (
           <>
             <a class="btn" href={paths.schedule}>{p.schedule}</a>
-            <a class="btn btn--line" href={`${paths.schedule}#speakers`}>{p.speakers}</a>
+            <a class="btn btn--line" href={program ? paths.speakers : `${paths.schedule}#speakers`}>{p.speakers}</a>
           </>
         ) : (
           <a class="btn btn--line" href={`${paths.edition2026}#program`}>{p.past}</a>

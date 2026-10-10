@@ -1,0 +1,11 @@
+---
+// A Speaker's photo. Until photos are downloaded at build time (a platform adapter), a placeholder with the
+// Speaker's initials; it's decorative, since the name is always next to it.
+import type { Speaker } from '../../lib/program';
+
+interface Props { speaker: Speaker; size?: 'sm' | 'md' | 'lg' }
+const { speaker: p, size = 'md' } = Astro.props;
+const initials = p.name.split(/\s+/).filter((w) => /^\p{L}/u.test(w)).map((w) => w[0]).slice(0, 2).join('');
+---
+
+<span class={`spk-photo spk-photo--${size}`} aria-hidden="true"><span>{initials}</span></span>

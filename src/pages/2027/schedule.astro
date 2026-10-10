@@ -6,9 +6,11 @@ import { schedule as s } from '../../data/schedule';
 import { paths } from '../../data/nav';
 import { edition2026 } from '../../data/edition-2026';
 import { phase } from '../../data/edition-2027';
+import ScheduleBoard from '../../components/program/ScheduleBoard.astro';
+import { program } from '../../lib/program';
 ---
 
-<Base title={`${s.title} · KCD Texas`} description={s.description}>
+<Base title={`${s.title} · KCD Texas`} description={s.description} schedule={Boolean(program?.schedulePublic)}>
   <article class="page wrap">
     <PageHead kicker={s.kicker} title={s.title} lead={s.lead}>
       <dl class="page-facts">
@@ -16,6 +18,17 @@ import { phase } from '../../data/edition-2027';
       </dl>
       {s.sample && <p class="page-soon">{s.sample}</p>}
     </PageHead>
+
+    {program?.schedulePublic && (
+      <section class="page-sec page-wide" aria-labelledby="sessions">
+        <h2 id="sessions" class="page-h2">{s.program.title}</h2>
+        <p class="sch-links">
+          <a class="info-link" href={paths.speakers}>{s.program.speakers}</a>
+          <a class="info-link" href="/2027/schedule.ics" download>{s.program.ics}</a>
+        </p>
+        <ScheduleBoard />
+      </section>
+    )}
 
     {phase === 'cfp' && (
       <section class="page-sec" aria-labelledby="speak">

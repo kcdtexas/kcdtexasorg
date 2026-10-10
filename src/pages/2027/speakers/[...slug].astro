@@ -1,0 +1,89 @@
+---
+// /2027/speakers/ and /2027/speakers/<slug>/: the Speakers and each Speaker's page, once a program gate is open
+// (src/lib/program.ts). One route for both, so a closed gate builds neither.
+import Base from '../../../layouts/Base.astro';
+import PageHead from '../../../components/PageHead.astro';
+import Credit from '../../../components/program/Credit.astro';
+import SpeakerPhoto from '../../../components/program/SpeakerPhoto.astro';
+import SessionItem from '../../../components/program/SessionItem.astro';
+import { paths } from '../../../data/nav';
+import { programPages } from '../../../data/program-pages';
+import { program, sessionsOf, type Speaker } from '../../../lib/program';
+import { programCard } from '../../../lib/cards/program-cards';
+
+export const getStaticPaths = () => (program
+  ? [{ params: { slug: undefined }, props: { speaker: null } }, ...program.speakers.map((p) => ({ params: { slug: p.slug }, props: { speaker: p } }))]
+  : []);
+
+const { speaker: p } = Astro.props as { speaker: Speaker | null };
+const L = programPages.speakers;
+const w = programPages.speaker;
+const card = p ? programCard('speaker', p.slug) : null;
+const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn', github: 'GitHub', bluesky: 'Bluesky', mastodon: 'Mastodon', x: 'X' };
+---
+
+{p === null ? (
+  <Base title={`${L.title} · KCD Texas`} description={L.description}>
+    <article class="page wrap">
+      <PageHead kicker={L.kicker} title={L.title} lead={L.lead(program!.speakers.length)}>
+        {program!.sample && <p class="page-soon">{programPages.sample}</p>}
+      </PageHead>
+      <section class="page-sec page-wide" aria-label={L.kicker}>
+        <ul class="spk-list">
+          {program!.speakers.map((s) => (
+            <li class="spk-card">
+              <SpeakerPhoto speaker={s} />
+              <div class="spk-text">
+                <a class="spk-name" href={`${paths.speakers}${s.slug}/`}>{s.name}</a>
+                {s.tagline && <span class="spk-tag">{s.tagline}</span>}
+                <Credit credit={s.credit} role="Speaker" />
+                <span class="spk-ses">{sessionsOf(s).map((x) => x.title).join(' · ')}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </article>
+  </Base>
+) : (
+  <Base title={`${p.name} · KCD Texas ${programPages.year}`} description={w.description(p)} card={card ?? undefined} schedule>
+    <article class="page wrap spk-page">
+      <header class="page-head spk-head">
+        <SpeakerPhoto speaker={p} size="lg" />
+        <div>
+          <p class="kicker"><a href={paths.speakers}>{w.kicker}</a></p>
+          <h1 class="page-title">{p.name}</h1>
+          {p.tagline && <p class="lead spk-tagline">{p.tagline}</p>}
+          <Credit credit={p.credit} role="Speaker" />
+        </div>
+      </header>
+      {program!.sample && <p class="page-soon">{programPages.sample}</p>}
+
+      <section class="page-sec" aria-labelledby="sessions">
+        <h2 id="sessions" class="page-h2">{w.sessions}</h2>
+        <ul class="sch-items sch-items--list">
+          {sessionsOf(p).map((s) => <SessionItem session={s} />)}
+        </ul>
+      </section>
+
+      <section class="page-sec" aria-labelledby="about-speaker">
+        <h2 id="about-speaker" class="page-h2">{w.about}</h2>
+        {p.bio ? <p>{p.bio}</p> : <p class="pg-none">{w.noBio}</p>}
+        {p.links.length > 0 && (
+          <ul class="spk-links" aria-label={w.links}>
+            {p.links.map((l) => <li><a href={l.url}>{linkName[l.kind]}</a></li>)}
+          </ul>
+        )}
+      </section>
+
+      {card && (
+        <section class="page-sec" aria-labelledby="card">
+          <h2 id="card" class="page-h2">{w.card}</h2>
+          <p><a href={`/cards/${card.id}.png`} download>{w.cardText}</a></p>
+        </section>
+      )}
+
+      <p class="more"><a href={paths.speakers}>{w.all}</a></p>
+    </article>
+  </Base>
+)}
