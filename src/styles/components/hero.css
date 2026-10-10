@@ -3,7 +3,8 @@
   .hero { padding-top: 18px; }
   .hero-grid { container-type: inline-size; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); }
   .hero-top, .title, .bill27, .band { grid-column: 1 / -1; }
-  .hero-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; }
+  /* Above the title: the title's tall letters reach up past its box, and would take the eyebrow link's clicks. */
+  .hero-top { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; }
   .eyebrow { font-weight: 700; font-size: 15px; line-height: 1.2; }
   .eyebrow a { color: var(--fg); text-decoration-color: currentColor; text-underline-offset: 0.25em; }
 
@@ -30,8 +31,8 @@
   /* The end-user link: the bill's type in ink with a magenta underline, no box; magenta on hover. The filled
      Sponsor door leads the hero. */
   .eu-link { display: inline-flex; align-items: center; gap: 0.3em; color: var(--fg); font-stretch: 62%; font-weight: 900; line-height: 1; text-decoration: none; white-space: nowrap; transition: color 0.15s; }
-  .eu-label { text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 0.07em; text-underline-offset: 0.12em; text-decoration-skip-ink: none; }
   a.eu-link { padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); }
+  .eu-label { text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 0.07em; text-underline-offset: 0.12em; text-decoration-skip-ink: none; }
   .eu-link:hover { color: var(--action); }
   .eu-link:hover .eu-label { text-decoration-color: var(--action); }
   /* Event Day and the Recap: one statement, no notes, filling the measure at every width. */

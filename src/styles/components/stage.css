@@ -97,7 +97,7 @@
     .bl-more[open] summary::after { content: "−"; }
     .bl-more .bl-n { margin-top: 18px; }
     .bl-more .bl-hosts li { font-size: calc(99.5cqi / var(--em)); }
-    .slot--end { margin-top: 20px; padding: 12px 10px; font-size: calc((100vw - 2 * var(--pad) - 28px) / 14); }
+    .slot--end { margin-top: 20px; padding: 12px 10px; font-size: max(18.7px, calc((100vw - 2 * var(--pad) - 28px) / 14)); }
     .as-printed { margin-top: 16px; }
   }
 }
