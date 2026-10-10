@@ -71,7 +71,6 @@
     .sch-item .sch-room { font-weight: 700; color: var(--fg); }
     .sch-item .sch-time { font-weight: 400; color: var(--muted); }
     .sch-break { margin-bottom: 8px; }
-    .sch-items--list .sch-item { grid-template-columns: 200px minmax(0, 1fr); }
   }
 
   /* The Speakers. The photo's place holds the initials until photos are downloaded at build time. */

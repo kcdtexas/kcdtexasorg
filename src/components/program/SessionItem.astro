@@ -10,17 +10,15 @@ interface Props {
   session: Session;
   /** The heading level of the title. */
   level?: 'h2' | 'h3' | 'h4';
-  /** Extra classes, such as the grid column. */
-  class?: string;
   /** Leave out the Speakers (on a Speaker's own page). */
   noSpeakers?: boolean;
 }
-const { session: s, level: H = 'h3', class: cls, noSpeakers = false } = Astro.props;
+const { session: s, level: H = 'h3', noSpeakers = false } = Astro.props;
 const who = speakersOf(s);
 const url = `${paths.sessions}${s.slug}/`;
 ---
 
-<li class:list={['sch-item', cls]} data-id={s.id} data-format={s.format} data-room={s.room ?? ''} data-eu={s.endUser ? '1' : '0'} data-start={s.start ?? ''} data-end={s.end ?? ''} data-url={url}>
+<li class="sch-item" data-id={s.id} data-format={s.format} data-room={s.room ?? ''} data-eu={s.endUser ? '1' : '0'} data-start={s.start ?? ''} data-end={s.end ?? ''} data-url={url}>
   <Badges session={s} />
   <H class="sch-title"><a href={url}>{s.title}</a></H>
   {!noSpeakers && <p class="sch-who">{who.map((p, i) => <>{i > 0 && ', '}<a href={`${paths.speakers}${p.slug}/`}>{p.name}</a></>)}</p>}
