@@ -64,6 +64,10 @@ _Avoid_: Case study (vendor case studies are marketing), customer story
 A person presenting in one Edition's program. The same person speaking in two Editions counts as two Speakers.
 _Avoid_: Presenter, talent
 
+**Returning Speaker**:
+A Speaker who also spoke at an earlier KCD Texas Edition. The site credits them as "Speaker since" their first Edition, matched by name against the earlier Editions' public programs and confirmed by a short list for name variants. Hosts count only if they spoke.
+_Avoid_: Repeat speaker, alumni speaker
+
 **Schedule**:
 An Edition's Sessions placed into time slots and rooms. It is published during Countdown.
 _Avoid_: Agenda (CNCF's word for the same thing), grid, timetable
