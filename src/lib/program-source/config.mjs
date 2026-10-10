@@ -1,4 +1,5 @@
-// The program platform settings, in one place, for src/lib/program.ts and the scripts.
+// The program platform settings, in one place. src/lib/program.ts (the build) and scripts/program-check.mjs (the
+// refresh workflow) both read them, so the published program version and the check's always agree.
 //
 // The Sessionize names are the ones the Call for Speakers and the API endpoint use (docs/program-csv.md has the
 // CSV's). Change a name here when the Session Committee names a category or a question differently.
@@ -32,3 +33,6 @@ export const no = ['no', 'n', 'false', '0', 'off', 'none', ''];
 /** Speaker photos: the two sizes the pages use, square, as WebP. */
 export const photoSizes = { small: 160, large: 400 };
 export const photoQuality = 72;
+
+/** The program version the live site publishes, compared by scripts/program-check.mjs. */
+export const liveVersionUrl = 'https://kcdtexas.org/2027/program-version.txt';

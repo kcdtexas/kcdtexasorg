@@ -1,23 +1,25 @@
-// The program platform's tests (src/lib/program-source/), with no real network: a local HTTP server stands in
-// for Sessionize, the photo host and the CSV's address.
+// The program platform's tests (src/lib/program-source/, scripts/program-check.mjs), with no real network: a local
+// HTTP server stands in for Sessionize, the photo host, the CSV's address and the live site.
 //   1. The Sessionize adapter on tests/fixtures/sessionize-all.json, each quirk, Central time across DST, the
-//      validation failures and the allowlist (the planted marker never reaches the model).
+//      validation failures, the allowlist (the planted marker never reaches the model) and the program version.
 //   2. The CSV fallback on tests/fixtures/program.csv.
 //   3. The rules: which builds read the platform, the redaction of the endpoint ID and the CSV address in every
 //      error, the test-only addresses refused on Netlify and in GitHub Actions, and the photos.
-//   4. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
+//   4. scripts/program-check.mjs.
+//   5. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
 //      run and restored after: production from the local Sessionize and the CSV, a deploy preview (the test data,
 //      no request), production with no variable, and production with a failing platform.
 // Usage: node tests/program-adapter.mjs [--no-builds]
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/central.mjs';
 import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
-import { publicProgram } from '../src/lib/program-source/model.mjs';
+import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
 import { fetchable, redact, sessionizeBase } from '../src/lib/program-source/remote.mjs';
@@ -41,7 +43,7 @@ const closed = { speakersPublic: false, schedulePublic: false };
 const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
 
 // The local stand-in for every remote address.
-const state = { mode: 'ok', fixture: fixtureText, requests: [] };
+const state = { mode: 'ok', fixture: fixtureText, live: null, requests: [] };
 const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
 const server = createServer((req, res) => {
   state.requests.push(req.url);
@@ -57,6 +59,7 @@ const server = createServer((req, res) => {
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
   if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
   if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
+  if (req.url === '/live/program-version.txt' && state.live !== null) return send(200, 'text/plain', state.live);
   return send(404, 'text/plain', 'not found');
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -65,6 +68,8 @@ const testEnv = { KCD_PROGRAM_TEST_BASE: `${origin}/api/v2` };
 const prodSessionize = { ...testEnv, CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID };
 const prodCsv = { CONTEXT: 'production', PROGRAM_CSV_URL: `${origin}/sheets/${CSV_SECRET}/program.csv` };
 const fixture = () => JSON.parse(fixtureText);
+// scripts/program-check.mjs writes its GITHUB_OUTPUT here.
+const outDir = mkdtempSync(join(tmpdir(), 'kcd-program-check-'));
 
 /** A child process, run without blocking the local server. */
 function run(cmd, args, env) {
@@ -135,6 +140,22 @@ try {
   const early = publicProgram(raw, { schedulePublic: false });
   expect(early.sessions.every((s) => s.start === null && s.end === null && s.room === null) && !early.rooms.length && !early.breaks.length, 'speakersPublic alone keeps times, rooms or breaks');
   expect(!JSON.stringify(early).includes(marker), 'the planted marker reaches the speakersPublic model');
+
+  // The program version: stable, sorted, and blind to dropped fields.
+  const v = programVersion(model);
+  expect(/^[0-9a-f]{64}$/.test(v) && v === programVersion(publicProgram(adaptSessionize(fixture()), { schedulePublic: true })), 'the program version is not a stable SHA-256');
+  const shuffled = fixture();
+  shuffled.sessions.reverse(); shuffled.speakers.reverse(); shuffled.categories.reverse();
+  expect(programVersion(publicProgram(adaptSessionize(shuffled), { schedulePublic: true })) === v, 'the program version depends on the platform\'s order');
+  const otherMarker = JSON.parse(fixtureText.replaceAll(marker, 'another-dropped-value'));
+  expect(programVersion(publicProgram(adaptSessionize(otherMarker), { schedulePublic: true })) === v, 'a dropped field changes the program version');
+  const retitled = fixture();
+  retitled.sessions[1].title += ' (updated)';
+  expect(programVersion(publicProgram(adaptSessionize(retitled), { schedulePublic: true })) !== v, 'a new title keeps the program version');
+  const moved = fixture();
+  moved.sessions[0].roomId = 102;
+  expect(programVersion(publicProgram(adaptSessionize(moved), { schedulePublic: true })) !== v, 'a room change keeps the program version');
+  expect(programVersion(early) !== v, 'the gates do not change the program version');
 
   // Central time, across daylight saving time (2027: Mar 14 and Nov 7).
   expect(toCentral('2027-04-23T09:15:00') === '2027-04-23T09:15' && toCentral('2027-04-23 09:15') === '2027-04-23T09:15', 'an event-local time is not kept');
@@ -250,13 +271,52 @@ try {
   await rejects(() => downloadPhoto(`${origin}/photos/broken.jpg`, 'Speaker 4', {}), (m) => /could not be read/.test(m), 'a broken photo');
   await rejects(() => downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 5', { NETLIFY: 'true' }), (m) => /must be https/.test(m), 'a plain-http photo on Netlify');
 
-  // 4. Full builds with a gate open.
+  // 4. scripts/program-check.mjs.
+  const out = join(outDir, 'output');
+  const check = (env) => { writeFileSync(out, ''); return run(process.execPath, ['scripts/program-check.mjs'], { ...env, GITHUB_OUTPUT: out }); };
+  const checkEnv = { ...testEnv, SESSIONIZE_ENDPOINT_ID: ID, KCD_PROGRAM_LIVE_URL: `${origin}/live/program-version.txt` };
+  let res = await run(process.execPath, ['scripts/program-check.mjs', '--gates'], {});
+  expect(res.status === 0 && res.out === 'closed\n', `--gates with the gates closed prints ${JSON.stringify(res.out)}`);
+  state.requests.length = 0;
+  res = await check(checkEnv);
+  expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\n' && state.requests.length === 0, `closed gates: ${JSON.stringify(res.out)}, ${state.requests.length} requests`);
+  await withGates(both, async () => {
+    res = await run(process.execPath, ['scripts/program-check.mjs', '--gates'], {});
+    expect(res.out === 'open\n', `--gates with a gate open prints ${JSON.stringify(res.out)}`);
+    state.live = null;
+    res = await check(checkEnv);
+    expect(res.status === 0 && res.out === 'changed\n' && readFileSync(out, 'utf8') === 'changed=true\n', `no live file: ${JSON.stringify(res.out)} ${res.err}`);
+    state.live = `${viaServer.version}\n`;
+    res = await check(checkEnv);
+    expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\n', `the same program: ${JSON.stringify(res.out)} ${res.err}`);
+    state.fixture = fixtureText.replaceAll(marker, 'another-dropped-value');
+    res = await check(checkEnv);
+    expect(res.out === 'unchanged\n', 'a dropped field counts as a change');
+    state.fixture = fixtureText.replace('Opening the Made-Up Day', 'Opening the Made-Up Day, Updated');
+    res = await check(checkEnv);
+    expect(res.out === 'changed\n', 'a new title does not count as a change');
+    state.fixture = fixtureText;
+    res = await check({ ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+    expect(res.status === 0 && res.out === 'changed\n', `the CSV check: ${JSON.stringify(res.out)} ${res.err}`);
+    for (const [label, env, pattern] of [
+      ['no variable', { ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined }, /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL/],
+      ['a failing platform', checkEnv, /HTTP 500/],
+      ['GitHub Actions with a test address', { ...checkEnv, GITHUB_ACTIONS: 'true' }, /refused on Netlify and in GitHub Actions/],
+    ]) {
+      state.mode = label === 'a failing platform' ? '500' : 'ok';
+      res = await check(env);
+      expect(res.status === 1 && res.out === '' && readFileSync(out, 'utf8') === '' && pattern.test(res.err) && !res.err.includes(ID), `program-check with ${label}: exit ${res.status}, stdout ${JSON.stringify(res.out)}, stderr ${res.err.trim()}`);
+    }
+    state.mode = 'ok';
+  });
+
+  // 5. Full builds with a gate open.
   if (!process.argv.includes('--no-builds')) {
     const build = (env, flags = []) => run('bash', ['scripts/build.sh', '--skip-install', ...flags], env);
     const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
     const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
     await withGates(both, async () => {
-      // Production, from the local Sessionize: the pages, the photos, and nothing dropped.
+      // Production, from the local Sessionize: the pages, the photos, the version, and nothing dropped.
       state.requests.length = 0;
       let b = await build(prodSessionize);
       expect(b.status === 0, `the production build from Sessionize fails:\n${b.log.slice(-2500)}`);
@@ -282,6 +342,8 @@ try {
         expect(guard.status === 1 && /an image from another host: https:\/\/cdn\.sessionize\.example\/fx\.jpg/.test(guard.log) && /loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.png/.test(guard.log), `check-dist passes an external image:\n${guard.log.slice(-800)}`);
         writeFileSync('dist/2027/speakers/fixture-person-a/index.html', pageBefore);
         writeFileSync(css, cssBefore);
+        // The published program version is the one scripts/program-check.mjs computes from the platform.
+        expect(readFileSync('dist/2027/program-version.txt', 'utf8') === `${viaServer.version}\n`, 'the published program version is not the platform\'s');
         expect(!/\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')), 'the production Schedule says "Sample"');
         for (const f of served()) {
           const body = readFileSync(f, 'utf8');
@@ -309,13 +371,14 @@ try {
       expect(b.status !== 0 && /HTTP 500/.test(b.log) && !b.log.includes(ID), `production with a failing platform doesn't fail, or prints the ID:\n${b.log.slice(-1500)}`);
       state.mode = 'ok';
     });
-    // The gates closed again: a normal build.
+    // The gates closed again: a normal build, with no program version.
     const b = await build({});
-    expect(b.status === 0 && !existsSync('dist/2027/speakers'), `the normal build fails, or builds Speaker pages:\n${b.log.slice(-1500)}`);
+    expect(b.status === 0 && !existsSync('dist/2027/program-version.txt') && !existsSync('dist/2027/speakers'), `the normal build fails, or publishes a program version or Speaker files:\n${b.log.slice(-1500)}`);
   }
 } finally {
   restore();
   server.close();
+  rmSync(outDir, { recursive: true, force: true });
 }
 
 if (failures.length) {

@@ -1,7 +1,11 @@
-// The program allowlist. A source (the test data, Sessionize, the CSV) hands over raw records; publicProgram() copies only
-// the public fields, so anything else a platform sends (emails, phone numbers, review notes, the planted marker)
-// never reaches the model. The gates apply here too: with only speakersPublic open, the times, rooms and breaks
-// are dropped.
+// The program allowlist and the program version. A source (the test data, Sessionize, the CSV) hands over raw
+// records; publicProgram() copies only the public fields, so anything else a platform sends (emails, phone
+// numbers, review notes, the planted marker) never reaches the model. The gates apply here too: with only
+// speakersPublic open, the times, rooms and breaks are dropped.
+//
+// programVersion() hashes that public model, sorted, so the build (/2027/program-version.txt) and
+// scripts/program-check.mjs get the same value from the same data, and a new value means the pages change.
+import { createHash } from 'node:crypto';
 
 export const FORMATS = /** @type {const} */ (['keynote', 'talk', 'workshop', 'panel']);
 export const LINK_KINDS = /** @type {const} */ (['site', 'linkedin', 'github', 'bluesky', 'mastodon', 'x']);
@@ -84,4 +88,27 @@ export function publicProgram(src, { schedulePublic, photoAllowed = isHttps }) {
     rooms: schedulePublic ? src.rooms.map(String).filter((r) => sessions.some((s) => s.room === r)) : [],
     breaks: schedulePublic ? src.breaks.map(allowBreak) : [],
   };
+}
+
+/** JSON with sorted keys, so equal models give equal text. */
+function canonical(value) {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonical(value[k])}`).join(',')}}`;
+  return JSON.stringify(value ?? null);
+}
+
+/**
+ * The program version: a SHA-256 of the public model, with Sessions, Speakers and breaks sorted.
+ * @param {PublicProgram} model
+ */
+export function programVersion(model) {
+  const by = (key) => (a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
+  const sorted = {
+    format: 1,
+    sessions: [...model.sessions].sort(by((s) => s.id)),
+    speakers: [...model.speakers].sort(by((s) => s.id)),
+    rooms: model.rooms,
+    breaks: [...model.breaks].sort(by((b) => `${b.start} ${b.end} ${b.room ?? ''} ${b.title}`)),
+  };
+  return createHash('sha256').update(canonical(sorted)).digest('hex');
 }

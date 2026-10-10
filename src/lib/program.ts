@@ -10,7 +10,8 @@
 // moved to the 2027 Event Day, plus the made-up fixture (src/data/program-fixture.ts). The pages label it "Sample".
 // Real data comes from Sessionize or the CSV fallback (src/lib/program-source/), read only in a production build
 // (CONTEXT=production) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
-// Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007).
+// Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007), and the
+// public model's hash is published at /2027/program-version.txt for the refresh check (scripts/program-check.mjs).
 import { edition2026 } from '../data/edition-2026';
 import { edition2027, programDataSample } from '../data/edition-2027';
 import { home } from '../data/home';
@@ -164,10 +165,10 @@ async function source(): Promise<Source> {
   return { ...raw, edition: () => edition2027.year };
 }
 
-interface Built { program: Program; photos: Map<string, { small: Buffer; large: Buffer }> }
+interface Built { program: Program; version: string; photos: Map<string, { small: Buffer; large: Buffer }> }
 
 async function build(src: Source, open: { speakersPublic: boolean; schedulePublic: boolean }): Promise<Built> {
-  const { model } = publicModel(src, open, env);
+  const { model, version } = publicModel(src, open, env);
   const sessions = model.sessions.map((s) => ({ ...s, format: s.format as Format }));
   const order = (s: Omit<Session, 'slug'>) => `${s.start ?? ''} ${String(model.rooms.indexOf(s.room ?? '')).padStart(3, '0')} ${s.title}`;
   sessions.sort((a, b) => order(a).localeCompare(order(b)));
@@ -183,6 +184,7 @@ async function build(src: Source, open: { speakersPublic: boolean; schedulePubli
   // The photos, downloaded and resized now; a Speaker without one keeps the placeholder.
   const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: `Speaker ${i + 1} (${s.id})` }] : [])), env);
   return {
+    version,
     photos,
     program: {
       sample: programDataSample,
@@ -204,6 +206,8 @@ const built = gates.speakersPublic || gates.schedulePublic ? await build(await s
 
 /** The program, or null while both gates are closed. */
 export const program: Program | null = built?.program ?? null;
+/** The public model's hash, published at /2027/program-version.txt while a gate is open; null while both are closed. */
+export const programVersion: string | null = built?.version ?? null;
 /** The Speaker photos as WebP, by Speaker slug, for src/pages/2027/speakers/[photo].webp.ts. */
 export const speakerPhotos: ReadonlyMap<string, { small: Buffer; large: Buffer }> = built?.photos ?? new Map();
 

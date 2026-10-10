@@ -7,7 +7,7 @@
 //   - a failed fetch or data that doesn't validate fails the build, so the host keeps the last good deploy.
 // Every error message is redacted: it names the variables, never their values.
 import { adaptCsv } from './csv.mjs';
-import { publicProgram } from './model.mjs';
+import { publicProgram, programVersion } from './model.mjs';
 import { fetchable, fetchBytes, ProgramSourceError, redact, sessionizeBase } from './remote.mjs';
 import { adaptSessionize } from './sessionize.mjs';
 
@@ -64,14 +64,15 @@ export async function readPlatform(choice, env) {
 }
 
 /**
- * The public model from raw records, with the gates applied.
+ * The public model and its version from raw records, with the gates applied.
  * @param {Parameters<typeof publicProgram>[0]} src
  * @param {Gates} gates
  * @param {Record<string, string | undefined>} env
  */
 export function publicModel(src, gates, env) {
   try {
-    return { model: publicProgram(src, { schedulePublic: gates.schedulePublic, photoAllowed: (url) => fetchable(url, env) }) };
+    const model = publicProgram(src, { schedulePublic: gates.schedulePublic, photoAllowed: (url) => fetchable(url, env) });
+    return { model, version: programVersion(model) };
   } catch (e) {
     throw new ProgramSourceError(`The program data is not valid: ${e instanceof Error ? e.message : String(e)}`, env);
   }

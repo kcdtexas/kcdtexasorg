@@ -68,8 +68,8 @@ async function serve() {
 }
 
 try {
-  // 0. The program platform: the Sessionize adapter and the build rules, against a local stand-in
-  // (tests/program-adapter.mjs).
+  // 0. The program platform: the Sessionize adapter, the CSV fallback, the build rules, the photos and the
+  // refresh check, against local stand-ins (tests/program-adapter.mjs).
   const adapter = spawnSync(process.execPath, ['tests/program-adapter.mjs'], { encoding: 'utf8' });
   process.stdout.write(adapter.stdout);
   expect(adapter.status === 0, `tests/program-adapter.mjs fails:\n${adapter.stderr.slice(-3000)}`);
@@ -133,6 +133,8 @@ try {
     expect(existsSync(join('dist/2027/sessions', `${slug}.ics`)), `no calendar file for ${slug}`);
   }
   checkIcs(`${sessionPages[0]}.ics`, read(`2027/sessions/${sessionPages[0]}.ics`), 1);
+  // The program version, published while a gate is open.
+  expect(/^[0-9a-f]{64}\n$/.test(read('2027/program-version.txt')), 'the sample build lacks /2027/program-version.txt');
   // The sitemap lists the program pages while a gate is open.
   const sitemap = read('sitemap.xml');
   expect(/\/2027\/speakers\/<\/loc>/.test(sitemap) && /\/2027\/sessions\//.test(sitemap) && /\/2027\/today\/<\/loc>/.test(sitemap), 'the sitemap misses the program pages');
@@ -285,7 +287,7 @@ try {
   const closed = build([]);
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
-  for (const p of ['2027/speakers', '2027/sessions', '2027/today', '2027/schedule.ics']) expect(!existsSync(join('dist', p)), `a closed gate still builds ${p}`);
+  for (const p of ['2027/speakers', '2027/sessions', '2027/today', '2027/schedule.ics', '2027/program-version.txt']) expect(!existsSync(join('dist', p)), `a closed gate still builds ${p}`);
   expect(!existsSync('dist/.test-build'), 'a normal build carries the test-build marker');
   expect(!readdirSync('dist/cards').some((n) => /^(?:session|speaker)-/.test(n)), 'a closed gate still draws program cards');
   expect(!walk('dist').some((f) => f.endsWith('.html') && /schedule\.js/.test(readFileSync(f, 'utf8'))), 'a page loads /schedule.js with the gates closed');
