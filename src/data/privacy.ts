@@ -1,6 +1,7 @@
 // The privacy page's words (Maintainer). The analytics section follows the same setting as the
 // footer's privacy line, so the page never says more or less than the site does (ADR 0007). The same goes for My
-// Schedule and the offline copy: their lines show only while the program pages have them.
+// Schedule and the offline copy: their lines show only while the program pages have them. From the day after Event
+// Day, when the offline worker deletes its copy and removes itself (src/scripts/sw.js), the offline line says so.
 import { analytics, contact } from './site';
 import { offlineCopy, program } from '../lib/program';
 
@@ -29,8 +30,12 @@ export const privacy = {
       text: [
         'If you press the light or dark theme switch, your browser keeps that choice in its local storage, so the next page opens in the same theme. If you never press it, nothing is stored. If you switch back to your device’s own setting, the stored choice is removed.',
         'The choice stays in your browser. It isn’t sent to us.',
-        ...(program ? ['If you star a Session for My Schedule, the list is kept only in this browser. It’s never sent to us.'] : []),
-        ...(offlineCopy ? ['When you open the program or Event Day pages, your browser keeps a copy so they still open without a connection. The copy stays in your browser. It’s removed the next time you open a 2027 page after Event Day.'] : []),
+        ...(program ? ['If you star a Session, your browser keeps My Schedule in its local storage, on this device only. It isn’t sent to us.'] : []),
+        ...(offlineCopy
+          ? ['When you open a program page, such as the Schedule or a Session, your browser keeps a copy so it opens without a connection. The copy stays in your browser. After Event Day, your browser deletes it the next time you open a 2027 page.']
+          : program
+            ? ['Until Event Day, your browser kept a copy of the program pages you opened. It deletes the copy the next time you open a 2027 page.']
+            : []),
       ],
     },
     {

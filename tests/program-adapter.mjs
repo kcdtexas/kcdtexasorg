@@ -487,6 +487,20 @@ try {
         && !existsSync('dist/2027/today') && !existsSync('dist/2027/schedule.ics') && !/data-schedule/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')),
       `the deploy preview with only speakersPublic open does not use the speakers-only test data:\n${b.log.slice(-1500)}`);
     });
+
+    // The privacy page's lines while the program pages exist (test builds on the test data): where My Schedule is
+    // kept, and the offline copy, through Event Day and from the day after, when the offline worker deletes it.
+    await withGates(both, async () => {
+      for (const [day, offline, gone] of [
+        ['2027-04-23', 'When you open a program page, such as the Schedule or a Session, your browser keeps a copy so it opens without a connection. The copy stays in your browser. After Event Day, your browser deletes it the next time you open a 2027 page.', 'Until Event Day'],
+        ['2027-04-24', 'Until Event Day, your browser kept a copy of the program pages you opened. It deletes the copy the next time you open a 2027 page.', 'without a connection'],
+      ]) {
+        const b = await build({}, ['--now', day]);
+        const privacy = b.status === 0 ? readFileSync('dist/privacy/index.html', 'utf8') : '';
+        expect(privacy.includes('If you star a Session, your browser keeps My Schedule in its local storage, on this device only. It isn’t sent to us.') && privacy.includes(offline) && !privacy.includes(gone),
+          `on ${day}, the privacy page lacks the My Schedule line or the right offline line${b.status === 0 ? '' : `:\n${b.log.slice(-1500)}`}`);
+      }
+    });
     // The gates closed again: a normal build, with no program version.
     const b = await build({});
     expect(b.status === 0 && !existsSync('dist/2027/program-version.txt') && !existsSync('dist/2027/speakers'), `the normal build fails, or publishes a program version or Speaker files:\n${b.log.slice(-1500)}`);
