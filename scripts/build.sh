@@ -2,7 +2,7 @@
 # Builds kcdtexas.org. The same script runs locally and in CI.
 #
 # Usage: scripts/build.sh [--zip] [--serve] [--skip-install] [--now YYYY-MM-DD] [--tickets-day YYYY-MM-DD]
-#                         [--program-public] [--sponsors-sample]
+#                         [--program-public] [--sponsors-sample] [--program-sample] [--clock HH:MM]
 #   --zip           also write out/kcdtexas-<commit>.zip (for Cloudflare Pages
 #                   dashboard uploads; Netlify drag-and-drop takes the dist/ folder)
 #   --serve         preview the built site at http://127.0.0.1:4321
@@ -16,6 +16,11 @@
 #                   the pages say "Sample". Never in production.
 #   --sponsors-sample  fill the 2027 wall with plain "Sample" tiles, no logos or names. Never in
 #                   production, and never deployed.
+#   --program-sample  open the program gates on test data: the 2026 Schedule and the made-up fixture
+#                   (src/lib/program.ts). The program pages, the Event Day page and the loyalty credits
+#                   say "Sample". Never in production, and never deployed.
+#   --clock HH:MM   the time of day the build describes (Central), with --now, for the Event Day page's
+#                   "Updated" stamp and its now and next. Never in production.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -27,7 +32,7 @@ zip=false
 serve=false
 install=true
 # The build day and the samples come only from the flags, never from inherited variables.
-unset KCD_BUILD_DAY KCD_TICKETS_DAY KCD_PROGRAM_PUBLIC KCD_SPONSORS_SAMPLE
+unset KCD_BUILD_DAY KCD_BUILD_CLOCK KCD_TICKETS_DAY KCD_PROGRAM_PUBLIC KCD_SPONSORS_SAMPLE KCD_PROGRAM_SAMPLE
 production() { [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; }
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -53,6 +58,13 @@ while [ $# -gt 0 ]; do
     --sponsors-sample)
       if production; then echo "--sponsors-sample is not allowed in a production build" >&2; exit 2; fi
       export KCD_SPONSORS_SAMPLE=1 ;;
+    --program-sample)
+      if production; then echo "--program-sample is not allowed in a production build" >&2; exit 2; fi
+      export KCD_PROGRAM_SAMPLE=1 ;;
+    --clock)
+      [[ "${2:-}" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || { echo "--clock needs a time as HH:MM" >&2; exit 2; }
+      if production; then echo "--clock is not allowed in a production build" >&2; exit 2; fi
+      export KCD_BUILD_CLOCK="$2"; shift ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -71,6 +83,9 @@ if [ -n "${KCD_PROGRAM_PUBLIC:-}" ]; then
 fi
 if [ -n "${KCD_SPONSORS_SAMPLE:-}" ]; then
   echo "Building with sample 2027 sponsor tiles. Test builds only; never deploy this build."
+fi
+if [ -n "${KCD_PROGRAM_SAMPLE:-}" ]; then
+  echo "Building with the sample program (the 2026 Schedule and the fixture). Test builds only; never deploy this build."
 fi
 
 step "Checking Node.js (needs 22.12 or newer)"

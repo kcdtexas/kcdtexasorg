@@ -3,7 +3,7 @@ import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
 import { cfpPath, paths } from './nav';
 import { sponsors2027 } from './sponsors-2027';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, managerLetterLine, phase, programSample, programState, programStatus, shortDate, shortDateYear, sponsorAsk, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, managerLetterLine, phase, programDataSample, programSample, programState, programStatus, shortDate, shortDateYear, sponsorAsk, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -170,7 +170,7 @@ export const home = {
     speakers: 'Meet the Speakers',
     past: 'See the 2026 program',
     // build.sh --program-public: the gate is open but this build has no program data.
-    sample: programSample ? 'Sample: this test build has no program data.' : '',
+    sample: programDataSample ? 'Sample: this test build shows the 2026 Schedule and made-up Sessions, not the 2027 program.' : programSample ? 'Sample: this test build has no program data.' : '',
     talksTitle: 'End-User talks from 2026',
   },
 

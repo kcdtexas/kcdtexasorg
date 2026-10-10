@@ -36,9 +36,11 @@ export const DRAFT_MARKERS = [
   { name: '[TBD', pattern: /\[TBD/ },
   { name: 'TODO', pattern: /\bTODO\b/ },
   { name: '{placeholder}', pattern: /\{[A-Za-z_][\w.]*\}/ },
-  // A sample (build.sh --tickets-day, --program-public, --sponsors-sample) must never reach a real deploy:
-  // the pages label every sample "Sample".
-  ...(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
+  // A sample (build.sh --tickets-day, --program-public, --sponsors-sample, --program-sample) must never reach a
+  // real deploy: the pages label every sample "Sample".
+  ...(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
+  // The test program's made-up names never reach a build without the program sample (src/data/program-fixture.ts).
+  ...(process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Fixture', pattern: /\bFixture (?:Speaker|Session)\b/ }]),
 ];
 export const findDraftMarkers = (html) =>
   DRAFT_MARKERS.flatMap(({ name, pattern }) => {
@@ -75,8 +77,9 @@ function check() {
     if (!served) failures.push(`Short Link ${from} is not served`);
   }
 
-  // Zero data: no scripts except /theme.js (the remembered theme) and, on the key dates, /now.js (today's date),
-  // no inline styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
+  // Zero data: no scripts except /theme.js (the remembered theme), on the key dates /now.js (today's date), and on
+  // the program pages /schedule.js (My Schedule, the filters, Event Day's now and next), no inline styles, nothing
+  // loaded from another host. The one other <script> allowed is a JSON-LD data block
   // (type="application/ld+json"): browsers never run it, it holds only JSON, and only the home page has one.
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -94,10 +97,13 @@ function check() {
       if (m[1].includes('<')) failures.push(`${file}: the JSON-LD block contains an unescaped "<"`);
     }
     if (data.length && file !== join(DIST, 'index.html')) failures.push(`${file}: a JSON-LD block outside the home page`);
-    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer)><\/script>$/;
-    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || scripts.filter((m) => /now\.js/.test(m[0])).length > 1) {
-      failures.push(`${file}: scripts other than /theme.js first and /now.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
+    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer|schedule\.js" defer)><\/script>$/;
+    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || scripts.filter((m) => /now\.js/.test(m[0])).length > 1 || scripts.filter((m) => /schedule\.js/.test(m[0])).length > 1) {
+      failures.push(`${file}: scripts other than /theme.js first, /now.js once and /schedule.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
     }
+    // /schedule.js only where the program is: the Schedule with its gate open, Session pages, Speaker pages, Event Day.
+    const programPage = /[\\/]2027[\\/](?:sessions|speakers|today)[\\/]/.test(file) || /data-schedule/.test(html);
+    if (scripts.some((m) => /schedule\.js/.test(m[0])) && !programPage) failures.push(`${file}: loads /schedule.js outside the program pages`);
     if (/\sstyle="/i.test(html)) failures.push(`${file}: contains an inline style attribute`);
     // Plain <a href> links to other sites are fine; loading anything from them is not.
     for (const m of html.matchAll(/\s(?:src|srcset)="(https?:\/\/[^"]+)"/gi)) {
@@ -112,6 +118,14 @@ function check() {
       if (/rel="canonical"/.test(html)) failures.push(`${file}: the 404 page has a canonical link`);
       if (!/<meta name="robots" content="noindex">/.test(html)) failures.push(`${file}: the 404 page lacks noindex`);
     } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
+  }
+
+  // The planted marker (src/data/program-fixture.ts) sits in a field the program allowlist drops (ADR 0009): it
+  // must never reach any file the site serves, in any build, sample or not.
+  const marker = readFileSync('src/data/program-fixture.ts', 'utf8').match(/plantedMarker = '([^']+)'/)?.[1];
+  if (!marker) failures.push('src/data/program-fixture.ts has no plantedMarker');
+  else for (const file of walk(DIST)) {
+    if (/\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(file) && readFileSync(file, 'utf8').includes(marker)) failures.push(`${file}: contains the planted marker`);
   }
 
   // The sitemap lists every page except the 404 page, at absolute kcdtexas.org addresses, and robots.txt names it.
@@ -138,12 +152,14 @@ function check() {
   for (const { file, html } of pages) {
     const image = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
     if (!image) failures.push(`${file}: no og:image`);
-    else if (!/^https:\/\/[^/]+\/cards\/[a-z-]+\.png$/.test(image)) failures.push(`${file}: og:image is not an absolute card URL: ${image}`);
+    else if (!/^https:\/\/[^/]+\/cards\/[a-z0-9-]+\.png$/.test(image)) failures.push(`${file}: og:image is not an absolute card URL: ${image}`);
   }
 
   // The theme script runs before the first paint, so it stays tiny.
   if (existsSync(join(DIST, 'theme.js')) && statSync(join(DIST, 'theme.js')).size >= 1024) failures.push('theme.js is 1 KB or larger');
   if (existsSync(join(DIST, 'now.js')) && statSync(join(DIST, 'now.js')).size >= 1024) failures.push('now.js is 1 KB or larger');
+  // The program pages' one script stays small: under 8 KB as written, about 2.5 KB gzipped.
+  if (existsSync(join(DIST, 'schedule.js')) && statSync(join(DIST, 'schedule.js')).size >= 8 * 1024) failures.push('schedule.js is 8 KB or larger');
 
   // Each page's weight as a phone first loads it, in bytes over the wire: the HTML, the CSS,
   // fonts and script it references, and the smallest candidate of every image (photos are lazy
