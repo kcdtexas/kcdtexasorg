@@ -1,15 +1,19 @@
-// The program's tests (ADR 0009, plan-release-6): builds the site with the program sample and the sample sponsors
-// (scripts/build.sh --program-sample --sponsors-sample), checks what it builds (the Share Cards' "Sample" stamp,
-// the test-build marker, the credits from the test history), runs the smoke and browser tests on it (axe on every
-// new page, in both themes, on a desktop and a phone), then drives the program pages in a browser: the filters, My
-// Schedule across reloads, the keyboard, the calendar files, the credits' boxes and Event Day's now and next. It
-// checks the announcements file (a bad entry stops the build; only entries posted by the build's time show) and
-// offline use (the Event Day page and a Session page reload offline; from the day after Event Day the worker removes
-// itself). It adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. Then it builds with
-// the gates closed and checks that no program page, card, calendar file, script reference or credit is built, and
-// that the planted marker reaches no served file and no build log in either build. At the end dist/ is rebuilt as
-// a normal build. Between them it builds the gate matrix's middle case, only `speakersPublic` open
-// (--program-sample=speakers), and checks it has no times, rooms, calendar files or Event Day page.
+// The program's tests (ADR 0009, plan-release-6), in tests/run-local.mjs. First the platform's own tests
+// (tests/program-adapter.mjs). Then it builds the site with the program sample and the sample sponsors
+// (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: the Share Cards' "Sample" stamp
+// and their time budget, the test-build marker, the calendar files (RFC 5545, with the America/Chicago zone), the
+// credits from the test history, and scripts/check-dist.mjs's rules on the gates and on builds that aren't production
+// builds. It runs the smoke and browser tests on it (axe and the 44 px targets on every new page, in both themes, on
+// a desktop and a phone), then drives the program pages in a browser, by mouse on a desktop in light and by keyboard
+// on a phone in dark: the filters, My Schedule across reloads and its calendar file, and the credits' boxes. It
+// checks the announcements file (a bad entry stops the build; only entries posted by the build's time show), Event
+// Day's now and next at 10:30 a.m. and 3:00 p.m. (with axe in both themes), and offline use (the Event Day page and a
+// Session page reload offline; from the day after Event Day the worker removes itself). It builds the gate matrix's
+// middle case, only `speakersPublic` open (--program-sample=speakers), and checks it has no times, rooms, calendar
+// files or Event Day page. It adds a history file to src/data/history/ (a good one, then a bad one) and removes it
+// again. Last it builds with the gates closed and checks that no program page, card, calendar file, script
+// reference or credit is built, and that the planted marker reaches no served file and no build log in any build.
+// dist/ ends as a normal build, also when a step fails, unless --keep-dist.
 // Usage: node tests/run-program.mjs [--keep-dist]
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -117,6 +121,8 @@ const port = await new Promise((resolve, reject) => {
 });
 const base = `http://${host}:${port}`;
 let server = null;
+// Whether dist/ holds a normal build again, as the last step leaves it.
+let normal = false;
 const browser = await chromium.launch();
 async function serve() {
   server?.kill();
@@ -518,6 +524,7 @@ try {
   // 9. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
   const closed = build([]);
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
+  normal = true;
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
   for (const p of ['2027/speakers', '2027/sessions', '2027/today', '2027/schedule.ics', '2027/program-version.txt']) expect(!existsSync(join('dist', p)), `a closed gate still builds ${p}`);
   expect(!existsSync('dist/.test-build'), 'a normal build carries the test-build marker');
@@ -537,6 +544,7 @@ try {
   await browser.close().catch(() => {});
   server?.kill();
   if (process.argv.includes('--keep-dist')) console.log('dist/ is left as the last build.');
+  else if (!normal) build([]);
 }
 
 if (failures.length) {
