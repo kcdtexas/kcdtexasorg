@@ -35,8 +35,8 @@ export const programPages = {
     about: 'About',
     noBio: 'The bio is coming.',
     links: 'Links',
-    card: 'Share card',
-    cardText: 'Download the share card (PNG)',
+    card: 'Share Card',
+    cardText: 'Download the Share Card (PNG)',
     all: 'All Speakers',
   },
 } as const;
