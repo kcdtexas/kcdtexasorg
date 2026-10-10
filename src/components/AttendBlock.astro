@@ -1,12 +1,18 @@
 ---
-// The attend block: ticket news, the manager letter, and how far Dallas is (beside the photo).
+// The attend block: tickets or ticket news, the manager letter, and how far Dallas is (beside the photo).
+// On Event Day: the way to the travel page.
 import { Image } from 'astro:assets';
 import { home } from '../data/home';
 import { drives } from '../data/edition-2026';
 import { contact } from '../data/site';
+import { ticketsAction } from '../data/actions';
+import { paths } from '../data/nav';
+import { phase } from '../data/edition-2027';
 import { photos } from '../lib/images';
 
 const a = home.attend;
+// On Event Day the block is about getting there; until then, tickets ("Get tickets" once on sale).
+const eventDay = phase === 'event-day';
 ---
 
 <section id="attend" class="attend" aria-labelledby="attend-title">
@@ -15,12 +21,20 @@ const a = home.attend;
       <p class="kicker">{a.kicker}</p>
       <h2 id="attend-title" class="h2">{a.title}</h2>
       <p class="lead">{a.lead}</p>
-      <div class="actions">
-        <a class="btn" href={contact.chapterUrl}>Get ticket news</a>
-        <p class="btn-note">Free CNCF community account</p>
-      </div>
-      <p class="letter"><b>Need your manager’s OK?</b> {a.letter}</p>
-      <p class="meetups">Meet the community before April at <a href={contact.communityUrl}>Cloud Native Texas meetups</a>.</p>
+      {eventDay ? (
+        <div class="actions">
+          <a class="btn" href={paths.travel}>{a.travel}</a>
+        </div>
+      ) : (
+        <>
+          <div class="actions">
+            <a class="btn" href={ticketsAction.href}>{ticketsAction.label}</a>
+            <p class="btn-note">{a.buttonNote}</p>
+          </div>
+          <p class="letter"><b>Need your manager’s OK?</b> {a.letter}</p>
+          <p class="meetups">Meet the community before April at <a href={contact.communityUrl}>Cloud Native Texas meetups</a>.</p>
+        </>
+      )}
     </div>
     <div class="attend-side">
       <figure class="photo attend-photo">

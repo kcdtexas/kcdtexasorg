@@ -4,9 +4,9 @@ import Bill2027 from './Bill2027.astro';
 import Door from './Door.astro';
 import PhotoBand from './PhotoBand.astro';
 import { home } from '../data/home';
-import { legal, prospectus } from '../data/site';
-import { cfpPath } from '../data/nav';
-import { edition2027, phase } from '../data/edition-2027';
+import { legal } from '../data/site';
+import { heroDoors } from '../data/actions';
+import { edition2027 } from '../data/edition-2027';
 
 const h = home.hero;
 ---
@@ -21,11 +21,10 @@ const h = home.hero;
     <Bill2027 />
     <p class="promise">{h.promise}</p>
     <div class="hero-act">
-      {/* One filled button: sponsors come first in the CFP Phase (CONTEXT.md); the header's filled button
-          says "Submit a talk" while the call is open. The talk door leaves the hero once the call closes. */}
+      {/* One filled button (heroDoors in data/actions.ts): sponsors first in the CFP Phase (CONTEXT.md), tickets in
+          the Countdown; the header's filled button says "Submit a talk" while the call is open. */}
       <div class="doors">
-        <Door href={prospectus.href} label={prospectus.label} />
-        {phase === 'cfp' && <Door href={cfpPath} label="Submit a talk" line />}
+        {heroDoors.map((d) => <Door href={d.href} label={d.label} line={d.line} />)}
       </div>
     </div>
     <PhotoBand />

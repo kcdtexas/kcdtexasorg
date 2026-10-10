@@ -17,11 +17,12 @@
   }
   .title .yr { color: var(--year); text-decoration: underline; text-decoration-color: var(--signal, var(--fg)); text-decoration-thickness: 0.04em; text-underline-offset: 0.035em; text-decoration-skip-ink: none; }
 
-  /* The 2027 bill: three notes and the end-user link, one row sized to fill the measure. The fits are em widths:
-     --notes-fit from round2-tools/lineup-bill/bills.mjs; --fit (the whole row) and --slot-fit (the link) measured
-     in Chromium once the link lost its box (release 4 round 3: 36.95 and 11.66 em), rounded up. */
+  /* The 2027 bill: the notes and the end line, one row sized to fill the measure. The fits are em widths, computed
+     from the font for what this build's bill says (src/lib/bill-fit.ts, served as virtual:bill-fit.css):
+     --fit is the whole row, --notes-fit the notes alone, --slot-fit the end line alone. geometricPrecision keeps
+     Chromium on Linux from rounding each glyph's advance to whole pixels, so the text is as wide as the font says. */
   .bill27 { margin-top: 30px; }
-  .slots { --fit: 37.0; --notes-fit: 37.7467; --slot-fit: 11.7; display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc(99.5cqi / var(--fit)); }
+  .slots { text-rendering: geometricPrecision; display: block; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; line-height: 1; font-size: calc(99.5cqi / var(--fit)); }
   .slots li { display: inline; }
   .slots .note { font-size: 0.7em; font-weight: 700; color: var(--fg); }
   .slots .note b { font-weight: 900; color: var(--fg); }
@@ -32,6 +33,8 @@
   .eu-label { text-decoration: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 0.07em; text-underline-offset: 0.12em; text-decoration-skip-ink: none; }
   .eu-link:hover { color: var(--action); }
   .eu-link:hover .eu-label { text-decoration-color: var(--action); }
+  /* Event Day and the Recap: one statement, no notes, filling the measure at every width. */
+  .bill-statement { display: inline-block; }
 
   .promise { grid-column: 1 / span 5; margin-top: 24px; font-size: 20px; line-height: 1.45; text-wrap: pretty; }
   .hero-act { grid-column: 6 / -1; margin-top: 24px; }
@@ -55,9 +58,12 @@
     /* The notes fill one row; the end-user link takes its own line. */
     .slots { font-size: calc(99.5cqi / var(--notes-fit)); }
     .slots .note { font-size: 1em; }
-    .slots .note:nth-child(3)::after { content: none; }
+    .slots .note:nth-last-child(2)::after { content: none; }
     .slots .open { display: block; margin-top: 14px; }
     .slots .eu-link { font-size: clamp(28px, 4.6vw, 44px); }
+    .slots--statement { font-size: calc(99.5cqi / var(--fit)); }
+    .slots--statement .open { margin-top: 0; }
+    .slots--statement .eu-link { font-size: 1em; }
     .promise { grid-column: 1 / span 6; }
     .hero-act { grid-column: 7 / -1; }
     .band img { height: clamp(220px, 30vw, 320px); object-fit: cover; object-position: 50% 30%; }
@@ -76,6 +82,7 @@
     .slots .note::after { content: none; }
     .slots .open { margin-top: 8px; }
     .slots .eu-link { display: flex; justify-content: center; font-size: calc(99.5cqi / var(--slot-fit)); }
+    .slots--statement { font-size: calc(99.5cqi / var(--fit)); }
     .promise { margin-top: 14px; font-size: 16px; line-height: 1.45; }
     .hero-act { display: contents; }
     .doors { margin-top: 14px; gap: 8px; }

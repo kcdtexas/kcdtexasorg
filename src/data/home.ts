@@ -1,7 +1,9 @@
 // The home page's words. Dates and figures come from the Edition files, never typed in here.
 import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, shortDate, shortDateYear, sponsorshipsStatus, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpPath, paths } from './nav';
+import { sponsors2027 } from './sponsors-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, managerLetterLine, phase, programSample, programState, programStatus, shortDate, shortDateYear, sponsorAsk, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -9,20 +11,54 @@ const sponsNow = sponsorshipsStatus();
 const cfpNow = cfpStatus();
 const tixNow = ticketsStatus();
 const eventNow = eventStatus();
+const tixOn = ticketsOnSale();
+const prog = programState();
+const has2027 = sponsors2027.length > 0;
+
+// The Countdown's bill and the program block say where the program stands, by its gate (programState).
+const progSentence = prog === 'out' ? 'are out' : prog === 'dated' ? `come out ${shortDate(e.schedule)}` : 'are coming soon';
+const promise = 'One day of Kubernetes and cloud native talks and hands-on workshops';
+const descriptions = {
+  cfp: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. The call for proposals ${cfpSentence()}.`,
+  countdown: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. Tickets ${ticketsSentence()}; the Speakers and the Schedule ${progSentence}.`,
+  'event-day': `KCD Texas ${e.year} is today in ${e.city}: ${lowerFirst(promise)}.`,
+  recap: `KCD Texas ${e.year} took place in ${e.city} on ${longDate(e.eventDay)}. Thank you to every Attendee, Speaker, sponsor and volunteer.`,
+};
+
+// The bill under the title (Bill2027.astro): its notes, then one big line, a link or a statement.
+// CFP Phase: what's open first, sponsors then speakers; once tickets are on sale, they take the keynotes' place.
+// Countdown: tickets, the Schedule (by its gate), and sponsorships while open, then the 2026 talks.
+// Event Day and the Recap: one statement, no notes.
+type Note = { label: string; text: string };
+const bills: Record<typeof phase, { notes: Note[]; end: { label: string; href?: string } }> = {
+  cfp: {
+    notes: [
+      { label: 'Sponsorships:', text: lowerFirst(sponsNow) },
+      { label: 'Call for proposals:', text: lowerFirst(cfpNow) },
+      tixOn ? { label: 'Tickets:', text: 'on sale now' } : { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
+    ],
+    end: { label: 'Your End-User Story here', href: cfpPath },
+  },
+  countdown: {
+    notes: [
+      { label: 'Tickets:', text: lowerFirst(tixNow) },
+      { label: 'Schedule:', text: programStatus() },
+      ...(sponsorAsk() ? [{ label: 'Sponsorships:', text: lowerFirst(sponsNow) }] : []),
+    ],
+    end: { label: `Watch the ${edition2026.year} talks`, href: `${paths.edition2026}#program` },
+  },
+  'event-day': { notes: [], end: { label: `Today in ${e.city}` } },
+  recap: { notes: [], end: { label: `Thank you, ${e.city}` } },
+};
 
 export const home = {
   title: `KCD Texas ${e.year} · ${e.city} · ${longDate(e.eventDay)}`,
-  description: `KCD Texas ${e.year}: one day of Kubernetes and cloud native talks and hands-on workshops in ${e.city} on ${longDate(e.eventDay)}. The call for proposals ${cfpSentence()}.`,
+  description: descriptions[phase],
 
   hero: {
     promise: 'One day of Kubernetes and cloud native talks and hands-on workshops, for the platform, SRE and DevOps engineers who run production across Texas. Organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF).',
-    // What's open first, in the CFP Phase's order (sponsors, then speakers). Same words as before in another
-    // order, so the fitted bill sizes in hero.css still hold.
-    bill: [
-      { label: 'Sponsorships:', text: lowerFirst(sponsNow) },
-      { label: 'Call for proposals:', text: lowerFirst(cfpStatus()) },
-      { label: 'Keynotes:', text: `announced ${shortDate(e.schedule)}` },
-    ],
+    // The bill's fit values come from the font at build time (src/lib/bill-fit.ts), for whatever it says.
+    bill: bills[phase],
     proofLead: `KCD Texas 2026 in ${edition2026.city}:`,
     // The band's two photos, each captioned under itself like every photo on the site: a bold lead, then the words.
     // The one with a phone crop is the only one phones show.
@@ -39,19 +75,26 @@ export const home = {
     // `big`, so the key dates can hide it on screen; `from` and `until` (YYYY-MM-DD) place NOW (nowOn() in
     // edition-2027.ts, and /now.js between builds). Sponsorships read "Open now", then "Closed" after their last
     // day; tickets have no day until CNCF sets one, and no span then. Each detail says something the date doesn't.
+    // On Event Day a row for something that never came (tickets not on sale, a late program) is left out.
     items: [
       { key: 'spons', name: 'Sponsorships', status: sponsNow, big: sponsNow, echo: true,
-        detail: sponsNow === 'Closed' ? { text: `Thanks to every ${e.year} sponsor.` } : { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
+        // From Event Day the site asks no one to sponsor (sponsorAsk), so the row thanks them, though still open.
+        detail: !sponsorAsk() ? { text: `Thanks to every ${e.year} sponsor.` } : { text: prospectus.label, href: prospectus.url ? 'prospectus' : 'sponsors' } },
       { key: 'cfp', name: 'Call for proposals', status: cfpNow, big: shortDate(e.cfp.opens), bigTo: shortDate(e.cfp.closes), echo: cfpNow.startsWith('Opens'),
         from: e.cfp.opens, until: e.cfp.closes,
         detail: cfpNow === 'Closed' ? { text: 'Thanks to everyone who sent a proposal.' } : { text: 'Read the CFP guide', href: 'cfp' } },
       // "Sample day" marks a test build with a made-up sale day (build.sh --tickets-day); check-dist blocks it elsewhere.
-      { key: 'tix', name: 'Tickets', status: tixNow, big: e.tickets.onSale ? shortDate(e.tickets.onSale) : tixNow, echo: Boolean(e.tickets.onSale) && tixNow !== 'On sale now',
+      ...(phase === 'event-day' && !tixOn ? [] : [{ key: 'tix', name: 'Tickets', status: tixNow, big: e.tickets.onSale ? shortDate(e.tickets.onSale) : tixNow, echo: Boolean(e.tickets.onSale) && tixNow !== 'On sale now',
         // NOW treats the sale day as one day; `ends` keeps tickets current (not faded as past) until the event.
         undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale, ends: e.eventDay } : {}),
-        detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } },
-      { key: 'sched', name: 'Schedule', status: shortDate(e.schedule), big: shortDate(e.schedule), echo: true, from: e.schedule, until: e.schedule, ends: e.eventDay,
-        detail: { text: 'With the Speakers and keynotes' } },
+        detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } }]),
+      // The Schedule follows the program's gate (programState), like every program word: its date until then,
+      // "Coming soon" with no date and no bar if the day passes without the release, "Out now" once public.
+      ...(phase === 'event-day' && prog === 'soon' ? [] : [prog === 'soon'
+        ? { key: 'sched', name: 'Schedule', status: 'Coming soon', big: 'Coming soon', echo: true, late: true,
+          detail: { text: 'With the Speakers and keynotes' } }
+        : { key: 'sched', name: 'Schedule', status: prog === 'out' ? 'Out now' : shortDate(e.schedule), big: shortDate(e.schedule), echo: prog !== 'out', from: e.schedule, until: e.schedule, ends: e.eventDay,
+          detail: prog === 'out' ? { text: 'See the Schedule', href: 'schedule' } : { text: 'With the Speakers and keynotes' } }]),
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventNow, big: shortDate(e.eventDay), echo: !eventNow.startsWith('Today'), from: e.eventDay, until: e.eventDay,
         detail: { text: `One day, in person, in ${e.city}.` } },
     ],
@@ -59,10 +102,14 @@ export const home = {
 
   wall: {
     title: `${edition2026.sponsorCount} sponsors backed KCD Texas 2026`,
-    // The open spot that ends the 2026 wall (the owner's wording, 2026-10-08; proof first, 2026-10-09).
-    // It holds only while no 2027 sponsor is announced: with the first, this area becomes the 2027
-    // sponsors, the spot says "Your logo here", and the 2026 wall leaves the home page (owner-actions A64).
-    slot: `Be the first ${e.year} sponsor`,
+    // With the first 2027 sponsor (sponsors-2027.ts), 2027 leads. In the CFP Phase the 2026 wall stays below as
+    // proof; from Feb 1 only 2027 shows here, and 2026 stays on /2026/ (plan-release-5, "The sponsor analysis").
+    // Until the first 2027 sponsor, the 2026 wall shows alone under this title, in every phase.
+    // The 2027 title is a draft; the wording is the Sponsor Committee's call (owner-actions A76).
+    title2027: phase === 'recap' ? `Thank you to our ${e.year} sponsors` : `KCD Texas ${e.year} is made possible by`,
+    thanks2026: `Thanks to our ${edition2026.year} sponsors`,
+    // The open spot after the newest wall, while sponsorships are open (the owner's wording, 2026-10-08 and -09).
+    slot: has2027 ? 'Join them' : `Be the first ${e.year} sponsor`,
     link: 'How to get a spot here',
   },
 
@@ -108,6 +155,25 @@ export const home = {
     talks: ['abhinav-dahiya', 'shravani-gunturu'],
   },
 
+  // The program block replaces the speak section from Feb 1 (ProgramBlock.astro). Its wording follows the
+  // program's gate, never the date: "Mar 1" before then, "coming soon" if the day passes without the release.
+  program: {
+    kicker: 'The program',
+    title: prog === 'out' ? (phase === 'recap' ? `The KCD Texas ${e.year} program` : 'The Speakers and the Schedule are out.')
+      : `Speakers, keynotes and the Schedule: ${prog === 'dated' ? shortDate(e.schedule) : 'coming soon'}`,
+    lead: prog === 'out' ? 'See who’s speaking, and plan your day.'
+      : `The Session Committee selects the Sessions. The Speakers, the keynotes and the Schedule ${prog === 'dated' ? `come out together on ${shortDateYear(e.schedule)}` : 'come out together soon'}. Until then, watch how teams ran Kubernetes in production at KCD Texas 2026.`,
+    // Event Day and the Recap without the program (ProgramBlock.astro): only the 2026 talks.
+    lateKicker: 'From 2026',
+    lateTitle: `Watch the ${edition2026.year} talks`,
+    schedule: 'See the Schedule',
+    speakers: 'Meet the Speakers',
+    past: 'See the 2026 program',
+    // build.sh --program-public: the gate is open but this build has no program data.
+    sample: programSample ? 'Sample: this test build has no program data.' : '',
+    talksTitle: 'End-User talks from 2026',
+  },
+
   stage: {
     kicker: `KCD Texas 2026 · ${edition2026.city} · ${edition2026.date}`,
     title: 'On the 2026 stage',
@@ -115,6 +181,8 @@ export const home = {
     asPrinted: 'Affiliations as printed on the 2026 Event Page.',
     // The talks list and the recap video live on /2026/ (release 4: the stage was 2,600 px tall).
     programLink: `See the full 2026 program and its ${edition2026.recordings} talk recordings`,
+    // The open slot that ends the stage: an End-User Story in the CFP Phase, then the 2027 keynotes by the gate.
+    slot2027: prog === 'out' ? 'See the keynotes' : `Keynotes: ${programStatus()}`,
   },
 
   day: {
@@ -128,9 +196,13 @@ export const home = {
 
   attend: {
     kicker: 'Attend',
-    title: `Coming to learn? Tickets ${ticketsSentence()}.`,
-    lead: `2026 tickets cost $50 to $150, depending on when you bought. Join the KCD Texas chapter on the CNCF community site to get the email when ${e.year} tickets go on sale.`,
-    letter: `An approval letter is coming in ${e.managerLetter}, with the cost and what your team gets back.`,
+    title: phase === 'event-day' ? `KCD Texas ${e.year} is today.` : `Coming to learn? Tickets ${ticketsSentence()}.`,
+    lead: phase === 'event-day' ? `The travel page covers getting to ${e.city}, and the venue once it's announced.`
+      : tixOn ? `Buy ${e.year} tickets on the CNCF community site. 2026 tickets cost $50 to $150, depending on when you bought.`
+      : `2026 tickets cost $50 to $150, depending on when you bought. Join the KCD Texas chapter on the CNCF community site to get the email when ${e.year} tickets go on sale.`,
+    buttonNote: tixOn ? 'On the CNCF community site' : 'Free CNCF community account',
+    travel: 'See the travel page',
+    letter: managerLetterLine,
     photoAlt: 'Three attendees laugh together between sessions.',
     photoTime: '3:28 p.m.',
     photoCaption: 'Three attendees between sessions.',

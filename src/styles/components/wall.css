@@ -22,8 +22,9 @@
   .tier { margin-top: 22px; }
   .tier-name { display: flex; align-items: center; gap: 20px; font-weight: 700; font-size: 15px; line-height: 1.2; }
   .tier-name::before, .tier-name::after { content: ""; flex: 1; height: 1px; background: var(--fg); }
-  .logos { display: grid; grid-template-columns: repeat(var(--cols), var(--cell)); justify-content: center; gap: var(--gap); margin-top: 16px; }
-  .logos > li { display: flex; align-items: center; justify-content: center; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
+  /* At most --cols cells per row, and a row that isn't full stays centered under the full ones. */
+  .logos { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); max-width: calc(var(--cols) * var(--cell) + (var(--cols) - 1) * var(--gap)); margin: 16px auto 0; }
+  .logos > li { flex: 0 0 var(--cell); display: flex; align-items: center; justify-content: center; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
   .tier--platinum .logos { --cols: var(--plat-cols); --cell: var(--plat-cell); --logo-size: calc(1.5 * var(--gold-size)); --cell-h: calc(1.5 * var(--gold-size) + 40px); }
   .tier--gold .logos { --cols: var(--gold-cols); --cell: var(--gold-cell); --logo-size: var(--gold-size); --cell-h: calc(1.12 * var(--gold-size) + 28px); }
   .tier--silver .logos { --cols: var(--silver-cols); --cell: var(--silver-cell); --logo-size: min(calc(0.75 * var(--gold-size)), calc((var(--silver-cell) - 20px) / 2.8)); --cell-h: calc(0.75 * var(--gold-size) + 26px); }
@@ -45,12 +46,22 @@
   .sp-logo[data-logo="vcluster"] { --ar: 1.049; }
   .sp-logo[data-logo="wso2"] { --ar: 2.517; }
 
+  /* A 2027 sponsor without its logo yet (and the --sponsors-sample tiles): the name, centered in its cell. */
+  .sp-name { display: block; font-weight: 700; font-size: 15px; line-height: 1.2; text-align: center; color: var(--tile-fg); text-wrap: balance; }
+  .sp-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--tile-fg); text-decoration: none; }
+  /* The CFP Phase's double wall: the 2026 sponsors under the 2027 ones, as thanks and proof. */
+  .wall-past { margin-top: 44px; }
+  .wall-past-title { font-stretch: 68%; font-weight: 800; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.1; text-wrap: balance; }
   .partners { max-width: 60em; margin: 22px auto 0; text-align: center; font-size: 15px; line-height: 1.5; color: var(--muted); text-wrap: balance; }
   .wall-next { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; margin-top: 24px; }
   .slot--logo { align-items: baseline; gap: 18px; padding: 12px 20px 11px; font-size: 30px; text-align: left; }
   .slot-sub { display: inline-flex; align-items: baseline; gap: 8px; color: var(--fg); font-stretch: 100%; font-weight: 700; font-size: 16px; text-transform: none; text-decoration: underline; text-decoration-color: var(--link-underline); text-underline-offset: 0.2em; }
   .slot:hover .slot-sub { color: var(--on-action); }
 
+  /* Forced colors would drop the light plate behind the logos, and dark logos would vanish on a dark Canvas. */
+  @media (forced-colors: active) {
+    .logos > li { forced-color-adjust: none; }
+  }
   @media (max-width: 1099px) {
     .tiers { --gold-cols: 4; }
   }

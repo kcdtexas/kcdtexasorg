@@ -5,6 +5,7 @@ import PageHead from '../../components/PageHead.astro';
 import { schedule as s } from '../../data/schedule';
 import { paths } from '../../data/nav';
 import { edition2026 } from '../../data/edition-2026';
+import { phase } from '../../data/edition-2027';
 ---
 
 <Base title={`${s.title} · KCD Texas`} description={s.description}>
@@ -13,15 +14,18 @@ import { edition2026 } from '../../data/edition-2026';
       <dl class="page-facts">
         {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
       </dl>
+      {s.sample && <p class="page-soon">{s.sample}</p>}
     </PageHead>
 
-    <section class="page-sec" aria-labelledby="speak">
-      <h2 id="speak" class="page-h2">{s.speak.title}</h2>
-      <p>{s.speak.text}</p>
-      <div class="actions">
-        <a class="btn" href={paths.cfp}>{s.speak.link}</a>
-      </div>
-    </section>
+    {phase === 'cfp' && (
+      <section class="page-sec" aria-labelledby="speak">
+        <h2 id="speak" class="page-h2">{s.speak.title}</h2>
+        <p>{s.speak.text}</p>
+        <div class="actions">
+          <a class="btn" href={paths.cfp}>{s.speak.link}</a>
+        </div>
+      </section>
+    )}
 
     <section class="page-sec" aria-labelledby="past">
       <h2 id="past" class="page-h2">{s.past.title}</h2>

@@ -7,7 +7,8 @@
 // Then the theme switch on the home page: the visitor's stored choice wins over
 // the device scheme, is applied before first paint, and works by keyboard and
 // without JS. Last, the key dates: NOW and the fills on ten days (clock fixed), and the
-// phase rail's layout from 1440 down to 360 px.
+// phase rail's layout from 1440 down to 360 px. And the hero bill in every variant (tests/bill-variants.mjs),
+// fitted from the font, inside its measure from 320 to 1600 px.
 //
 // Usage: node tests/browser.mjs [baseUrl] [--shots <dir>]
 // Pages run in parallel, $BROWSER_JOBS at a time (default 4).
@@ -18,6 +19,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { join, relative, sep } from 'node:path';
+import { importTs } from '../scripts/lib/import-ts.mjs';
+import { BILL_VARIANTS, billWords } from './bill-variants.mjs';
 
 const argv = process.argv.slice(2);
 const shotsIndex = argv.indexOf('--shots');
@@ -193,6 +196,14 @@ try {
 
       const violations = await axe(tab);
       expect(!violations.length, `${label}: accessibility: ${violations.join(' | ')}`);
+
+      // The header lockup reads as the two names in either theme: one KCD logo is hidden, the badge is decorative.
+      const lockups = await tab.locator('header').getByRole('link', { name: 'Kubernetes Community Days KCD Texas', exact: true }).count();
+      expect(lockups === 1, `${label}: the header lockup link isn't named "Kubernetes Community Days KCD Texas"`);
+      if (page.path === '/') {
+        const glance = await tab.getByRole('heading', { level: 2, name: '2027 at a glance', exact: true }).count();
+        expect(glance === 1, `${label}: no "2027 at a glance" heading over the hero bill`);
+      }
 
       // Phones as narrow as 360 px (the modes above use 390 px), and 320 px for reflow (WCAG 1.4.10).
       if (mode.isMobile) {
@@ -487,6 +498,58 @@ try {
     expect(layout.menuLinks.join() === 'Speak,Sponsor,Attend,2026 talks,About', `${label}: the phone menu lists ${layout.menuLinks.join(', ')}`);
     if (layout.cfp) expect(layout.filled.length === 1, `${label}: ${layout.filled.length} filled buttons in the hero (${layout.filled.join(', ')})`);
     if (width <= 1100) expect(layout.overflow <= 1, `${label}: page scrolls sideways by ${layout.overflow}px`);
+    await context.close();
+  }
+
+  // The hero bill in every variant (tests/bill-variants.mjs): each one's fit values from the font, as the build
+  // computes them (billFits in src/lib/bill-fit.ts), set on this page's bill with its words, then the bill inside
+  // its measure, with no two parts overlapping, from 320 to 1600 px every 10 px.
+  {
+    const { billFits } = await importTs(new URL('../src/lib/bill-fit.ts', import.meta.url));
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+    const tab = await context.newPage();
+    await tab.goto(base + '/', { waitUntil: 'networkidle' });
+    for (const v of BILL_VARIANTS) {
+      const f = billFits(v.notes, v.end, { arrow: v.arrow });
+      const fit = { fit: f.fit, notesFit: v.notes.length ? f.notesFit : f.fit, slotFit: f.slotFit };
+      // Built with DOM calls, as Bill2027.astro writes it; the fit values go in as custom properties.
+      await tab.evaluate(({ v, fit }) => {
+        const make = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text) el.textContent = text; return el; };
+        const ul = document.querySelector('.slots');
+        ul.classList.toggle('slots--statement', !v.arrow);
+        ul.replaceChildren(...v.notes.map((n) => { const li = make('li', 'note'); li.append(make('b', '', n.label), ` ${n.text}`); return li; }));
+        const open = make('li', 'open');
+        if (v.arrow) {
+          const a = make('a', 'eu-link');
+          a.href = '#';
+          const arrow = make('span', 'arrow', '→');
+          arrow.setAttribute('aria-hidden', 'true');
+          a.append(make('span', 'eu-label', v.end), arrow);
+          open.append(a);
+        } else open.append(make('span', 'eu-link bill-statement', v.end));
+        ul.append(open);
+        ul.style.setProperty('--fit', String(fit.fit));
+        ul.style.setProperty('--notes-fit', String(fit.notesFit));
+        ul.style.setProperty('--slot-fit', String(fit.slotFit));
+      }, { v, fit });
+      for (let width = 320; width <= 1600; width += 10) {
+        await tab.setViewportSize({ width, height: 900 });
+        const m = await tab.evaluate(() => {
+          const slots = document.querySelector('.slots');
+          const range = document.createRange();
+          range.selectNodeContents(slots);
+          const used = [...range.getClientRects()];
+          const parts = [...slots.querySelectorAll('.note, .eu-label, .bill-statement')];
+          const meet = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+          let overlaps = 0;
+          for (let i = 0; i < parts.length; i += 1) for (let j = i + 1; j < parts.length; j += 1) for (const a of parts[i].getClientRects()) for (const b of parts[j].getClientRects()) if (meet(a, b)) overlaps += 1;
+          const box = slots.getBoundingClientRect();
+          return { over: Math.max(box.left - Math.min(...used.map((r) => r.left)), Math.max(...used.map((r) => r.right)) - box.right), overlaps };
+        });
+        expect(m.over <= 1, `bill "${billWords(v)}" at ${width}: runs ${m.over.toFixed(1)}px past its measure`);
+        expect(!m.overlaps, `bill "${billWords(v)}" at ${width}: ${m.overlaps} overlapping parts`);
+      }
+    }
     await context.close();
   }
 

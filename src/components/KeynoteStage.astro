@@ -1,11 +1,12 @@
 ---
 // The 2026 stage: the three keynotes, the 2026 bill, the open 2027 slot and a link to the full program on /2026/.
+// The slot asks for End-User Stories in the CFP Phase, then points to the 2027 keynotes.
 import { Image } from 'astro:assets';
 import Bill2026 from './Bill2026.astro';
 import { home } from '../data/home';
 import { edition2026, youtube } from '../data/edition-2026';
 import { cfpPath, paths } from '../data/nav';
-import { edition2027 } from '../data/edition-2027';
+import { edition2027, phase } from '../data/edition-2027';
 import { keynotePhotos } from '../lib/images';
 
 const st = home.stage;
@@ -32,7 +33,10 @@ const st = home.stage;
     </ul>
     <p class="as-printed">{st.asPrinted}</p>
     <Bill2026 />
-    <a class="slot slot--end" href={cfpPath}><span class="slot-year">{edition2027.year}</span><span class="slot-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a>
+    {/* The open 2027 slot: an End-User Story in the CFP Phase; from Feb 1, the 2027 keynotes, by the program's gate. */}
+    {phase === 'cfp'
+      ? <a class="slot slot--end" href={cfpPath}><span class="slot-year">{edition2027.year}</span><span class="slot-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a>
+      : <a class="slot slot--end" href={paths.schedule}><span class="slot-year">{edition2027.year}</span><span class="slot-label">{st.slot2027}</span><span class="arrow" aria-hidden="true">→</span></a>}
     <p class="more stage-more"><a href={`${paths.edition2026}#program`}>{st.programLink}</a></p>
   </div>
 </section>

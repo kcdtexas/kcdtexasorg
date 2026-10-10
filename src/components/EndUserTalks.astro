@@ -1,0 +1,26 @@
+---
+// The 2026 End-User talks beside the speak section and, from Feb 1, the program block: Tyler Auerbeck's talk
+// with its photo, then two more, with titles, names and affiliations as printed (edition2026.talks).
+import { Image } from 'astro:assets';
+import { home } from '../data/home';
+import { edition2026, youtube } from '../data/edition-2026';
+import { photos } from '../lib/images';
+
+interface Props {
+  /** The list's title. */
+  title: string;
+}
+const s = home.speak;
+const talks = s.talks.map((id) => edition2026.talks.find((t) => t.face === id)!);
+---
+
+<div class="speak-side">
+  <figure class="photo speak-photo">
+    <Image src={photos['speak-118']} quality={70} widths={[432, 864]} sizes="(min-width: 1100px) 30vw, (min-width: 600px) 36vw, 38vw" alt={s.photoAlt} />
+    <figcaption><b>KCD Texas 2026 · {s.photoTime}</b> {s.photoCaption} <a class="watch" href={youtube(s.photoYoutube)}>Watch<span class="sr-only"> Tyler Auerbeck’s talk on YouTube</span></a></figcaption>
+  </figure>
+  <div class="eu-talks">
+    <h3 class="eu-talks-title">{Astro.props.title}</h3>
+    <ul>{talks.map((t) => <li><a href={youtube(t.youtube)}>{t.title}</a> <span>{t.name}, {t.affiliation}</span></li>)}</ul>
+  </div>
+</div>

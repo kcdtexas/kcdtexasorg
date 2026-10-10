@@ -2,6 +2,7 @@
 # Builds kcdtexas.org. The same script runs locally and in CI.
 #
 # Usage: scripts/build.sh [--zip] [--serve] [--skip-install] [--now YYYY-MM-DD] [--tickets-day YYYY-MM-DD]
+#                         [--program-public] [--sponsors-sample]
 #   --zip           also write out/kcdtexas-<commit>.zip (for Cloudflare Pages
 #                   dashboard uploads; Netlify drag-and-drop takes the dist/ folder)
 #   --serve         preview the built site at http://127.0.0.1:4321
@@ -9,7 +10,12 @@
 #   --now DAY       build as if DAY were today in Central time, to test date-driven text
 #                   (tests/time-machine.mjs). Never in production: the build refuses it there.
 #   --tickets-day DAY  build as if tickets went on sale on DAY, a sample day for tests and design
-#                   reviews; the pages label it "Sample day". Never in production either.
+#                   reviews; the pages label it "Sample day", and the ticket links open the chapter
+#                   page as a stand-in. Never in production either.
+#   --program-public  build as if the Speakers and the Schedule were public, with no program data;
+#                   the pages say "Sample". Never in production.
+#   --sponsors-sample  fill the 2027 wall with plain "Sample" tiles, no logos or names. Never in
+#                   production, and never deployed.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -20,8 +26,9 @@ export ASTRO_TELEMETRY_DISABLED=1
 zip=false
 serve=false
 install=true
-# The build day and the sample ticket day come only from the flags, never from inherited variables.
-unset KCD_BUILD_DAY KCD_TICKETS_DAY
+# The build day and the samples come only from the flags, never from inherited variables.
+unset KCD_BUILD_DAY KCD_TICKETS_DAY KCD_PROGRAM_PUBLIC KCD_SPONSORS_SAMPLE
+production() { [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; }
 while [ $# -gt 0 ]; do
   case "$1" in
     --zip) zip=true ;;
@@ -30,16 +37,22 @@ while [ $# -gt 0 ]; do
     --now)
       [[ "${2:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "--now needs a date as YYYY-MM-DD" >&2; exit 2; }
       # Netlify sets CONTEXT; a production deploy must describe the real day.
-      if [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; then
+      if production; then
         echo "--now is not allowed in a production build" >&2; exit 2
       fi
       export KCD_BUILD_DAY="$2"; shift ;;
     --tickets-day)
       [[ "${2:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "--tickets-day needs a date as YYYY-MM-DD" >&2; exit 2; }
-      if [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; then
+      if production; then
         echo "--tickets-day is not allowed in a production build" >&2; exit 2
       fi
       export KCD_TICKETS_DAY="$2"; shift ;;
+    --program-public)
+      if production; then echo "--program-public is not allowed in a production build" >&2; exit 2; fi
+      export KCD_PROGRAM_PUBLIC=1 ;;
+    --sponsors-sample)
+      if production; then echo "--sponsors-sample is not allowed in a production build" >&2; exit 2; fi
+      export KCD_SPONSORS_SAMPLE=1 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -52,6 +65,12 @@ if [ -n "${KCD_BUILD_DAY:-}" ]; then
 fi
 if [ -n "${KCD_TICKETS_DAY:-}" ]; then
   echo "Building with a sample ticket sale day, $KCD_TICKETS_DAY. Test builds only."
+fi
+if [ -n "${KCD_PROGRAM_PUBLIC:-}" ]; then
+  echo "Building as if the program were public (no program data). Test builds only."
+fi
+if [ -n "${KCD_SPONSORS_SAMPLE:-}" ]; then
+  echo "Building with sample 2027 sponsor tiles. Test builds only; never deploy this build."
 fi
 
 step "Checking Node.js (needs 22.12 or newer)"

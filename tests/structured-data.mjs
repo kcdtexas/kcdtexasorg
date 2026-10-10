@@ -1,6 +1,6 @@
 // The schema check for the home page's JSON-LD (src/lib/structured-data.ts): the fields search engines
-// need are there, the dates and place match the Edition file, and nothing unannounced is (no venue,
-// no offers). tests/smoke.mjs runs it on the home page.
+// need are there, the dates and place match the Edition file, and nothing unannounced is (no venue, and an
+// offer only with the ticket link, never a price). tests/smoke.mjs runs it on the home page.
 import { readFileSync } from 'node:fs';
 import { importTs } from '../scripts/lib/import-ts.mjs';
 
@@ -35,7 +35,10 @@ export function checkJsonLd(html) {
     need(event.location?.['@type'] === 'Place', 'location is not a Place');
     need(address.addressLocality === edition2027.city && address.addressRegion === 'TX' && address.addressCountry === 'US', `the address is not ${edition2027.city}, TX, US`);
     need(!address.streetAddress && !address.postalCode, 'the address names a venue, and none is announced');
-    need(!('offers' in event), 'Event has offers, and prices are not announced');
+    // An offer only once there's a ticket link (CNCF's, or a test build's stand-in), and never a price until one is announced.
+    const offers = event.offers;
+    need(!offers || (offers['@type'] === 'Offer' && /^https:\/\//.test(offers.url ?? '') && (!edition2027.tickets.url || offers.url === edition2027.tickets.url)), `Event offers is ${JSON.stringify(offers)}, not just the ticket link`);
+    need(!offers || !['price', 'lowPrice', 'highPrice', 'priceCurrency', 'priceSpecification'].some((k) => k in offers), 'Event offers has a price, and prices are not announced');
     need(event.organizer?.name === 'KCD Texas' && event.organizer?.url === 'https://kcdtexas.org', 'the organizer is not KCD Texas, https://kcdtexas.org');
     need(event.image === 'https://kcdtexas.org/cards/default.png', `Event image is ${event.image}`);
   }

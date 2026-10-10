@@ -1,11 +1,13 @@
 ---
+// The 2027 bill under the title: its notes, then one big line (a link, or a statement on Event Day and in the
+// Recap). The fit values come from the font at build time: virtual:bill-fit.css (src/lib/bill-css.ts).
+import 'virtual:bill-fit.css';
 import { home } from '../data/home';
-import { cfpPath } from '../data/nav';
 
-const h = home.hero;
+const { notes, end } = home.hero.bill;
 ---
 
 <div class="bill27">
-  <h2 class="sr-only">The 2027 bill</h2>
-  <ul class="slots">{h.bill.map((n) => <li class="note"><b>{n.label}</b> {n.text}</li>)}<li class="open"><a class="eu-link" href={cfpPath}><span class="eu-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a></li></ul>
+  <h2 class="sr-only">2027 at a glance</h2>
+  <ul class:list={['slots', { 'slots--statement': !end.href }]}>{notes.map((n) => <li class="note"><b>{n.label}</b> {n.text}</li>)}<li class="open">{end.href ? <a class="eu-link" href={end.href}><span class="eu-label">{end.label}</span><span class="arrow" aria-hidden="true">→</span></a> : <span class="eu-link bill-statement">{end.label}</span>}</li></ul>
 </div>

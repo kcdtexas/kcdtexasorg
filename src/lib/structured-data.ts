@@ -1,6 +1,7 @@
 // The home page's structured data (JSON-LD), built only from the data files: it repeats what the
-// page already says and adds no facts (ADR 0009). No venue until one is announced, and no offers
-// until prices are. tests/structured-data.mjs checks it against the same files.
+// page already says and adds no facts (ADR 0009). No venue until one is announced; an offer with the ticket
+// link once CNCF sends it, and no price until one is announced. tests/structured-data.mjs checks it against
+// the same files.
 import { edition2027 } from '../data/edition-2027';
 import { home } from '../data/home';
 import { contact } from '../data/site';
@@ -36,6 +37,7 @@ export function homeJsonLd() {
           address: { '@type': 'PostalAddress', addressLocality: e.city, addressRegion: 'TX', addressCountry: 'US' },
         },
         organizer: { '@id': ORG_ID, '@type': 'Organization', name: 'KCD Texas', url: SITE },
+        ...(e.tickets.url ? { offers: { '@type': 'Offer', url: e.tickets.url } } : {}),
       },
     ],
   };

@@ -5,20 +5,59 @@ import KeyDates from '../components/KeyDates.astro';
 import SponsorWall from '../components/SponsorWall.astro';
 import SponsorBlock from '../components/SponsorBlock.astro';
 import SpeakBlock from '../components/SpeakBlock.astro';
+import ProgramBlock from '../components/ProgramBlock.astro';
 import KeynoteStage from '../components/KeynoteStage.astro';
 import DayPhotos from '../components/DayPhotos.astro';
 import AttendBlock from '../components/AttendBlock.astro';
 import { home } from '../data/home';
 import { homeJsonLd } from '../lib/structured-data';
+import { phase, sponsorAsk, ticketsOnSale } from '../data/edition-2027';
+
+// The order follows the state, in the DOM (never CSS order; r4-critics). The wall stays third through Apr 22
+// (plan-release-5, "The sponsor analysis"). CFP Phase: sponsors first, Attend last, or fourth once tickets are on
+// sale. Countdown: Attend fourth, the program, and the sponsor pitch last, through Apr 22. Event Day: the program,
+// then getting there. The Recap: thanks, the program and the day; no key dates.
+const tickets = ticketsOnSale();
 ---
 
 <Base title={home.title} description={home.description} jsonLd={homeJsonLd()}>
   <Hero />
-  <KeyDates />
-  <SponsorWall />
-  <SponsorBlock />
-  <KeynoteStage />
-  <SpeakBlock />
-  <DayPhotos />
-  <AttendBlock />
+  {phase === 'cfp' && (
+    <>
+      <KeyDates />
+      <SponsorWall />
+      {tickets && <AttendBlock />}
+      <SponsorBlock />
+      <KeynoteStage />
+      <SpeakBlock />
+      <DayPhotos />
+      {!tickets && <AttendBlock />}
+    </>
+  )}
+  {phase === 'countdown' && (
+    <>
+      <KeyDates />
+      <SponsorWall />
+      <AttendBlock />
+      <ProgramBlock />
+      <KeynoteStage />
+      <DayPhotos />
+      {sponsorAsk() && <SponsorBlock />}
+    </>
+  )}
+  {phase === 'event-day' && (
+    <>
+      <KeyDates />
+      <SponsorWall />
+      <ProgramBlock />
+      <AttendBlock />
+    </>
+  )}
+  {phase === 'recap' && (
+    <>
+      <SponsorWall />
+      <ProgramBlock />
+      <DayPhotos />
+    </>
+  )}
 </Base>

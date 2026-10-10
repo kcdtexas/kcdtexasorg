@@ -88,6 +88,7 @@
   --track-tickets: #8a8d8a;   /* the tickets bar on the key dates */
 
   --tile: transparent;        /* behind sponsor logos */
+  --tile-fg: #121412;         /* a sponsor's name on its tile, before its logo is in (ink in both themes) */
   --focus: #121412;
 }
 
@@ -126,6 +127,7 @@
     --signal-edge: none;
     --track-tickets: #8a8d8a;
     --tile: #f4f3ef;
+    --tile-fg: #121412;
     --focus: #ffffff;
   }
 }
@@ -164,6 +166,7 @@
     --signal-edge: none;
     --track-tickets: #8a8d8a;
     --tile: #f4f3ef;
+    --tile-fg: #121412;
     --focus: #ffffff;
   }
 }
