@@ -6,10 +6,14 @@
 // The refresh policy (scripts/refresh-policy.mjs): every run type on every day of the Edition, Event Day's
 // 5-minute runs and their edges, across DST, the Event Day cron against the Edition file, and the deploy budget:
 // with no program change, March and April rebuild only on the rebuild days.
-// Runs actionlint on the workflow when it's installed (or at $ACTIONLINT). No network, no build.
+// No second deploy of one program change: after a program change the rebuild job waits until the live site
+// publishes the version the program job computed, and runs queue behind each other. The wait's script also runs
+// here, faster, against a local stand-in for the live site.
+// Runs actionlint on the workflow when it's installed (or at $ACTIONLINT). No network beyond this machine, no build.
 // Usage: node tests/rebuild.mjs
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse } from 'yaml';
@@ -17,6 +21,7 @@ import { importTs } from '../scripts/lib/import-ts.mjs';
 import { rebuildDates } from '../scripts/rebuild-dates.mjs';
 import { BACKUP_CRON, MORNING_CRON, centralClock, eventDayCrons, refreshPolicy } from '../scripts/refresh-policy.mjs';
 import { centralDay, rebuildToday } from '../scripts/rebuild-today.mjs';
+import { liveVersionUrl } from '../src/lib/program-source/config.mjs';
 import { DAYS } from './time-machine.mjs';
 
 const { edition2027: edition } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
@@ -105,6 +110,32 @@ expect(prog?.outputs?.changed === '${{ steps.compare.outputs.changed }}', 'the p
 expect(/needs\.program\.outputs\.changed == 'true'/.test(wf.jobs.rebuild?.if ?? '') && /needs\.check\.outputs\.rebuild == 'true'/.test(wf.jobs.rebuild?.if ?? ''), 'the rebuild job does not rebuild on a rebuild day and on a change');
 expect(wf.jobs.rebuild?.environment === 'production', 'the rebuild job does not name the production environment');
 expect(/secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(wf.jobs.rebuild?.steps)), 'the rebuild job does not use NETLIFY_BUILD_HOOK');
+// No second deploy of one program change. The program job passes on the version it computed; after the build hook,
+// the rebuild job waits until the live site publishes it, only after a program change (a rebuild day or a forced
+// run doesn't wait), checking every 20 seconds or so for at most 10 minutes, and fails with a pointer to Netlify's
+// deploy log. No command prints the version. Runs queue in one group, so the next run sees the new live site.
+const rebuildSteps = wf.jobs.rebuild?.steps ?? [];
+const hookAt = rebuildSteps.findIndex((s) => /secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(s)));
+const waitAt = rebuildSteps.findIndex((s) => /program-version\.txt/.test(JSON.stringify(s)));
+const wait = rebuildSteps[waitAt];
+const loop = wait?.run ?? '';
+expect(prog?.outputs?.version === '${{ steps.compare.outputs.version }}', 'the program job does not pass on version=');
+expect(wait && waitAt > hookAt && hookAt >= 0, 'the rebuild job does not wait for the live program after the build hook');
+expect(wait?.if === "needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'", `the wait runs on ${JSON.stringify(wait?.if)}: it must run only after a program change, not on a rebuild day or a forced run`);
+expect(wait?.env?.VERSION === '${{ needs.program.outputs.version }}' && wait?.env?.LIVE === liveVersionUrl, `the wait doesn't compare ${liveVersionUrl} (src/lib/program-source/config.mjs) with the program job's version`);
+const deadline = Number(loop.match(/SECONDS \+ (\d+)\)/)?.[1]);
+const every = Number(loop.match(/\bsleep (\d+)\b/)?.[1]);
+expect(deadline > 0 && deadline <= 600 && every >= 10 && every <= 30, `the wait checks every ${every} s for ${deadline} s, not every 10 to 30 s for at most 10 minutes`);
+expect(wf.jobs.rebuild?.['timeout-minutes'] * 60 >= deadline + 120, `the rebuild job's ${wf.jobs.rebuild?.['timeout-minutes']}-minute timeout ends before the wait's own message`);
+expect(/::error::[^\n]*Netlify[^\n]*deploy log/.test(loop) && /\bexit 1\s*$/.test(loop), 'the wait does not fail with a message that points to the deploy log in Netlify');
+expect(/\[ -n "\$VERSION" \]/.test(loop), 'the wait could end on an empty version, such as a missing live file');
+for (const [name, job] of Object.entries(wf.jobs)) {
+  for (const step of job.steps ?? []) {
+    if (step.run) expect(!/outputs\.version/.test(step.run) && !/set -x|(echo|printf)[^\n]*\$\{?(VERSION|got)\b/.test(step.run), `job "${name}": a command prints the program version`);
+  }
+}
+expect(JSON.stringify(wf.concurrency) === JSON.stringify({ group: 'rebuild', 'cancel-in-progress': false }), `the workflow's concurrency is ${JSON.stringify(wf.concurrency)}: runs must queue in one group and never cancel each other`);
+expect(Object.values(wf.jobs).every((j) => j.concurrency === undefined), 'a job sets a concurrency of its own');
 expect(/node scripts\/rebuild-today\.mjs/.test(raw), 'the workflow does not ask scripts/rebuild-today.mjs');
 expect(!/\b20\d\d-\d\d-\d\d\b/.test(raw), 'the workflow has a date in it: it must take the dates from scripts/rebuild-dates.mjs');
 // The 60-day rule: a scheduled job re-enables the workflow through the API, with actions: write.
@@ -237,6 +268,39 @@ for (const [gname, gates] of Object.entries(GATES)) {
 if (!edition.program.speakersPublic && !edition.program.schedulePublic) {
   const res = spawnSync(process.execPath, ['scripts/program-check.mjs'], { encoding: 'utf8', env: { ...process.env, SESSIONIZE_ENDPOINT_ID: '', PROGRAM_CSV_URL: '', GITHUB_OUTPUT: '' } });
   expect(res.status === 0 && res.stdout === 'unchanged\n', `program-check with the gates closed: exit ${res.status}, ${JSON.stringify(res.stdout)}`);
+}
+
+// The wait's script as GitHub runs it, with a 3-second limit and 0.2-second checks, against a local stand-in for
+// the live site: it ends once the site publishes the new version (on the third request), fails with its message
+// when the site never does, and never ends on an empty version. It never prints the version.
+if (loop) {
+  const NEW = 'f0'.repeat(32);
+  let hits = 0;
+  let serve = () => '';
+  const site = createServer((req, res) => { hits += 1; res.writeHead(200, { 'content-type': 'text/plain' }); res.end(`${serve()}\n`); });
+  await new Promise((r) => site.listen(0, '127.0.0.1', r));
+  const fast = loop.replace(/SECONDS \+ \d+\)/, 'SECONDS + 3)').replace(/\bsleep \d+\b/, 'sleep 0.2');
+  const runWait = (env) => new Promise((resolve) => {
+    hits = 0;
+    const child = spawn('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', fast], { env: { ...process.env, NO_PROXY: '127.0.0.1', no_proxy: '127.0.0.1', ...env } });
+    let out = '';
+    for (const s of [child.stdout, child.stderr]) s.on('data', (d) => { out += d; });
+    child.on('close', (status) => resolve({ status, out }));
+  });
+  try {
+    const env = { VERSION: NEW, LIVE: `http://127.0.0.1:${site.address().port}/2027/program-version.txt` };
+    serve = () => (hits >= 3 ? NEW : 'b1'.repeat(32));
+    let r = await runWait(env);
+    expect(r.status === 0 && /has the new program/.test(r.out) && hits === 3 && !r.out.includes(NEW), `the wait doesn't end once the live site has the new version: exit ${r.status}, ${hits} requests, ${JSON.stringify(r.out)}`);
+    serve = () => 'b1'.repeat(32);
+    r = await runWait(env);
+    expect(r.status === 1 && /^::error::.*Netlify/m.test(r.out) && !r.out.includes(NEW), `the wait doesn't fail when the live site keeps the old version: exit ${r.status}, ${JSON.stringify(r.out)}`);
+    serve = () => '';
+    r = await runWait({ ...env, VERSION: '' });
+    expect(r.status === 1, `the wait ends on an empty version: exit ${r.status}, ${JSON.stringify(r.out)}`);
+  } finally {
+    site.close();
+  }
 }
 
 // actionlint, when it's installed (or named by $ACTIONLINT).

@@ -2,7 +2,8 @@
 # (docs/rebuilds.md). The pages are static, so "Open now", "Closed" and the like only change when a build runs.
 # Each run asks scripts/rebuild-today.mjs what to do by the refresh policy (scripts/refresh-policy.mjs): rebuild
 # on the days scripts/rebuild-dates.mjs lists from the Edition file; while a program gate is open, check the
-# platform and rebuild only on a change; otherwise nothing. A rebuild POSTs to the Netlify build hook.
+# platform and rebuild only on a change; otherwise nothing. A rebuild POSTs to the Netlify build hook, and after a
+# program change it waits until the live site has the new program.
 name: Rebuild on date changes
 
 on:
@@ -24,6 +25,9 @@ on:
 
 permissions: {}
 
+# One run at a time. A run that starts while another is still going waits for it instead of cancelling it, so after
+# a program change the next run compares the platform with the site the first one waited for. (GitHub keeps one
+# waiting run; a newer one takes its place.)
 concurrency:
   group: rebuild
   cancel-in-progress: false
@@ -75,7 +79,8 @@ jobs:
           echo "rebuild=$r" >> "$GITHUB_OUTPUT"
 
   # Has the public program changed on the platform since the live site was built? It runs only when the check job
-  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches.
+  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches. It
+  # passes on the program version it computed, a hash of the public program, for the rebuild job's wait.
   program:
     needs: check
     if: needs.check.outputs.program == 'true'
@@ -87,6 +92,7 @@ jobs:
       contents: read # check out the repo
     outputs:
       changed: ${{ steps.compare.outputs.changed }}
+      version: ${{ steps.compare.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -108,7 +114,8 @@ jobs:
     # On a rebuild day, or after a check that found a change. The program job is skipped on most runs.
     if: ${{ !cancelled() && needs.check.result == 'success' && (needs.check.outputs.rebuild == 'true' || needs.program.outputs.changed == 'true') }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    # The wait after a program change takes at most 10 minutes.
+    timeout-minutes: 15
     # The hook is a secret of the production environment, which only main can use (CLAUDE.md).
     environment: production
     permissions: {}
@@ -123,6 +130,24 @@ jobs:
           if [ -z "$HOOK" ]; then echo "::error::NETLIFY_BUILD_HOOK isn't set in the production environment."; exit 1; fi
           curl -fsS --retry 3 --retry-all-errors -o /dev/null -X POST -d '{}' "$HOOK?trigger_title=$TITLE+$DAY"
           echo "Netlify accepted the build hook for $DAY. The deploy shows in Netlify's Deploys list."
+      # After a program change, wait until the live site publishes the new program version, checking every 20
+      # seconds for up to 10 minutes. The next run waits for this one (concurrency, above), so it compares with the
+      # new live site and doesn't deploy the same change again. Rebuild days and forced runs don't wait. The version
+      # is a hash of the public program, which the live site publishes too; no command prints it.
+      - name: Wait until the live site has the new program
+        if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
+        env:
+          VERSION: ${{ needs.program.outputs.version }}
+          LIVE: https://kcdtexas.org/2027/program-version.txt
+        run: |
+          end=$((SECONDS + 600))
+          while [ "$SECONDS" -lt "$end" ]; do
+            sleep 20
+            got="$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
+            if [ -n "$VERSION" ] && [ "$got" = "$VERSION" ]; then echo "The live site has the new program."; exit 0; fi
+          done
+          echo "::error::The live site still doesn't have the new program after 10 minutes. Open the newest deploy in Netlify's Deploys list: its deploy log says whether it failed or is still building."
+          exit 1
 
   # GitHub turns off scheduled workflows in a public repo after 60 days without repository activity, and
   # Feb 1 to Apr 23 can pass without a commit. Enabling the workflow through the API restarts that count, so the

@@ -31,9 +31,11 @@ The dates come from the Edition file: the program's day (`schedule`) and `eventD
 
 The check is `node scripts/program-check.mjs`. It reads the program from the platform as a production build does, computes its version, and compares it with the live `/2027/program-version.txt`. It prints only "changed" or "unchanged". It runs in its own job, in the `production` environment, which holds the platform's address as the secret `SESSIONIZE_ENDPOINT_ID` (or `PROGRAM_CSV_URL` for a CSV). The workflow keeps no artifacts and no caches.
 
+After a rebuild for a program change, the run waits until the live `/2027/program-version.txt` has the new version. It checks every 20 seconds, for up to 10 minutes. Runs never overlap: the next one waits for it (the workflow's `concurrency`), so it compares the platform with the new live site and doesn't deploy the same change twice. Rebuild days and forced runs don't wait.
+
 **Event Day's runs name the day.** GitHub can't read the Edition file, so the workflow's 5-minute cron says `2-59/5 12-23 23 4 *`: from 12:02 to 23:57 UTC on Apr 23, which is 7:02 a.m. to 6:57 p.m. CDT. If Event Day moves, `tests/rebuild.mjs` fails and prints the cron line for the new day. A run that GitHub starts late, after 7 p.m. Central, does nothing.
 
-`tests/rebuild.mjs` checks the script and the policy on every day of the Edition, on Event Day's runs and the window's edges, and across both DST changes. It checks that the workflow's times fall on the right Central day all year, and that the workflow keeps its pinned actions, least privilege and secret handling. It also counts the rebuilds in March and April with no program change: only the rebuild days. When `actionlint` is installed (or `ACTIONLINT` names it), it lints the workflow too.
+`tests/rebuild.mjs` checks the script and the policy on every day of the Edition, on Event Day's runs and the window's edges, and across both DST changes. It checks that the workflow's times fall on the right Central day all year, and that the workflow keeps its pinned actions, least privilege, secret handling and the wait after a program change. It also counts the rebuilds in March and April with no program change: only the rebuild days. When `actionlint` is installed (or `ACTIONLINT` names it), it lints the workflow too.
 
 ## Check a day
 
@@ -64,4 +66,4 @@ If it's turned off anyway (GitHub emails a warning first, and the Actions page s
 
 ## If a run fails
 
-GitHub emails a failed scheduled run to the person who last changed its schedule. The pages keep their old text until the next build. Run the workflow by hand with "force" once the cause is fixed. The usual causes are a missing secret or a build hook that was deleted in Netlify. If the `program` job fails, the platform didn't answer or its data didn't validate; the log says which variable, never its value, and the next run tries again.
+GitHub emails a failed scheduled run to the person who last changed its schedule. The pages keep their old text until the next build. Run the workflow by hand with "force" once the cause is fixed. The usual causes are a missing secret or a build hook that was deleted in Netlify. If the `program` job fails, the platform didn't answer or its data didn't validate; the log says which variable, never its value, and the next run tries again. If the `rebuild` job fails while it waits, the live site didn't get the new program within 10 minutes: open the newest deploy in Netlify's Deploys list, and its log says whether it failed or is still building. The next run checks again.
