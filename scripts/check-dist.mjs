@@ -93,8 +93,8 @@ function check() {
   }
 
   // Zero data: no scripts except /theme.js (the remembered theme), on the key dates /now.js (today's date), and on
-  // the program pages /schedule.js (My Schedule, the filters, Event Day's now and next), no inline styles, nothing
-  // loaded from another host. The one other <script> allowed is a JSON-LD data block
+  // the program pages /schedule.js (My Schedule, the filters, Event Day's now and next, offline use), no inline
+  // styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
   // (type="application/ld+json"): browsers never run it, it holds only JSON, and only the home page has one.
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -141,7 +141,14 @@ function check() {
   // /schedule.js and its cache rule ship only in a build where a page loads it.
   const loaded = pages.some(({ html }) => html.includes('<script src="/schedule.js" defer></script>'));
   if (existsSync(join(DIST, 'schedule.js')) !== loaded) failures.push(loaded ? 'a page loads /schedule.js, but dist/schedule.js is missing' : 'dist/schedule.js ships, but no page loads it');
-  if (/^\/schedule\.js$/m.test(readFileSync(join(DIST, '_headers'), 'utf8')) !== existsSync(join(DIST, 'schedule.js'))) failures.push('_headers has a /schedule.js rule without the file, or the file without its rule');
+  const hostHeaders = readFileSync(join(DIST, '_headers'), 'utf8');
+  if (/^\/schedule\.js$/m.test(hostHeaders) !== existsSync(join(DIST, 'schedule.js'))) failures.push('_headers has a /schedule.js rule without the file, or the file without its rule');
+  // The offline worker (/sw.js) comes with the program script: its no-cache rule, and worker-src in the CSP.
+  const worker = existsSync(join(DIST, 'sw.js'));
+  if (worker !== existsSync(join(DIST, 'schedule.js'))) failures.push('dist/sw.js and dist/schedule.js must ship together');
+  if (/^\/sw\.js\n  Cache-Control: no-cache$/m.test(hostHeaders) !== worker) failures.push('_headers has a /sw.js no-cache rule without the file, or the file without its rule');
+  if (/worker-src 'self'/.test(hostHeaders) !== worker) failures.push('the CSP has worker-src without /sw.js, or /sw.js without worker-src');
+  if (worker && !/register\('\/sw\.js', \{ scope: '\/2027\/' \}\)/.test(readFileSync(join(DIST, 'schedule.js'), 'utf8'))) failures.push('schedule.js does not register /sw.js with the scope /2027/');
 
   for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {
     for (const m of readFileSync(file, 'utf8').matchAll(/url\(\s*['"]?((?:https?:)?\/\/[^'")\s]+)/gi)) failures.push(`${file}: loads from another host: ${m[1]}`);
@@ -190,8 +197,10 @@ function check() {
   // The theme script runs before the first paint, so it stays tiny.
   if (existsSync(join(DIST, 'theme.js')) && statSync(join(DIST, 'theme.js')).size >= 1024) failures.push('theme.js is 1 KB or larger');
   if (existsSync(join(DIST, 'now.js')) && statSync(join(DIST, 'now.js')).size >= 1024) failures.push('now.js is 1 KB or larger');
-  // The program pages' one script stays small: under 8 KB as written, about 2.5 KB gzipped.
-  if (existsSync(join(DIST, 'schedule.js')) && statSync(join(DIST, 'schedule.js')).size >= 8 * 1024) failures.push('schedule.js is 8 KB or larger');
+  // The program pages' one script stays small: at most 8 KB as written, about 3 KB gzipped.
+  if (existsSync(join(DIST, 'schedule.js')) && statSync(join(DIST, 'schedule.js')).size > 8 * 1024) failures.push('schedule.js is larger than 8 KB');
+  // The offline worker too: at most 3 KB.
+  if (existsSync(join(DIST, 'sw.js')) && statSync(join(DIST, 'sw.js')).size > 3 * 1024) failures.push('sw.js is larger than 3 KB');
 
   // Each page's weight as a phone first loads it, in bytes over the wire: the HTML, the CSS,
   // fonts and script it references, and the smallest candidate of every image (photos are lazy

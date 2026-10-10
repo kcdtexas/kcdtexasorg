@@ -14,7 +14,7 @@
 // Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007), and the
 // public model's hash is published at /2027/program-version.txt for the refresh check (scripts/program-check.mjs).
 import { edition2026 } from '../data/edition-2026';
-import { edition2027, programDataSample, programSampleGates } from '../data/edition-2027';
+import { asOfDay, edition2027, programDataSample, programSampleGates } from '../data/edition-2027';
 import { home } from '../data/home';
 import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../data/program-2026';
 import { breaks2026, rooms2026, sessions2026 } from '../data/program-2026-schedule';
@@ -209,6 +209,9 @@ const built = gates.speakersPublic || gates.schedulePublic ? await build(await s
 export const program: Program | null = built?.program ?? null;
 /** The public model's hash, published at /2027/program-version.txt while a gate is open; null while both are closed. */
 export const programVersion: string | null = built?.version ?? null;
+/** Offline use (/sw.js): while the program pages exist, through Event Day. From the day after, the build's worker
+ *  clears its copies and removes itself. */
+export const offlineCopy = program !== null && asOfDay <= edition2027.eventDay;
 /** The Speaker photos as WebP, by Speaker slug, for src/pages/2027/speakers/[photo].webp.ts. */
 export const speakerPhotos: ReadonlyMap<string, { small: Buffer; large: Buffer }> = built?.photos ?? new Map();
 

@@ -14,7 +14,7 @@ interface Props {
   /** The page's link-preview card (src/pages/cards): a site card, or a program page's own card with its alt text;
    *  the title card when the page has none of its own. */
   card?: CardId | { id: string; alt: string };
-  /** The program pages' script (/schedule.js): My Schedule, the filters and Event Day's now and next. */
+  /** The program pages' script (/schedule.js): My Schedule, the filters, Event Day's now and next, and offline use. */
   schedule?: boolean;
   /** Structured data for search engines, as a JSON-LD object (src/lib/structured-data.ts). */
   jsonLd?: object;

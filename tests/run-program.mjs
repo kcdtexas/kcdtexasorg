@@ -3,7 +3,9 @@
 // the test-build marker, the credits from the test history), runs the smoke and browser tests on it (axe on every
 // new page, in both themes, on a desktop and a phone), then drives the program pages in a browser: the filters, My
 // Schedule across reloads, the keyboard, the calendar files, the credits' boxes and Event Day's now and next. It
-// adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. Then it builds with
+// checks the announcements file (a bad entry stops the build; only entries posted by the build's time show) and
+// offline use (the Event Day page and a Session page reload offline; from the day after Event Day the worker removes
+// itself). It adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. Then it builds with
 // the gates closed and checks that no program page, card, calendar file, script reference or credit is built, and
 // that the planted marker reaches no served file and no build log in either build. At the end dist/ is rebuilt as
 // a normal build. Between them it builds the gate matrix's middle case, only `speakersPublic` open
@@ -27,10 +29,23 @@ const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|js
 const read = (p) => readFileSync(join('dist', p), 'utf8');
 const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&#39;|&#x27;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 
+/** Polls `fn` in the tab (it may be async) until it's true, for up to `ms`. */
+async function until(tab, fn, ms = 15000) {
+  for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 100))) {
+    if (await tab.evaluate(fn).catch(() => false)) return true;
+  }
+  return false;
+}
+
 function build(flags, env = {}) {
   const res = spawnSync('bash', ['scripts/build.sh', '--skip-install', ...flags], { encoding: 'utf8', env: { ...process.env, ...env } });
   return { status: res.status, log: res.stdout + res.stderr };
 }
+
+// The announcements file, changed for a step and always put back.
+const ANNOUNCEMENTS = 'src/data/announcements-2027.yaml';
+const announcementsText = readFileSync(ANNOUNCEMENTS, 'utf8');
+process.on('exit', () => writeFileSync(ANNOUNCEMENTS, announcementsText));
 
 // Fields the allowlist drops, from the fixture: none may reach a served file.
 const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/track'];
@@ -236,9 +251,24 @@ try {
     await c.close();
   }
 
-  // 5. The program sample on Event Day at 10:30 a.m.: the hero's one link, the page's stamp, and now and next,
-  // which follow the browser's clock in Central time.
+  // 5. The announcements file: a bad entry stops the build with a message naming the entry and the field.
+  for (const [entry, want] of [
+    ['- at: "2027-04-23 9:15"\n  text: Doors open.', /entry 1 \(at "2027-04-23 9:15"\): "at" must be/],
+    ['- at: "2027-04-23 09:15"\n  text: Doors open.\n- at: "2027-04-23 10:15"\n  text: More.\n  link: http://example.com/', /entry 2 \(at "2027-04-23 10:15"\): "link" must be an https address/],
+    ['- at: "2027-04-23 09:15"\n  txt: Doors open.', /entry 1 \(at "2027-04-23 09:15"\): "txt" is not a field/],
+  ]) {
+    writeFileSync(ANNOUNCEMENTS, `${announcementsText}${entry}\n`);
+    const res = build([]);
+    expect(res.status !== 0 && want.test(res.log), `a bad announcement does not stop the build with ${want}:\n${res.log.slice(-600)}`);
+  }
+  writeFileSync(ANNOUNCEMENTS, announcementsText);
+
+  // 6. The program sample on Event Day at 10:30 a.m.: the hero's one link, the page's stamp, and now and next,
+  // which follow the browser's clock in Central time. Two announcements from the file: the 10:15 one shows, with
+  // its link, and the 11:00 one doesn't yet.
+  writeFileSync(ANNOUNCEMENTS, `${announcementsText}- at: "2027-04-23 10:15"\n  text: Test announcement posted at 10:15.\n  link: https://example.com/today\n- at: "2027-04-23 11:00"\n  text: Test announcement posted at 11:00.\n`);
   const eventDay = build(['--program-sample', '--now', DAY, '--clock', '10:30']);
+  writeFileSync(ANNOUNCEMENTS, announcementsText);
   if (eventDay.status !== 0) throw new Error(`the Event Day sample build failed:\n${eventDay.log.slice(-3000)}`);
   expect(!eventDay.log.includes(marker), 'the Event Day sample build log contains the planted marker');
   const home = read('index.html');
@@ -248,6 +278,10 @@ try {
   expect(/<li class="td-ses is-now"/.test(today), 'the Event Day page shows nothing on now at 10:30 without JavaScript');
   // Only the announcements posted by the build's time: the 9:05 one, not the 12:40 one.
   expect(/keynote room is full/.test(today) && !/lunch runs 15 minutes late/.test(today), 'the Event Day page at 10:30 shows an announcement posted later, or misses an earlier one');
+  expect(/<time datetime="2027-04-23T10:15">10:15 a\.m\.<\/time> Test announcement posted at 10:15\. <a href="https:\/\/example\.com\/today">Details<\/a>/.test(today) && !/posted at 11:00/.test(today), 'the Event Day page at 10:30 does not show the file\'s 10:15 announcement with its link, or shows the 11:00 one');
+  // Offline use: /sw.js and its rules ship, and the privacy page says so.
+  expect(/OFF = false/.test(read('sw.js')) && /OFFLINE = true/.test(read('schedule.js')), 'the Event Day build does not turn offline use on');
+  expect(/keeps a copy so they still open without a connection/.test(text(read('privacy/index.html'))), 'the privacy page lacks the offline copy line');
   await serve();
   for (const [at, utc] of [['10:30', '15:30'], ['15:00', '20:00']]) {
     const c = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -263,8 +297,42 @@ try {
     expect(got.join('|') === want.join('|') && got.some(Boolean), `Event Day at ${at}: now is ${got.join(' | ')}`);
     await c.close();
   }
+  // Offline use: load the Event Day page and a Session page, go offline, and both reload from the kept copy.
+  const offline = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const off = await offline.newPage();
+  const keptHere = () => until(off, async () => Boolean(await (await caches.open('kcd-texas-2027')).match(location.href)));
+  await off.goto(`${base}/2027/today/`);
+  expect(await keptHere(), 'the Event Day page is not kept for offline use');
+  const sessionPath = await off.locator('.td-title').first().getAttribute('href');
+  await off.goto(`${base}${sessionPath}`);
+  expect(await keptHere(), `${sessionPath} is not kept for offline use`);
+  expect(await off.evaluate(async () => (await navigator.serviceWorker.getRegistration('/2027/'))?.scope.endsWith('/2027/')), 'the offline worker is not registered with the scope /2027/');
+  await offline.setOffline(true);
+  for (const path of ['/2027/today/', sessionPath]) {
+    const res = await off.goto(`${base}${path}`).catch(() => null);
+    const shown = res && await off.evaluate(() => [document.querySelector('h1')?.textContent.trim(), getComputedStyle(document.body).fontFamily]);
+    expect(res?.status() === 200 && shown[0] && /Archivo/.test(shown[1]), `${path} does not reload offline with its text and styles`);
+  }
+  // The browser is offline for the worker too: a page it never kept doesn't load.
+  expect(await off.goto(`${base}/2027/sessions/never-kept/`).then(() => false, () => true), 'a page that was never kept loads offline, so the offline check proves nothing');
+  await offline.setOffline(false);
 
-  // 6. The gate matrix: only `speakersPublic` open (--program-sample=speakers). The Speakers, the titles and the
+  // From the day after Event Day: the worker clears its copies and removes itself, and the script registers none.
+  const after = build(['--program-sample', '--now', '2027-04-24']);
+  if (after.status !== 0) throw new Error(`the day-after sample build failed:\n${after.log.slice(-3000)}`);
+  expect(/OFF = true/.test(read('sw.js')) && /OFFLINE = false/.test(read('schedule.js')), 'the day-after build does not turn offline use off');
+  expect(!/without a connection/.test(read('privacy/index.html')), 'the day-after privacy page still mentions the offline copy');
+  await serve();
+  await off.goto(`${base}/2027/today/`);
+  const gone = async () => (await navigator.serviceWorker.getRegistrations()).length === 0 && (await caches.keys()).length === 0;
+  expect(await until(off, gone), 'the day-after worker does not remove itself and its copies');
+  // And it stays removed: the page's script registers no worker again.
+  await off.reload();
+  await new Promise((r) => setTimeout(r, 2000));
+  expect(await off.evaluate(gone), 'a worker or a kept copy comes back after a reload on the day after Event Day');
+  await offline.close();
+
+  // 7. The gate matrix: only `speakersPublic` open (--program-sample=speakers). The Speakers, the titles and the
   // abstracts, with no times, rooms, calendar files or Event Day page; the program version is still published.
   const speakersOnly = build(['--program-sample=speakers']);
   if (speakersOnly.status !== 0) throw new Error(`the speakers-only sample build failed:\n${speakersOnly.log.slice(-3000)}`);
@@ -296,7 +364,7 @@ try {
     expect(res.status === 0, `${script} fails on the speakers-only sample:\n${(res.stdout + res.stderr).split('\n').filter((l) => /fail|✗|violation/i.test(l)).slice(0, 20).join('\n')}`);
   }
 
-  // 7. The history registry: a new file in src/data/history/ joins with no code change, and a bad one fails the
+  // 8. The history registry: a new file in src/data/history/ joins with no code change, and a bad one fails the
   // build with its name. The test file stands in for 2025 (a copy of any real one is put back afterwards): with a
   // complete 2025 Organizers record, a normal build prints the Organizer credits, each year from the records.
   const historyFile = 'src/data/history/2025.ts';
@@ -320,7 +388,7 @@ try {
     if (keptFile) renameSync(keptFile, historyFile);
   }
 
-  // 8. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
+  // 9. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
   const closed = build([]);
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
@@ -330,6 +398,7 @@ try {
   expect(!walk('dist').some((f) => f.endsWith('.html') && /schedule\.js/.test(readFileSync(f, 'utf8'))), 'a page loads /schedule.js with the gates closed');
   expect(!/\/2027\/(?:speakers|sessions|today)\//.test(read('sitemap.xml')), 'the sitemap lists program pages with the gates closed');
   expect(!existsSync('dist/schedule.js') && !/schedule\.js/.test(read('_headers')), 'a closed gate still ships /schedule.js or its _headers rule');
+  expect(!existsSync('dist/sw.js') && !/sw\.js|worker-src/.test(read('_headers')), 'a closed gate still ships /sw.js, its _headers rule or worker-src');
   expect(!/^\/speakers\s/m.test(read('_redirects')), 'a closed gate still serves the /speakers Short Link');
   expect(!/My Schedule/.test(read('privacy/index.html')), 'the privacy page mentions My Schedule with the gates closed');
   for (const f of served()) {

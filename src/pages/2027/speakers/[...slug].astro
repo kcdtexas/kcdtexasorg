@@ -23,7 +23,7 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
 ---
 
 {p === null ? (
-  <Base title={`${L.title} · KCD Texas`} description={L.description}>
+  <Base title={`${L.title} · KCD Texas`} description={L.description} schedule>
     <article class="page wrap">
       <PageHead kicker={L.kicker} title={L.title} lead={L.lead(program!.speakers.length)}>
         {program!.sample && <p class="page-soon">{programPages.sample}</p>}

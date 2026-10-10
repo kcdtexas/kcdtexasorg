@@ -1,0 +1,18 @@
+# Event Day announcements for /2027/today/ (Core Event Committee). On Event Day, an Organizer on duty adds them in
+# GitHub's web editor (ADR 0008's fast track); docs/event-day.md has the steps. The page shows each one from its
+# time on, newest first. Safety and emergency messages never wait for the website: they go through the MC, Slack
+# and signage.
+#
+# Each entry has three fields:
+#   at     when it's posted, Central time, as "YYYY-MM-DD HH:MM" in quotes, on Event Day or in the 6 days before
+#   text   one line of plain text, at most 280 characters
+#   link   optional, an https address
+#
+# The build checks every entry, and a mistake stops it with a message naming the entry and the field. The site
+# then keeps its last good version.
+
+announcements:
+# Add each announcement at the end of this file, in the shape of this example but without the "# ":
+# - at: "2027-04-23 10:15"
+#   text: The 10:30 Sessions start 10 minutes late.
+#   link: https://kcdtexas.org/2027/schedule/

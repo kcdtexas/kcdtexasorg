@@ -1,5 +1,6 @@
 /* The program pages: My Schedule (stars kept only in this browser), the Schedule's filters and the My Schedule
-   calendar file, and Event Day's now and next per room (Central time). Same-origin, so the CSP stays strict. */
+   calendar file, Event Day's now and next per room (Central time), and offline use (/sw.js). Same-origin, so the
+   CSP stays strict. */
 (function (d) {
   var KEY = 'kcd-texas-2027-my-schedule', mine = [];
   try { mine = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
@@ -109,6 +110,16 @@
     all('[data-breaks] [data-start]', day).forEach(function (b) { b.hidden = !(b.dataset.start <= t && t < b.dataset.end); });
   }
   if (day) { tick(); setInterval(tick, 60000); setTimeout(function () { location.reload(); }, 300000); }
+
+  // Offline use: /sw.js keeps a copy of the program and Event Day pages (scope /2027/), told what this page loaded.
+  // The build sets OFFLINE, and from the day after Event Day nothing registers.
+  var OFFLINE = true, sw = navigator.serviceWorker;
+  if (OFFLINE && sw) {
+    sw.register('/sw.js', { scope: '/2027/' }).then(function () { return sw.ready; }).then(function (r) {
+      function send() { r.active.postMessage({ keep: [location.href.split('#')[0]].concat(performance.getEntriesByType('resource').map(function (x) { return x.name; })) }); }
+      if (d.readyState === 'complete') send(); else addEventListener('load', send);
+    }).catch(function () {});
+  }
 
   paint(); apply();
 })(document);

@@ -3,6 +3,7 @@
 // social cards (the broadcast kit): now and next in each room on a scoreboard, the announcements, the venue map
 // and the day's info, with the time it was built. /schedule.js moves now and next with the clock
 // (Central time) and reloads the page every 5 minutes; without it, the page shows the build's now and next.
+import { Image } from 'astro:assets';
 import Base from '../../../layouts/Base.astro';
 import PageHead from '../../../components/PageHead.astro';
 import { paths } from '../../../data/nav';
@@ -24,7 +25,6 @@ const rooms = p.rooms.map((room) => {
   return { room, list, ...at(list) };
 });
 const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
-const hm = (s: string) => `${clock(`2000-01-01T${s}`)}`;
 ---
 
 <Base title={`${t.title} · KCD Texas`} description={t.description} schedule>
@@ -68,7 +68,7 @@ const hm = (s: string) => `${clock(`2000-01-01T${s}`)}`;
       <h2 id="announcements" class="page-h2">{t.announcementsTitle}</h2>
       {t.announcements.length ? (
         <ol class="td-news">
-          {[...t.announcements].reverse().map((a) => <li><time datetime={`${p.day}T${a.at}`}>{hm(a.at)}</time> {a.text}</li>)}
+          {[...t.announcements].reverse().map((a) => <li><time datetime={a.at}>{clock(a.at)}</time> {a.text}{a.link && <> <a href={a.link}>{t.link}</a></>}</li>)}
         </ol>
       ) : <p class="pg-none">{t.noAnnouncements}</p>}
     </section>
@@ -83,7 +83,7 @@ const hm = (s: string) => `${clock(`2000-01-01T${s}`)}`;
       </div>
       <div>
         <h2 class="page-h2">{t.mapTitle}</h2>
-        <div class="td-map"><p>{t.mapSoon}</p></div>
+        {t.map ? <Image src={t.map.image} alt={t.map.alt} widths={[640, 1280]} sizes="(min-width: 900px) 50vw, 100vw" /> : <div class="td-map"><p>{t.mapSoon}</p></div>}
       </div>
     </section>
   </article>

@@ -145,6 +145,9 @@ if grep -rnE '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?([0-9a-fA-F]{2})?\b|rgba?\(|hsla?\
   exit 1
 fi
 
+step "Checking the Event Day announcements"
+node scripts/check-announcements.mjs
+
 step "Checking color contrast (WCAG AA)"
 node scripts/check-contrast.mjs
 
