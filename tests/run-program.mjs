@@ -10,11 +10,13 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join, relative, sep } from 'node:path';
 import { chromium } from 'playwright-core';
+import sharp from 'sharp';
 
 const failures = [];
 let checks = 0;
 const expect = (ok, message) => { checks += 1; if (!ok) failures.push(message); };
 const DAY = '2027-04-23';
+const STAMP_INSET = Number(readFileSync('src/lib/cards/program-cards.ts', 'utf8').match(/STAMP_INSET = (\d+)/)[1]);
 const marker = readFileSync('src/data/program-fixture.ts', 'utf8').match(/plantedMarker = '([^']+)'/)[1];
 const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
 const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
@@ -96,9 +98,22 @@ try {
   // The End-User Story badge, the formats, and the share cards.
   expect(/badge--eu/.test(schedule) && /badge--workshop/.test(schedule) && /badge--panel/.test(schedule), 'the Schedule lacks the End-User Story, workshop or panel badge');
   for (const page of [`2027/sessions/${sessionPages[0]}/index.html`, '2027/speakers/fixture-speaker-4/index.html']) {
-    const card = read(page).match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
+    const html = read(page);
+    const card = html.match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
     expect(card && card !== 'default' && existsSync(join('dist/cards', `${card}.png`)), `${page}: no Share Card of its own`);
+    expect(/<meta property="og:image:alt" content="Sample: /.test(html), `${page}: the Share Card's alt text does not start with "Sample:"`);
   }
+  // Every Share Card in a test build carries the "Sample" stamp: a white plate in the top right corner.
+  const programCards = readdirSync('dist/cards').filter((n) => /^(?:session|speaker)-/.test(n));
+  expect(programCards.length > 0, 'the sample build drew no Share Cards');
+  for (const name of programCards) {
+    const px = await sharp(join('dist/cards', name)).removeAlpha().extract({ left: 1200 - STAMP_INSET - 8, top: STAMP_INSET + 2, width: 4, height: 4 }).raw().toBuffer();
+    expect([...px].every((v) => v > 240), `cards/${name}: no "Sample" stamp in the top right corner`);
+  }
+  // A test build is marked, and check-dist refuses it in a production context.
+  expect(existsSync('dist/.test-build'), 'the sample build has no dist/.test-build marker');
+  const prod = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env: { ...process.env, KCD_PROGRAM_SAMPLE: '1', CONTEXT: 'production' } });
+  expect(prod.status !== 0 && /\.test-build: this is a test build/.test(prod.stdout + prod.stderr), 'check-dist passes a marked test build with CONTEXT=production');
   // The calendar files.
   checkIcs('schedule.ics', read('2027/schedule.ics'), items.length);
   for (const slug of sessionPages) {
@@ -201,6 +216,7 @@ try {
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
   for (const p of ['2027/speakers', '2027/sessions', '2027/today', '2027/schedule.ics']) expect(!existsSync(join('dist', p)), `a closed gate still builds ${p}`);
+  expect(!existsSync('dist/.test-build'), 'a normal build carries the test-build marker');
   expect(!readdirSync('dist/cards').some((n) => /^(?:session|speaker)-/.test(n)), 'a closed gate still draws program cards');
   expect(!walk('dist').some((f) => f.endsWith('.html') && /schedule\.js/.test(readFileSync(f, 'utf8'))), 'a page loads /schedule.js with the gates closed');
   expect(!/\/2027\/(?:speakers|sessions|today)\//.test(read('sitemap.xml')), 'the sitemap lists program pages with the gates closed');

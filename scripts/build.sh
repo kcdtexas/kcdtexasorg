@@ -127,6 +127,16 @@ npx astro check
 step "Building the site"
 npx astro build
 
+# A test-flag build marks dist/ as one, so no deploy can publish it: check-dist fails a marked build in a
+# production context, and the preview deploy refuses it.
+test_flags=()
+for v in KCD_BUILD_DAY KCD_BUILD_CLOCK KCD_TICKETS_DAY KCD_PROGRAM_PUBLIC KCD_SPONSORS_SAMPLE KCD_PROGRAM_SAMPLE; do
+  if [ -n "${!v:-}" ]; then test_flags+=("$v"); fi
+done
+if [ ${#test_flags[@]} -gt 0 ]; then
+  printf 'A test build (%s). Never deploy it.\n' "${test_flags[*]}" > dist/.test-build
+fi
+
 step "Writing _redirects, _headers and sitemap.xml"
 node scripts/write-host-files.mjs
 

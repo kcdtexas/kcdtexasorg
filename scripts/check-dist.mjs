@@ -57,6 +57,8 @@ const BUDGETS = {
 };
 
 const DIST = 'dist';
+/** The file scripts/build.sh writes into dist/ for any build with a test flag. */
+export const TEST_BUILD_MARKER = '.test-build';
 
 function check() {
   const failures = [];
@@ -67,6 +69,11 @@ function check() {
   }
   for (const f of ['_redirects', '_headers', 'robots.txt', 'sitemap.xml', 'favicon.svg', 'theme.js', 'now.js']) {
     if (!existsSync(join(DIST, f))) failures.push(`missing dist/${f}`);
+  }
+
+  // A test-flag build (scripts/build.sh writes the marker) never ships from a production build.
+  if (process.env.CONTEXT === 'production' && existsSync(join(DIST, TEST_BUILD_MARKER))) {
+    failures.push(`dist/${TEST_BUILD_MARKER}: this is a test build, and CONTEXT is production`);
   }
 
   // Every Short Link from the data file is served, and there is no catch-all.

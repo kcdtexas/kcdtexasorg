@@ -16,6 +16,14 @@ const dateLine = `KCD Texas · ${edition2027.city} · ${shortDate(edition2027.ev
 
 type Entry = { id: string; alt: string; draw: () => Promise<Node> };
 
+/** Where the "Sample" stamp sits: this far from the top and right edges, in a test build's cards. */
+export const STAMP_INSET = 24;
+// A test build's cards carry a "Sample" stamp, so a test image never passes for a real announcement.
+const stamp = () => program?.sample
+  ? h('div', { position: 'absolute', top: STAMP_INSET, right: STAMP_INSET, padding: '10px 20px', background: color.fg, color: color.bg, fontSize: 36, ...type.label, lineHeight: 1 }, 'Sample')
+  : null;
+const altOf = (alt: string) => (program?.sample ? `Sample: ${alt}` : alt);
+
 /** Smaller type for longer words, so a title fits in its lines. */
 const fit = (s: string, sizes: [number, number][]) => sizes.find(([max]) => s.length <= max)?.[1] ?? sizes.at(-1)![1];
 
@@ -29,7 +37,7 @@ function sessionCard(s: Session): Entry {
       h('div', { fontSize: 46, color: color.gold, ...type.display, textTransform: 'none', lineHeight: 1 }, value));
   return {
     id: `session-${s.slug}`,
-    alt: `${s.title}, ${kind}${who ? `, by ${who}` : ''}, at KCD Texas ${edition2027.year}${s.start ? `, ${timeRange(s.start, s.end!)} Central, ${s.room}` : ''}.`,
+    alt: altOf(`${s.title}, ${kind}${who ? `, by ${who}` : ''}, at KCD Texas ${edition2027.year}${s.start ? `, ${timeRange(s.start, s.end!)} Central, ${s.room}` : ''}.`),
     draw: async () => h('div', { width: CARD.width, height: CARD.height, flexDirection: 'column', padding: `40px ${PAD}px 0`, background: color.bg, color: color.fg },
       h('div', { alignItems: 'center', gap: 18 },
         chip(String(edition2027.year), 24),
@@ -41,6 +49,7 @@ function sessionCard(s: Session): Entry {
         cell('Time (Central)', timeRange(s.start, s.end!)),
         cell('Room', s.room ?? '', true)) : null,
       h('div', { position: 'absolute', right: PAD, bottom: 22, fontSize: 22, color: color.muted, ...type.bold }, domain),
+      stamp(),
     ),
   };
 }
@@ -51,7 +60,7 @@ function speakerCard(p: Speaker): Entry {
   const bandH = 200;
   return {
     id: `speaker-${p.slug}`,
-    alt: `${p.name} is speaking at KCD Texas ${edition2027.year} in ${edition2027.city}${first ? `: ${first.title}` : ''}.`,
+    alt: altOf(`${p.name} is speaking at KCD Texas ${edition2027.year} in ${edition2027.city}${first ? `: ${first.title}` : ''}.`),
     draw: async () => h('div', { width: CARD.width, height: CARD.height, flexDirection: 'column', background: color.bg, color: color.fg },
       img(await photo('src/assets/photos/band-043-171.jpg', CARD.width, bandH), CARD.width, bandH),
       h('div', { height: 6, background: color.gold }),
@@ -67,6 +76,7 @@ function speakerCard(p: Speaker): Entry {
       ),
       h('div', { position: 'absolute', left: PAD, bottom: 26, fontSize: 24, color: color.muted, ...type.bold }, `${edition2027.city} · ${shortDate(edition2027.eventDay)}`),
       h('div', { position: 'absolute', right: PAD, bottom: 26, fontSize: 24, color: color.muted, ...type.bold }, domain),
+      stamp(),
     ),
   };
 }
