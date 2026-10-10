@@ -4,6 +4,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
+import { cfpSaleDay, laterOnSale, laterSaleDay } from './sample-days.mjs';
 
 const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 // The phase rail's rows in page order: key, state, name, start and end as read aloud (the dash is hidden, " to "
@@ -179,20 +180,20 @@ export const DAYS = {
 // The test-only flags (scripts/build.sh): each run builds once with its flags and checks the pages. The sample
 // ticket day gives the stand-in ticket link, the KCD Texas chapter page, so "Get tickets" goes there too.
 export const RUNS = [
-  { name: 'tickets on sale in the CFP Phase', flags: ['--now', '2026-12-16', '--tickets-day', '2026-12-16'], checks: ({ home }) => ({
+  { name: 'tickets on sale in the CFP Phase', flags: ['--now', cfpSaleDay, '--tickets-day', cfpSaleDay], checks: ({ home }) => ({
     'header: still "Submit a talk"': headCta(home)[1] === 'Submit a talk',
     'hero: Sponsor filled, "Submit a talk" outlined': doorsAre(home, 'filled Sponsor KCD Texas 2027', 'line Submit a talk'),
     'hero bill: "Tickets: on sale now" third': bill(home) === 'Sponsorships: open now | Call for proposals: open now | Tickets: on sale now | Your End-User Story here',
     'home order: Attend fourth': sections(home) === 'hero,dates,wall,attend,sponsor,stage,speak,day',
   }) },
-  { name: 'tickets on sale in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', '2026-12-16'], checks: ({ home }) => ({
+  { name: 'tickets on sale in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', cfpSaleDay], checks: ({ home }) => ({
     'header: "Tickets", where the hero\'s "Get tickets" goes': headCta(home)[1] === 'Tickets' && doorsAre(home, 'filled Get tickets', 'line Sponsor KCD Texas 2027') && heroDoors(home)[0].href === headCta(home)[0],
     'hero bill: "Tickets: on sale now"': bill(home) === 'Tickets: on sale now | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks',
     'home order: as without tickets': sections(home) === 'hero,dates,wall,attend,program,stage,day,sponsor',
   }) },
-  { name: 'a later sale day in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', '2027-03-15'], checks: ({ home }) => ({
+  { name: 'a later sale day in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', laterSaleDay], checks: ({ home }) => ({
     'header: "Tickets", to ticket news until the sale day': headCta(home).join() === `${chapter},Tickets` && doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027'),
-    'hero bill: "Tickets: on sale Mar 15"': bill(home) === 'Tickets: on sale Mar 15 | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks',
+    [`hero bill: "Tickets: ${laterOnSale}"`]: bill(home) === `Tickets: ${laterOnSale} | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks`,
   }) },
   { name: 'the program public in the Countdown', flags: ['--now', '2027-03-10', '--program-public'], checks: ({ home, schedule }) => ({
     'header: still "Tickets"': headCta(home)[1] === 'Tickets',
