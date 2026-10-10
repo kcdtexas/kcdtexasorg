@@ -95,15 +95,21 @@ export interface CreditRule {
  * id) in the current Edition, or null. It prints only when every earlier Edition from `rule.from` has a complete
  * record of the kind, so a missing year can never print a wrong "since"; an incomplete record counts as missing.
  * When the current Edition has a record of the kind, the entry must be on it.
+ *
+ * Any earlier record that lists the entry proves that year, complete or not, and before `rule.from` too. The credit
+ * counts from the first year listed, and only when every Edition from that year on has a complete record. Otherwise
+ * the entry gets no credit, as a missing or incomplete record could make its "since" or its count wrong.
  */
 export function creditFor(history: readonly EditionHistory[], kind: Kind, keys: readonly string[], rule: CreditRule): Credit | null {
   const record = (year: number) => history.find((h) => h.year === year)?.[kind];
-  const required = rule.editions.filter((y) => y >= rule.from && y < rule.current);
-  if (required.some((y) => !record(y)?.complete)) return null;
+  /** Every Edition from `year` up to the current one has a complete record of the kind. */
+  const completeFrom = (year: number) => rule.editions.filter((y) => y >= year && y < rule.current).every((y) => record(y)?.complete);
+  if (!completeFrom(rule.from)) return null;
   const wanted = new Set(kind === 'sponsors' ? keys : keys.map(norm));
   const on = (r: PeopleRecord | SponsorRecord | undefined) => Boolean(r) && keysOf(kind, r!).some((k) => wanted.has(k));
   const now = record(rule.current);
   if ((now || kind === 'sponsors') && !on(now)) return null;
-  const years = history.filter((h) => h.year < rule.current && h[kind]?.complete && on(h[kind])).map((h) => h.year).sort((a, b) => a - b);
-  return years.length ? { since: years[0], editions: years.length + 1 } : null;
+  const years = history.filter((h) => h.year < rule.current && on(h[kind])).map((h) => h.year).sort((a, b) => a - b);
+  if (!years.length || !completeFrom(years[0])) return null;
+  return { since: years[0], editions: years.length + 1 };
 }

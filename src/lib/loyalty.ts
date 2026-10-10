@@ -4,8 +4,9 @@
 // Editions exactly (ignoring case, accents and spacing) or through the confirmed lists in src/data/returning-*.ts.
 //
 // A kind's credits print only when every earlier Edition from where its history starts has a complete record of
-// that kind (src/lib/credits.ts), so a missing year can never print a wrong "since". Test builds add the test
-// history (src/data/history-test.ts) and start every kind's history there.
+// that kind (src/lib/credits.ts), so a missing year can never print a wrong "since". A person listed on any earlier
+// record, complete or not, gets a credit only when every record from that first year on is complete. Test builds
+// add the test history (src/data/history-test.ts) and start every kind's history there.
 import { editions } from '../data/editions';
 import { edition2027, programDataSample, sponsorsSample } from '../data/edition-2027';
 import { testHistory, testHistoryFrom } from '../data/history-test';
@@ -27,8 +28,9 @@ export const history: readonly EditionHistory[] = Object.entries(files)
 
 /**
  * Where each kind's history starts: every Edition from this year on needs a complete record before that kind's
- * credits print. The Organizers' starts in 2025, as the 2024 team isn't public. The Speakers' and the sponsors'
- * start at the first Edition (null) until a year is set here.
+ * credits print. The Organizers' starts in 2025, as the 2024 team isn't public; a name on an incomplete 2024 record
+ * still holds that person's credit back. The Speakers' and the sponsors' start at the first Edition (null) until a
+ * year is set here.
  */
 export const historyFrom: Record<Kind, number | null> = { organizers: 2025, speakers: null, sponsors: null };
 

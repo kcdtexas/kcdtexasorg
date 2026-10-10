@@ -1,6 +1,7 @@
 // The loyalty credits' rules (src/lib/credits.ts) on made-up histories: a credit's year comes from the records,
-// one Edition alone gets nothing, a missing or incomplete record hides that kind's credits, a sponsor needs a
-// Sponsorship in the current Edition, and a history file with a bad shape fails with its file name.
+// one Edition alone gets nothing, a missing or incomplete record hides that kind's credits, a name on an earlier
+// incomplete record holds that person's credit back, a sponsor needs a Sponsorship in the current Edition, and a
+// history file with a bad shape fails with its file name.
 // tests/run-local.mjs runs it; tests/run-program.mjs checks the same rules in real builds.
 // Usage: node --experimental-strip-types tests/credits.mjs (Node 22.12 needs the flag to read TypeScript)
 import { creditFor, mergeHistory, validateHistory } from '../src/lib/credits.ts';
@@ -52,7 +53,18 @@ expect(creditFor(no2024, 'organizers', ['Cy Example'], rule(2025))?.since === 20
 const partial2026 = full.map((h) => (h.year === 2026 ? { ...h, sponsors: ids(['bolt'], false) } : h));
 expect(creditFor(partial2026, 'sponsors', ['bolt'], rule(2024)) === null, 'an incomplete 2026 sponsors record still prints sponsor credits');
 expect(creditFor(partial2026, 'organizers', ['Di Example'], rule(2024))?.since === 2026, 'an incomplete sponsors record hides another kind');
-expect(creditFor([{ ...full[1], organizers: people(['Di Example'], false) }, full[2], full[3]], 'organizers', ['Di Example'], rule(2026))?.since === 2026, 'an incomplete record before the start gives a "since"');
+
+// A name on an earlier record proves that year, even on an incomplete record or one before the history starts. The
+// credit counts from the first year that lists the person, and prints only when every record from then on is
+// complete; otherwise the person's credit is held back, never printed with a later year.
+const partial2024 = full.map((h) => (h.year === 2024 ? { ...h, organizers: people(['Ann Example'], false) } : h));
+expect(creditFor(partial2024, 'organizers', ['Ann Example'], rule(2025)) === null, 'history from 2025: a name on an incomplete 2024 record gets a credit (it would say "since 2025")');
+expect(creditFor(partial2024, 'organizers', ['Cy Example'], rule(2025))?.since === 2025, 'history from 2025: a name missing from an incomplete 2024 record loses its "since 2025"');
+expect(same(creditFor(full, 'organizers', ['Ann Example'], rule(2025)), { since: 2024, editions: 3 }), 'history from 2025: a name on a complete 2024 record is not credited from 2024');
+expect(creditFor([{ ...full[1], organizers: people(['Di Example'], false) }, full[2], full[3]], 'organizers', ['Di Example'], rule(2026)) === null, 'history from 2026: a name on an incomplete 2025 record gets "since 2026"');
+expect(creditFor(full.map((h) => (h.year === 2025 ? { year: 2025 } : h)), 'organizers', ['Ann Example'], rule(2026)) === null, 'history from 2026: a name listed in 2024 gets a credit though 2025 has no record');
+const partialSponsors2024 = full.map((h) => (h.year === 2024 ? { ...h, sponsors: ids(['acme'], false) } : h));
+expect(creditFor(partialSponsors2024, 'sponsors', ['acme'], rule(2025)) === null && creditFor(partialSponsors2024, 'sponsors', ['bolt'], rule(2025))?.since === 2025, 'history from 2025: the sponsors on an incomplete 2024 record are not held back, or the others are');
 
 // A sponsor needs a Sponsorship in the current Edition.
 const no2027Sponsors = full.map((h) => (h.year === 2027 ? { ...h, sponsors: undefined } : h));
