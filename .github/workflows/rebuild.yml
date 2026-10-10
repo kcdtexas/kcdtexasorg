@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: Rebuild now, even if today isn't a rebuild day (to test the hook)
+        description: Force a rebuild now, even if today isn't a rebuild day
         type: boolean
         default: false
 
@@ -86,7 +86,7 @@ jobs:
     if: needs.check.outputs.program == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # The platform's address is a secret of the production environment, which only main can use (CLAUDE.md).
+    # The platform's key is a secret of the production environment, which only main can use (CLAUDE.md).
     environment: production
     permissions:
       contents: read # check out the repo

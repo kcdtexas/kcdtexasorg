@@ -15,7 +15,7 @@ The build hook's address is the secret `NETLIFY_BUILD_HOOK` in the GitHub enviro
 
 ## The program refresh
 
-Once the program is public, the Organizers can change it on the program platform (a talk moves, a Speaker drops out), and the site should follow. Netlify's free plan allows about 20 production deploys a month (ADR 0010), and merges, rebuild days and refreshes all share them, so a refresh rebuilds only when the program changed.
+Once the program is public, the Organizers can still change it on the platform: a Session moves, or a Speaker drops out. The site should follow. Netlify's free plan allows about 20 production deploys a month (ADR 0010), and merges, rebuild days and refreshes all share them, so a refresh rebuilds only when the program changed.
 
 `scripts/refresh-policy.mjs` decides what each run does:
 
@@ -25,11 +25,11 @@ Once the program is public, the Organizers can change it on the program platform
 | Morning, 07:17 UTC | The program's day to the eve of Event Day (Mar 1 to Apr 22, 2027), while a program gate is open | Checks the program and rebuilds only if it changed |
 | Backup, 10:47 UTC | Every rebuild day | Rebuilds, unless the morning run already did |
 | Every 5 minutes | Event Day (Apr 23, 2027), 7 a.m. to 7 p.m. Central, while a program gate is open | Checks the program and rebuilds only if it changed |
-| By hand | Any time | What the morning run would do; with "force", rebuilds |
+| By hand | Any time | What the morning run would do; with "Force a rebuild now" ticked, rebuilds |
 
 The dates come from the Edition file: the program's day (`schedule`) and `eventDay`. With the gates closed, no run checks anything.
 
-The check is `node scripts/program-check.mjs`. It reads the program from the platform as a production build does, computes its version, and compares it with the live `/2027/program-version.txt`. It prints only "changed" or "unchanged". It runs in its own job, in the `production` environment, which holds the platform's address as the secret `SESSIONIZE_ENDPOINT_ID` (or `PROGRAM_CSV_URL` for a CSV). The workflow keeps no artifacts and no caches.
+The check is `node scripts/program-check.mjs`. It reads the program from the platform as a production build does, computes its version, and compares it with the live `/2027/program-version.txt`. It prints only "changed" or "unchanged". It runs in its own job, in the `production` environment, which holds the platform's key, the secret `SESSIONIZE_ENDPOINT_ID` (or `PROGRAM_CSV_URL` for a CSV). The workflow keeps no artifacts and no caches.
 
 After a rebuild for a program change, the run waits until the live `/2027/program-version.txt` has the new version. It checks every 20 seconds, for up to 10 minutes. Runs never overlap: the next one waits for it (the workflow's `concurrency`), so it compares the platform with the new live site and doesn't deploy the same change twice. Rebuild days and forced runs don't wait.
 
@@ -50,10 +50,10 @@ node scripts/program-check.mjs --gates           # "open" or "closed"
 ## Test it by hand
 
 1. On GitHub, open Actions, then "Rebuild on date changes", then "Run workflow".
-2. Choose `main`, tick "force", and run it.
+2. Choose `main`, tick "Force a rebuild now", and run it.
 3. The `rebuild` job should end with "Netlify accepted the build hook". In Netlify, a production deploy starts with the title "Scheduled rebuild" and the day.
 
-Without "force", a manual run does what the morning run would do today. On most days it only checks and stops. A deploy started by a program change has the title "Program change" and the day.
+Without "Force a rebuild now", a manual run does what the morning run would do today. On most days it only checks and stops. A deploy started by a program change has the title "Program change" and the day.
 
 ## If GitHub turns the schedule off
 
@@ -62,8 +62,8 @@ GitHub turns off scheduled workflows in a public repository after 60 days withou
 If it's turned off anyway (GitHub emails a warning first, and the Actions page shows "This scheduled workflow is disabled"):
 
 1. Open Actions, then "Rebuild on date changes", then "Enable workflow".
-2. Run `node scripts/rebuild-dates.mjs --from <the day it stopped>`. If a rebuild day was missed, run the workflow by hand with "force". One build brings every page up to date.
+2. Run `node scripts/rebuild-dates.mjs --from <the day it stopped>`. If a rebuild day was missed, run the workflow by hand with "Force a rebuild now" ticked. One build brings every page up to date.
 
 ## If a run fails
 
-GitHub emails a failed scheduled run to the person who last changed its schedule. The pages keep their old text until the next build. Run the workflow by hand with "force" once the cause is fixed. The usual causes are a missing secret or a build hook that was deleted in Netlify. If the `program` job fails, the platform didn't answer or its data didn't validate; the log says which variable, never its value, and the next run tries again. If the `rebuild` job fails while it waits, the live site didn't get the new program within 10 minutes: open the newest deploy in Netlify's Deploys list, and its log says whether it failed or is still building. The next run checks again.
+GitHub emails a failed scheduled run to the person who last changed its schedule. The pages keep their old text until the next build. Run the workflow by hand with "Force a rebuild now" ticked once the cause is fixed. The usual causes are a missing secret or a build hook that was deleted in Netlify. If the `program` job fails, the platform didn't answer or its data didn't validate; the log says which variable, never its value, and the next run tries again. If the `rebuild` job fails while it waits, the live site didn't get the new program within 10 minutes: open the newest deploy in Netlify's Deploys list, and its log says whether it failed or is still building. The next run checks again.

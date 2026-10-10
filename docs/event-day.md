@@ -39,7 +39,7 @@ Room and time changes come from the program platform, not from this file. On Eve
 
 **Check the runs:** on GitHub, open Actions, then "Rebuild on date changes". A run should appear every 5 minutes. Its program check prints "changed" or "unchanged"; after "changed", a Netlify deploy named "Program change" starts. GitHub sometimes starts scheduled runs late. If none has run for 15 minutes, force one.
 
-**Force a rebuild:** on the same page, press "Run workflow", choose `main`, tick "force" and run it. The `rebuild` job ends with "Netlify accepted the build hook", and Netlify starts a production deploy.
+**Force a rebuild:** on the same page, press "Run workflow", choose `main`, tick "Force a rebuild now" and run it. The `rebuild` job ends with "Netlify accepted the build hook", and Netlify starts a production deploy.
 
 ## Roll back
 
