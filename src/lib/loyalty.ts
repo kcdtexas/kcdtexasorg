@@ -5,6 +5,7 @@ import { about } from '../data/about';
 import { edition2026 } from '../data/edition-2026';
 import { edition2027, programDataSample, sponsorsSample } from '../data/edition-2027';
 import { keynotes2026, speakers2026 } from '../data/program-2026';
+import { fixtureEarlierSpeakers } from '../data/program-fixture';
 import { returningOrganizers } from '../data/returning-organizers';
 import { returningSpeakers } from '../data/returning-speakers';
 import { sponsors2027 } from '../data/sponsors-2027';
@@ -31,9 +32,9 @@ function credit(years: number[]): Credit | null {
 }
 
 // Who spoke in each earlier Edition, from its public program. Hosts count only if they spoke, so the 2026 hosts
-// are left out. 2025 joins once a public source exists.
+// are left out. 2025 joins once a public source exists. A --program-sample build adds the fixture's made-up entry.
 const speakersByEdition: { year: number; names: Set<string> }[] = [
-  { year: 2026, names: new Set([...keynotes2026, ...speakers2026].map((e) => norm(e.name))) },
+  { year: 2026, names: new Set([...keynotes2026, ...speakers2026, ...(programDataSample && fixtureEarlierSpeakers.year === 2026 ? fixtureEarlierSpeakers.names.map((name) => ({ name })) : [])].map((e) => norm(e.name))) },
 ];
 
 /** "Speaker since": a Speaker in `edition` who also spoke in an earlier Edition. */

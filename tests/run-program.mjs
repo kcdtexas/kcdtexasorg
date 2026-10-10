@@ -86,15 +86,16 @@ try {
   // The fixture: its marks, and the Returning Speaker credit only where an earlier Edition matches.
   const speakers = read('2027/speakers/index.html');
   expect(/Fixture Speaker 1/.test(speakers) && /Speaker since 2026/.test(speakers), 'the Speakers list lacks the fixture or the "Speaker since 2026" credit');
-  const lin = read('2027/speakers/lin-sun/index.html');
-  expect(/Speaker since 2026/.test(lin), 'Lin Sun’s page lacks "Speaker since 2026"');
+  const returning = read('2027/speakers/fixture-speaker-4/index.html');
+  expect(/Speaker since 2026/.test(returning), 'Fixture Speaker 4’s page lacks "Speaker since 2026" (the test history)');
   expect(!/Speaker since/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'a first-time fixture Speaker shows a credit');
+  expect(!/\bFixture\b/.test(read('2026/index.html')), 'the test history reaches the 2026 page');
   const credits = (speakers.match(/Speaker since/g) ?? []).length;
-  expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only the fixture's 2026 Speaker should (2026 test data never credits itself)`);
+  expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only Fixture Speaker 4 should (2026 test data never credits itself)`);
   expect(/<a href="https:\/\/example\.com\/">Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
   // The End-User Story badge, the formats, and the share cards.
   expect(/badge--eu/.test(schedule) && /badge--workshop/.test(schedule) && /badge--panel/.test(schedule), 'the Schedule lacks the End-User Story, workshop or panel badge');
-  for (const page of [`2027/sessions/${sessionPages[0]}/index.html`, '2027/speakers/lin-sun/index.html']) {
+  for (const page of [`2027/sessions/${sessionPages[0]}/index.html`, '2027/speakers/fixture-speaker-4/index.html']) {
     const card = read(page).match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
     expect(card && card !== 'default' && existsSync(join('dist/cards', `${card}.png`)), `${page}: no Share Card of its own`);
   }

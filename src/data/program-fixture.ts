@@ -4,7 +4,8 @@
 //
 // The planted marker (ADR 0009) sits in fields the allowlist drops: a Speaker's private notes and a Session's
 // review notes. scripts/check-dist.mjs fails any build whose served files contain it, and the tests also check
-// the logs and the sitemap. One Speaker has a 2026 Speaker's name, so the Returning Speaker credit gets tested.
+// the logs and the sitemap. Every name is made up. Fixture Speaker 4 also appears in a made-up earlier Edition
+// (fixtureEarlierSpeakers), which only --program-sample builds read, so the Returning Speaker credit gets tested.
 import type { RawSession, RawSpeaker } from '../lib/program';
 
 export const plantedMarker = 'kcd-planted-marker-q7x4v2';
@@ -17,8 +18,8 @@ export const fixtureSpeakers: readonly RawSpeaker[] = [
   { id: 'fx-1', name: 'Fixture Speaker 1', tagline: 'Platform Engineer, Fixture Company', bio: 'Fixture Speaker 1 is made up for tests. A real bio goes here, as the Speaker wrote it.', links: [{ kind: 'site', url: 'https://example.com/' }, { kind: 'tracker', url: 'https://example.com/track' }], email: 'speaker1@example.com', notes: plantedMarker },
   { id: 'fx-2', name: 'Fixture Speaker 2', tagline: 'Site Reliability Engineer', phone: '+1 555 0100', notes: plantedMarker },
   { id: 'fx-3', name: 'Fixture Speaker 3', tagline: null, notes: plantedMarker },
-  // A 2026 Speaker's name, as printed in src/data/program-2026.ts: shows "Speaker since 2026".
-  { id: 'fx-4', name: 'Lin Sun', tagline: 'Solo.io · Director of Open-Source', notes: plantedMarker },
+  // A Returning Speaker in the test history: shows "Speaker since 2026".
+  { id: 'fx-4', name: 'Fixture Speaker 4', tagline: 'Developer Advocate, Fixture Company', notes: plantedMarker },
 ];
 
 export const fixtureSessions: readonly RawSession[] = [
@@ -27,3 +28,7 @@ export const fixtureSessions: readonly RawSession[] = [
   { id: 'fx-s3', title: 'Fixture Session: A Hands-On Workshop', format: 'workshop', endUser: false, speakers: ['fx-2', 'fx-3'], start: `${day}T13:00`, end: `${day}T14:30`, room, reviewNotes: plantedMarker, status: 'accepted' },
   { id: 'fx-s4', title: 'Fixture Session: A Panel of Every Fixture Speaker', format: 'panel', endUser: true, speakers: ['fx-1', 'fx-2', 'fx-3', 'fx-4'], start: `${day}T15:00`, end: `${day}T15:45`, room, reviewNotes: plantedMarker, status: 'accepted' },
 ];
+
+// The made-up earlier-Edition entry: Fixture Speaker 4 spoke in 2026. src/lib/loyalty.ts adds it to the 2026
+// Speakers only in a --program-sample build; the 2026 page never reads it.
+export const fixtureEarlierSpeakers = { year: 2026, names: ['Fixture Speaker 4'] } as const;

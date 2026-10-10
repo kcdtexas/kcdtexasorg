@@ -128,6 +128,11 @@ function check() {
     if (/\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(file) && readFileSync(file, 'utf8').includes(marker)) failures.push(`${file}: contains the planted marker`);
   }
 
+  // The fixture's made-up names, its earlier-Edition entry included, never reach the 2026 page, in any build.
+  for (const file of walk(join(DIST, '2026')).filter((f) => extname(f) === '.html')) {
+    if (/\bFixture\b/.test(readFileSync(file, 'utf8'))) failures.push(`${file}: contains a fixture name`);
+  }
+
   // The sitemap lists every page except the 404 page, at absolute kcdtexas.org addresses, and robots.txt names it.
   if (existsSync(join(DIST, 'sitemap.xml'))) {
     const listed = [...readFileSync(join(DIST, 'sitemap.xml'), 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
