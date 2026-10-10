@@ -12,7 +12,7 @@ export const ticketsAction: Action = ticketsOnSale() && edition2027.tickets.url
   : { href: contact.chapterUrl, label: 'Get ticket news' };
 
 /** On Event Day and in the Recap: the Schedule once public, else the way to Dallas (Event Day) or the 2026 talks.
- *  On Event Day with the program's data, the Event Day page instead (/2027/today/; a --program-sample prototype). */
+ *  On Event Day with the program's data, the Event Day page instead (/2027/today/; for now only with --program-sample's test data). */
 const afterAction: Action = phase === 'event-day' && programDataSample ? { href: paths.today, label: 'Open the live schedule' }
   : programPublic() ? { href: paths.schedule, label: 'See the Schedule' }
   : phase === 'event-day' ? { href: paths.travel, label: 'Getting to Dallas' }

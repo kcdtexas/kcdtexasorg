@@ -10,7 +10,7 @@ import { returningOrganizers } from '../data/returning-organizers';
 import { returningSpeakers } from '../data/returning-speakers';
 import { sponsors2027 } from '../data/sponsors-2027';
 
-// The credits are a prototype: they show only in test builds (--sponsors-sample on the walls, --program-sample on
+// The credits show only in test builds (--sponsors-sample on the walls, --program-sample on
 // About and the program pages), which label them "Sample".
 export const sponsorCreditsShown = sponsorsSample;
 export const peopleCreditsShown = programDataSample;
