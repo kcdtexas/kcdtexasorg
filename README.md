@@ -34,6 +34,7 @@ To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. T
 | Short Links (`kcdtexas.org/cfp` and friends) | `src/data/short-links.yaml` |
 | Shared design foundation, reusable by sister sites | `src/foundation/` |
 | Build and checks | `scripts/` |
+| Scheduled rebuilds on the days the pages change | `.github/workflows/rebuild.yml`, [docs/rebuilds.md](docs/rebuilds.md) |
 
 ## Ground rules
 
