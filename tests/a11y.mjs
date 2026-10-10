@@ -9,12 +9,15 @@
 //   come next in the Tab order.
 // - axe (WCAG 2.2 A and AA, and best practices) in light and dark at 320 px and at 200% zoom (1280 px at 200%:
 //   640 CSS px), with no sideways scroll.
+// - While the WCAG claim is on: no embedded media (iframe, video, audio, object, embed or a YouTube player address)
+//   in any built page or script.
 // Run it on a build of today and on a build of another day (scripts/build.sh --now 2027-02-01).
 //
 // Usage: node tests/a11y.mjs <baseUrl> [--label <state>]
 import { chromium } from 'playwright-core';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { distPages } from './targets.mjs';
 
 const argv = process.argv.slice(2);
@@ -101,6 +104,22 @@ async function tree(tab, cdp) {
     unnamed: live.filter((n) => ['link', 'button', 'image', 'img', 'checkbox', 'textbox', 'combobox', 'DisclosureTriangle'].includes(role(n)) && !name(n)).map((n) => role(n)),
     links: live.filter((n) => role(n) === 'link').map((n) => name(n)),
   };
+}
+
+// No embedded media while the WCAG claim is on. A player on our pages makes its captions and audio description
+// part of the claim (1.2.2, 1.2.5), and YouTube's auto-generated captions don't meet it. Before adding one, name
+// the exception in the claim or add accurate captions, then update this check.
+const claimOn = /wcagClaim:\s*true\b/.test(readFileSync('src/data/accessibility.ts', 'utf8'));
+if (claimOn) {
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
+  for (const file of walk('dist').filter((f) => /\.(html|m?js)$/.test(f))) {
+    const text = readFileSync(file, 'utf8');
+    const found = [
+      ...(file.endsWith('.html') ? [...text.matchAll(/<(iframe|video|audio|object|embed)\b/gi)].map((m) => `<${m[1].toLowerCase()}>`) : []),
+      ...[...text.matchAll(/youtube-nocookie\.com|youtube\.com\\?\/embed/gi)].map((m) => m[0].replace('\\', '')),
+    ];
+    expect(!found.length, `${label} ${file}: embeds media (${[...new Set(found)].join(', ')}) while wcagClaim is true. Name the exception in the claim (src/data/accessibility.ts) or add accurate captions, then update this check in tests/a11y.mjs`);
+  }
 }
 
 const browser = await chromium.launch();
