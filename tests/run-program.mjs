@@ -68,6 +68,12 @@ async function serve() {
 }
 
 try {
+  // 0. The program platform: the Sessionize adapter and the build rules, against a local stand-in
+  // (tests/program-adapter.mjs).
+  const adapter = spawnSync(process.execPath, ['tests/program-adapter.mjs'], { encoding: 'utf8' });
+  process.stdout.write(adapter.stdout);
+  expect(adapter.status === 0, `tests/program-adapter.mjs fails:\n${adapter.stderr.slice(-3000)}`);
+
   // 1. The production build refuses the sample flags.
   for (const flag of [['--program-sample'], ['--clock', '10:30']]) {
     const res = build(flag, { CONTEXT: 'production' });

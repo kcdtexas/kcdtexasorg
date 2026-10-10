@@ -1,0 +1,299 @@
+{
+  "sessions": [
+    {
+      "id": "1001",
+      "title": "Fixture Keynote: Opening the Made-Up Day",
+      "description": "A made-up keynote abstract for the adapter tests.",
+      "startsAt": "2027-04-23T09:00:00",
+      "endsAt": "2027-04-23T09:45:00",
+      "isServiceSession": false,
+      "isPlenumSession": false,
+      "speakers": ["aaaaaaaa-0000-4000-8000-00000000000a"],
+      "categoryItems": [201, 401],
+      "questionAnswers": [{ "questionId": 502, "answerValue": "kcd-planted-marker-q7x4v2" }],
+      "roomId": 101,
+      "liveUrl": "https://live.fixture.invalid/kcd-planted-marker-q7x4v2",
+      "recordingUrl": null,
+      "status": "Accepted",
+      "isInformed": true,
+      "isConfirmed": true
+    },
+    {
+      "id": "1002",
+      "title": "Fixture Talk: An End-User Story by Category",
+      "description": "A made-up talk, marked as an End-User Story by its category.",
+      "startsAt": "2027-04-23T10:00:00",
+      "endsAt": "2027-04-23T10:30:00",
+      "isServiceSession": false,
+      "isPlenumSession": false,
+      "speakers": ["aaaaaaaa-0000-4000-8000-00000000000b"],
+      "categoryItems": [202, 301, 401],
+      "questionAnswers": [{ "questionId": 502, "answerValue": "kcd-planted-marker-q7x4v2" }],
+      "roomId": 101,
+      "liveUrl": "https://live.fixture.invalid/kcd-planted-marker-q7x4v2",
+      "recordingUrl": "https://www.youtube.com/watch?v=fixture1002",
+      "status": "Accepted",
+      "isInformed": true,
+      "isConfirmed": true
+    },
+    {
+      "id": "1003",
+      "title": "Fixture Talk: An End-User Story by Question",
+      "description": "A made-up talk, marked as an End-User Story by the Call for Speakers question.",
+      "startsAt": "2027-04-23T10:00:00",
+      "endsAt": "2027-04-23T10:30:00",
+      "isServiceSession": false,
+      "isPlenumSession": false,
+      "speakers": ["aaaaaaaa-0000-4000-8000-00000000000c"],
+      "categoryItems": [202],
+      "questionAnswers": [
+        { "questionId": 501, "answerValue": "Yes" },
+        { "questionId": 502, "answerValue": "kcd-planted-marker-q7x4v2" }
+      ],
+      "roomId": 102,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": "Accepted",
+      "isInformed": true,
+      "isConfirmed": true
+    },
+    {
+      "id": "1004",
+      "title": "Fixture Workshop: Two People, Ninety Minutes",
+      "description": null,
+      "startsAt": "2027-04-23T13:00:00",
+      "endsAt": "2027-04-23T14:30:00",
+      "isServiceSession": false,
+      "isPlenumSession": false,
+      "speakers": ["aaaaaaaa-0000-4000-8000-00000000000c", "aaaaaaaa-0000-4000-8000-00000000000d"],
+      "categoryItems": [203, 302],
+      "questionAnswers": [{ "questionId": 501, "answerValue": "No" }],
+      "roomId": 102,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": "Accepted",
+      "isInformed": true,
+      "isConfirmed": true
+    },
+    {
+      "id": "1005",
+      "title": "Fixture Panel: Plenum, but Not a Keynote",
+      "description": "A made-up panel in every room at once.",
+      "startsAt": "2027-04-23T15:00:00",
+      "endsAt": "2027-04-23T15:45:00",
+      "isServiceSession": false,
+      "isPlenumSession": true,
+      "speakers": [
+        "aaaaaaaa-0000-4000-8000-00000000000a",
+        "aaaaaaaa-0000-4000-8000-00000000000b",
+        "aaaaaaaa-0000-4000-8000-00000000000c",
+        "aaaaaaaa-0000-4000-8000-00000000000d"
+      ],
+      "categoryItems": [204],
+      "questionAnswers": [],
+      "roomId": 101,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": "Accepted",
+      "isInformed": true,
+      "isConfirmed": true
+    },
+    {
+      "id": "1006",
+      "title": "Fixture Talk: Declined kcd-planted-marker-q7x4v2",
+      "description": "kcd-planted-marker-q7x4v2",
+      "startsAt": null,
+      "endsAt": null,
+      "isServiceSession": false,
+      "isPlenumSession": false,
+      "speakers": ["aaaaaaaa-0000-4000-8000-00000000000e"],
+      "categoryItems": [202],
+      "questionAnswers": [],
+      "roomId": null,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": "Declined",
+      "isInformed": true,
+      "isConfirmed": false
+    },
+    {
+      "id": "c0ffee00-0000-4000-8000-000000000001",
+      "title": "Registration",
+      "description": null,
+      "startsAt": "2027-04-23T08:00:00",
+      "endsAt": "2027-04-23T08:45:00",
+      "isServiceSession": true,
+      "isPlenumSession": true,
+      "speakers": [],
+      "categoryItems": [],
+      "questionAnswers": [],
+      "roomId": 101,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": null,
+      "isInformed": false,
+      "isConfirmed": false
+    },
+    {
+      "id": "c0ffee00-0000-4000-8000-000000000002",
+      "title": "Fixture Sponsor Callout",
+      "description": "kcd-planted-marker-q7x4v2",
+      "startsAt": "2027-04-23T12:00:00",
+      "endsAt": "2027-04-23T12:15:00",
+      "isServiceSession": true,
+      "isPlenumSession": false,
+      "speakers": [],
+      "categoryItems": [],
+      "questionAnswers": [],
+      "roomId": 101,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": null,
+      "isInformed": false,
+      "isConfirmed": false
+    },
+    {
+      "id": "c0ffee00-0000-4000-8000-000000000003",
+      "title": "Lunch",
+      "description": null,
+      "startsAt": "2027-04-23T12:15:00",
+      "endsAt": "2027-04-23T13:00:00",
+      "isServiceSession": true,
+      "isPlenumSession": true,
+      "speakers": [],
+      "categoryItems": [],
+      "questionAnswers": [],
+      "roomId": 102,
+      "liveUrl": null,
+      "recordingUrl": null,
+      "status": null,
+      "isInformed": false,
+      "isConfirmed": false
+    }
+  ],
+  "speakers": [
+    {
+      "id": "aaaaaaaa-0000-4000-8000-00000000000a",
+      "firstName": "Fixture Person",
+      "lastName": "A",
+      "fullName": "Fixture Person A",
+      "bio": "Fixture Person A is made up for the adapter tests.",
+      "tagLine": "Platform Engineer, Fixture Company",
+      "profilePicture": "https://photos.fixture.invalid/a.jpg",
+      "isTopSpeaker": true,
+      "links": [
+        { "title": "Github", "url": "https://github.com/fixture-person-a", "linkType": "Other" },
+        { "title": "bluesky", "url": "https://bsky.app/profile/fixture-person-a.example", "linkType": "Other" },
+        { "title": "X (Twitter)", "url": "https://twitter.com/fixture_person_a", "linkType": "Twitter" },
+        { "title": "Sessionize", "url": "https://sessionize.com/kcd-planted-marker-q7x4v2", "linkType": "Sessionize" }
+      ],
+      "sessions": [1001, 1005],
+      "categoryItems": [401],
+      "questionAnswers": [{ "questionId": 502, "answerValue": "kcd-planted-marker-q7x4v2" }]
+    },
+    {
+      "id": "aaaaaaaa-0000-4000-8000-00000000000b",
+      "firstName": "Fixture Person",
+      "lastName": "B",
+      "fullName": "Fixture Person B",
+      "bio": "Fixture Person B is made up too.",
+      "tagLine": "Site Reliability Engineer",
+      "profilePicture": "https://photos.fixture.invalid/b.jpg",
+      "isTopSpeaker": false,
+      "links": [
+        { "title": "LinkedIn", "url": "https://www.linkedin.com/in/fixture-person-b", "linkType": "LinkedIn" },
+        { "title": "Company Website", "url": "https://fixture-b.example/", "linkType": "Company_Website" },
+        { "title": "Instagram", "url": "https://instagram.com/kcd-planted-marker-q7x4v2", "linkType": "Instagram" },
+        { "title": "Not https", "url": "http://fixture-b.example/kcd-planted-marker-q7x4v2", "linkType": "Blog" }
+      ],
+      "sessions": [1002, 1005],
+      "categoryItems": [],
+      "questionAnswers": []
+    },
+    {
+      "id": "aaaaaaaa-0000-4000-8000-00000000000c",
+      "firstName": "Fixture Person",
+      "lastName": "C",
+      "fullName": "Fixture Person C",
+      "bio": null,
+      "tagLine": "Developer Advocate",
+      "profilePicture": "https://photos.fixture.invalid/c.jpg",
+      "isTopSpeaker": false,
+      "links": [
+        { "title": "Blog", "url": "https://blog.fixture-c.example/", "linkType": "Blog" },
+        { "title": "Mastodon", "url": "https://mastodon.fixture.example/@fixturec", "linkType": "Other" },
+        { "title": "Facebook", "url": "https://facebook.com/kcd-planted-marker-q7x4v2", "linkType": "Facebook" }
+      ],
+      "sessions": [1003, 1004, 1005],
+      "categoryItems": [],
+      "questionAnswers": []
+    },
+    {
+      "id": "aaaaaaaa-0000-4000-8000-00000000000d",
+      "firstName": "Fixture Person",
+      "lastName": "D",
+      "fullName": "Fixture Person D",
+      "bio": null,
+      "tagLine": null,
+      "profilePicture": null,
+      "isTopSpeaker": false,
+      "links": [],
+      "sessions": [1004, 1005],
+      "categoryItems": [],
+      "questionAnswers": []
+    },
+    {
+      "id": "aaaaaaaa-0000-4000-8000-00000000000e",
+      "firstName": "kcd-planted-marker-q7x4v2",
+      "lastName": "E",
+      "fullName": "Fixture Person E kcd-planted-marker-q7x4v2",
+      "bio": "kcd-planted-marker-q7x4v2",
+      "tagLine": "kcd-planted-marker-q7x4v2",
+      "profilePicture": "https://photos.fixture.invalid/kcd-planted-marker-q7x4v2.jpg",
+      "isTopSpeaker": false,
+      "links": [{ "title": "Website", "url": "https://kcd-planted-marker-q7x4v2.example/", "linkType": "Company_Website" }],
+      "sessions": [1006],
+      "categoryItems": [],
+      "questionAnswers": []
+    }
+  ],
+  "questions": [
+    { "id": 501, "question": "End-User Story", "questionType": "Yes/No", "sort": 1 },
+    { "id": 502, "question": "Notes for the reviewers kcd-planted-marker-q7x4v2", "questionType": "Long_Text", "sort": 2 }
+  ],
+  "categories": [
+    {
+      "id": 20,
+      "title": "Session format",
+      "items": [
+        { "id": 201, "name": "Keynote", "sort": 1 },
+        { "id": 202, "name": "Talk", "sort": 2 },
+        { "id": 203, "name": "Workshop", "sort": 3 },
+        { "id": 204, "name": "Panel", "sort": 4 }
+      ],
+      "sort": 1,
+      "type": "session"
+    },
+    {
+      "id": 30,
+      "title": "End-User Story",
+      "items": [
+        { "id": 301, "name": "Yes", "sort": 1 },
+        { "id": 302, "name": "No", "sort": 2 }
+      ],
+      "sort": 2,
+      "type": "session"
+    },
+    {
+      "id": 40,
+      "title": "Level kcd-planted-marker-q7x4v2",
+      "items": [{ "id": 401, "name": "kcd-planted-marker-q7x4v2", "sort": 1 }],
+      "sort": 3,
+      "type": "session"
+    }
+  ],
+  "rooms": [
+    { "id": 102, "name": "Fixture Room B", "sort": 2 },
+    { "id": 101, "name": "Fixture Hall", "sort": 1 }
+  ]
+}

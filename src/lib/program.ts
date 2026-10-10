@@ -1,6 +1,6 @@
 // The program: the only reader of Sessions and Speakers (ADR 0009). A source hands over raw records; the allowlist
-// below copies only the public fields into the model, so anything else a platform sends (emails, phone numbers,
-// review notes, the planted marker) never reaches a page, a card or a log.
+// (src/lib/program-source/model.mjs) copies only the public fields into the model, so anything else a platform
+// sends (emails, phone numbers, review notes, the planted marker) never reaches a page, a card or a log.
 //
 // The gates (`program` in src/data/edition-2027.ts):
 //   closed: no program at all, and no source is read;
@@ -8,8 +8,8 @@
 //   schedulePublic: adds the times and the rooms.
 // A test build with --program-sample opens both on test data: the 2026 Schedule (src/data/program-2026-schedule.ts)
 // moved to the 2027 Event Day, plus the made-up fixture (src/data/program-fixture.ts). The pages label it "Sample".
-// Real data comes through a platform adapter, read only in a production build with a gate open (plan-release-6);
-// until one exists, an open gate without the sample fails the build.
+// Real data comes from Sessionize (src/lib/program-source/), read only in a production build (CONTEXT=production)
+// with a gate open; scripts/build.sh gives every other build with a gate open the test data.
 import { edition2026 } from '../data/edition-2026';
 import { edition2027, programDataSample } from '../data/edition-2027';
 import { home } from '../data/home';
@@ -17,6 +17,8 @@ import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../data/progra
 import { breaks2026, rooms2026, sessions2026 } from '../data/program-2026-schedule';
 import { fixtureSessions, fixtureSpeakers } from '../data/program-fixture';
 import { norm, speakerCredit, type Credit } from './loyalty';
+import { LINK_KINDS } from './program-source/model.mjs';
+import { chooseSource, publicModel, readPlatform } from './program-source/platform.mjs';
 
 export type Format = 'keynote' | 'talk' | 'workshop' | 'panel';
 export const FORMATS: readonly Format[] = ['keynote', 'talk', 'workshop', 'panel'];
@@ -55,7 +57,7 @@ export interface Speaker {
   /** The tagline as printed. */
   tagline: string | null;
   bio: string | null;
-  /** Downloaded at build time once a platform adapter exists; null shows the placeholder. */
+  /** Downloaded at build time once photos are set up; null shows the placeholder. */
   photo: string | null;
   links: { kind: LinkKind; url: string }[];
   /** "Speaker since": a Returning Speaker (CONTEXT.md), from src/lib/loyalty.ts. */
@@ -92,43 +94,8 @@ export interface Program {
   breaks: Break[];
 }
 
-// The allowlist. Links keep only these kinds, and only https.
-const LINK_KINDS = ['site', 'linkedin', 'github', 'bluesky', 'mastodon', 'x'] as const;
+// The allowlist (src/lib/program-source/model.mjs) keeps links of these kinds, and only https.
 type LinkKind = (typeof LINK_KINDS)[number];
-const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
-const isFormat = (v: string): v is Format => (FORMATS as readonly string[]).includes(v);
-const isTime = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v);
-
-function allowSpeaker(r: RawSpeaker): Omit<Speaker, 'slug' | 'credit'> {
-  return {
-    id: r.id,
-    name: r.name.trim(),
-    tagline: text(r.tagline),
-    bio: text(r.bio),
-    photo: null,
-    links: (r.links ?? [])
-      .filter((l): l is { kind: LinkKind; url: string } => (LINK_KINDS as readonly string[]).includes(l.kind) && /^https:\/\/[^\s"<>]+$/.test(l.url))
-      .map((l) => ({ kind: l.kind, url: l.url })),
-  };
-}
-
-function allowSession(r: RawSession, schedule: boolean): Omit<Session, 'slug'> {
-  const format = r.format.toLowerCase();
-  if (!isFormat(format)) throw new Error(`Session ${r.id}: unknown format "${r.format}"`);
-  if (schedule && !(isTime(r.start) && isTime(r.end) && text(r.room))) throw new Error(`Session ${r.id}: the Schedule is public, but it has no time or room`);
-  return {
-    id: r.id,
-    title: r.title.trim(),
-    abstract: text(r.abstract),
-    format,
-    endUser: r.endUser === true,
-    speakerIds: [...r.speakers],
-    start: schedule ? r.start! : null,
-    end: schedule ? r.end! : null,
-    room: schedule ? text(r.room) : null,
-    recording: text(r.recording),
-  };
-}
 
 /** "kubernetes-at-the-edge", unique within `taken`. */
 function slugify(s: string, taken: Set<string>): string {
@@ -182,48 +149,50 @@ function sample(): Source {
   };
 }
 
-function source(): Source {
+/** The build's environment: the host's variables, read here at build time and never inlined into the bundle. */
+const env = process.env as Record<string, string | undefined>;
+
+async function source(): Promise<Source> {
   if (programDataSample) return sample();
-  throw new Error('A program gate is open, but no platform adapter is set up yet. Test builds use --program-sample.');
+  const choice = chooseSource(edition2027.program, env);
+  // scripts/build.sh builds every non-production build with a gate open on the test data (--program-sample).
+  if (choice.kind !== 'sessionize') throw new Error('A program gate is open outside a production build: build with scripts/build.sh, which uses the test data there.');
+  const raw = await readPlatform(choice, env);
+  return { ...raw, edition: () => edition2027.year };
 }
 
-function build(src: Source, schedulePublic: boolean): Program {
-  const sessions = src.sessions.map((r) => allowSession(r, schedulePublic));
-  const order = (s: Omit<Session, 'slug'>) => `${s.start ?? ''} ${String(src.rooms.indexOf(s.room ?? '')).padStart(3, '0')} ${s.title}`;
+function build(src: Source, open: { speakersPublic: boolean; schedulePublic: boolean }): Program {
+  const { model } = publicModel(src, open, env);
+  const sessions = model.sessions.map((s) => ({ ...s, format: s.format as Format }));
+  const order = (s: Omit<Session, 'slug'>) => `${s.start ?? ''} ${String(model.rooms.indexOf(s.room ?? '')).padStart(3, '0')} ${s.title}`;
   sessions.sort((a, b) => order(a).localeCompare(order(b)));
   const takenSessions = new Set<string>();
   const takenSpeakers = new Set<string>();
-  const speaking = new Set(sessions.flatMap((s) => s.speakerIds));
-  const speakers = src.speakers
-    .filter((r) => speaking.has(r.id))
-    .map(allowSpeaker)
+  const speakers = model.speakers
     .sort((a, b) => a.name.split(' ').at(-1)!.localeCompare(b.name.split(' ').at(-1)!) || a.name.localeCompare(b.name))
     .map((s) => {
       // The credit counts only this Edition's Sessions: test data from 2026 never credits itself.
       const here = sessions.some((x) => x.speakerIds.includes(s.id) && src.edition(x.id) === edition2027.year);
-      return { ...s, slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
+      // The photo's source address stays out of the pages until photos are downloaded at build time.
+      return { ...s, links: s.links as Speaker['links'], photo: null, slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
     });
-  for (const s of sessions) {
-    const missing = s.speakerIds.filter((id) => !speakers.some((p) => p.id === id));
-    if (missing.length) throw new Error(`Session ${s.id}: unknown Speakers ${missing.join(', ')}`);
-  }
   return {
     sample: programDataSample,
-    schedulePublic,
+    schedulePublic: open.schedulePublic,
     day: edition2027.eventDay,
     sessions: sessions.map((s) => ({ ...s, slug: slugify(s.title, takenSessions) })),
     speakers,
-    rooms: schedulePublic ? src.rooms.filter((r) => sessions.some((s) => s.room === r)) : [],
-    breaks: schedulePublic ? [...src.breaks] : [],
+    rooms: model.rooms,
+    breaks: model.breaks,
   };
 }
 
 /** The gates this build uses: the Edition's, or both open in a --program-sample test build. */
 export const gates = programDataSample ? { speakersPublic: true, schedulePublic: true } : edition2027.program;
 
-/** The program, or null while both gates are closed (then no source is read at all). */
+/** The program, or null while both gates are closed (then no source is read at all). Read once per build. */
 export const program: Program | null = gates.speakersPublic || gates.schedulePublic
-  ? build(source(), gates.schedulePublic)
+  ? build(await source(), gates)
   : null;
 
 // Helpers for the pages.

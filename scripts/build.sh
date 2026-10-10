@@ -103,6 +103,24 @@ if $install; then
   npm ci --no-audit --no-fund
 fi
 
+step "Choosing the program data"
+# Real program data only in a production build (src/lib/program-source/platform.mjs). Every other build with a
+# gate open (deploy previews, branch deploys, local builds) uses the test program and never sees the platform's
+# variables.
+if [ "${CONTEXT:-}" != production ]; then
+  unset SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL
+  if [ -z "${KCD_PROGRAM_SAMPLE:-}" ] && [ "$(node scripts/program-check.mjs --gates)" = open ]; then
+    echo "A program gate is open, and this isn't a production build: using the test program, labeled \"Sample\"."
+    export KCD_PROGRAM_SAMPLE=1
+  else
+    echo "Not a production build: no real program data."
+  fi
+elif [ "$(node scripts/program-check.mjs --gates)" = open ]; then
+  echo "A program gate is open: reading the program platform."
+else
+  echo "The program gates are closed: no program data."
+fi
+
 step "Checking the shared foundation stays site-neutral (ADR 0006)"
 if grep -ril 'kcd' src/foundation; then
   echo "src/foundation must not mention a specific site." >&2
