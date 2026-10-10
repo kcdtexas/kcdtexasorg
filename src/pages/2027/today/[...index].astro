@@ -44,6 +44,7 @@ const hm = (s: string) => `${clock(`2000-01-01T${s}`)}`;
         {rooms.map((r) => (
           <li class="td-room" data-room-block>
             <h3 class="td-room-name">{r.room}</h3>
+            <p class="td-none" data-none-now hidden={Boolean(r.now)}>{t.nothingNow}</p>
             <ol class="td-list">
               {r.list.map((s) => (
                 <li class:list={['td-ses', { 'is-now': s === r.now }]} data-start={s.start} data-end={s.end} hidden={s !== r.now && s !== r.next}>
@@ -53,7 +54,6 @@ const hm = (s: string) => `${clock(`2000-01-01T${s}`)}`;
                 </li>
               ))}
             </ol>
-            <p class="td-none" data-none-now hidden={Boolean(r.now)}>{t.nothingNow}</p>
             <p class="td-none" data-none-next hidden={Boolean(r.next)}>{t.nothingNext}</p>
           </li>
         ))}
