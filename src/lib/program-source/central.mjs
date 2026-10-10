@@ -46,5 +46,5 @@ export function toCentral(value) {
     if (Number.isNaN(d.getTime())) throw new Error('not a time');
     return centralOf(d);
   }
-  throw new Error('not a time as YYYY-MM-DDTHH:MM');
+  throw new Error('not a time like 2027-04-23 09:30');
 }

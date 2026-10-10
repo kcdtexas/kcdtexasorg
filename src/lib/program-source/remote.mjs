@@ -77,7 +77,7 @@ export async function fetchBytes(url, { env, what, maxBytes = 20 * 1024 * 1024, 
     throw new ProgramSourceError(`${what}: the request failed (${code})`, env);
   }
   if (res.url && !fetchable(res.url, env)) throw new ProgramSourceError(`${what}: redirected to an address that isn't https`, env);
-  if (!res.ok) throw new ProgramSourceError(`${what}: the platform answered HTTP ${res.status}`, env);
+  if (!res.ok) throw new ProgramSourceError(`${what}: the server answered HTTP ${res.status}`, env);
   const tooLarge = () => new ProgramSourceError(`${what}: the response is larger than ${maxBytes} bytes`, env);
   if (Number(res.headers.get('content-length') ?? 0) > maxBytes) {
     await res.body?.cancel().catch(() => {});

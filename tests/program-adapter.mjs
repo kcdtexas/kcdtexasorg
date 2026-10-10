@@ -310,7 +310,7 @@ try {
   const [small, large] = await Promise.all([sharp(pic.small).metadata(), sharp(pic.large).metadata()]);
   expect(small.format === 'webp' && small.width === 160 && small.height === 160 && large.width === 400 && large.height === 400, `the photo sizes are ${small.width}x${small.height} and ${large.width}x${large.height}`);
   expect(!small.exif && !large.exif, 'a photo keeps its metadata');
-  await rejects(() => downloadPhoto(`${origin}/photos/missing.png`, 'Speaker 2', {}), (m) => /Speaker 2's photo: the platform answered HTTP 404/.test(m), 'a missing photo');
+  await rejects(() => downloadPhoto(`${origin}/photos/missing.png`, 'Speaker 2', {}), (m) => /Speaker 2's photo: the server answered HTTP 404/.test(m), 'a missing photo');
   await rejects(() => downloadPhoto(`${origin}/photos/text.jpg`, 'Speaker 3', {}), (m) => /not an image/.test(m), 'a photo that is HTML');
   await rejects(() => downloadPhoto(`${origin}/photos/broken.jpg`, 'Speaker 4', {}), (m) => /could not be read/.test(m), 'a broken photo');
   await rejects(() => downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 5', { NETLIFY: 'true' }), (m) => /must be https/.test(m), 'a plain-http photo on Netlify');

@@ -102,7 +102,7 @@ export function adaptSessionize(data, settings = names, photoAllowed = (url) => 
     }
     if (s.status !== undefined && s.status !== null && !same(s.status, 'Accepted')) return;
     const picked = (s.categoryItems ?? []).map((x) => items.get(String(x))).filter(Boolean);
-    if (!hasFormat) throw new Error(`the Sessionize data has no "${settings.formatCategory}" category. Add it to the Call for Speakers and the API endpoint, or rename formatCategory in src/lib/program-source/config.mjs.`);
+    if (!hasFormat) throw new Error(`the Sessionize data has no "${settings.formatCategory}" category. Add it to the CFP and the API endpoint, or rename formatCategory in src/lib/program-source/config.mjs.`);
     const formatItem = picked.find((x) => same(x.category, settings.formatCategory));
     const format = formatItem ? formatNames[formatItem.name.trim().toLowerCase()] : undefined;
     if (!formatItem) throw new Error(`sessions[${i}] (Session ${s.id}): no "${settings.formatCategory}" item is picked`);
