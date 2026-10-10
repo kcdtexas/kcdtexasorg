@@ -14,6 +14,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
+import { createRequire } from 'node:module';
 import { join, relative, sep } from 'node:path';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
@@ -28,6 +29,14 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); 
 const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
 const read = (p) => readFileSync(join('dist', p), 'utf8');
 const text = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&#39;|&#x27;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+
+const axeSource = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
+/** axe (WCAG 2.2 A and AA, and best practices) on the open tab: one line per violation. */
+async function axe(tab) {
+  await tab.evaluate(axeSource);
+  return tab.evaluate(async () => (await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] } }))
+    .violations.map((v) => `${v.id} (${v.nodes.length}x): ${v.help} [${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(', ')}]`));
+}
 
 /** Polls `fn` in the tab (it may be async) until it's true, for up to `ms`. */
 async function until(tab, fn, ms = 15000) {
@@ -54,15 +63,46 @@ const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/tra
 const organizerCredits = (html) => Object.fromEntries([...html.matchAll(/<li>\s*<img[^>]*class="pg-org-photo"[\s\S]*?<\/li>/g)]
   .map((m) => [m[0].match(/<b>([^<]+)<\/b>/)[1], m[0].match(/<span class="credit">([^<]+)<\/span>/)?.[1] ?? null]));
 
-/** The calendar file rules: CRLF lines of at most 75 octets, the Chicago zone, and one event per Session. */
+/** A calendar file, as RFC 5545 asks: CRLF lines of at most 75 octets; BEGIN and END nested in one VCALENDAR; one
+ *  VTIMEZONE for America/Chicago with its daylight and standard rules; and exactly the expected Sessions, each with
+ *  its own UID, a UTC stamp, a title, and its Central start and end in that zone. `events` are the Sessions as
+ *  { id, start, end }, in Central time ('YYYY-MM-DDTHH:MM'). */
 function checkIcs(label, body, events) {
-  const lines = body.split('\r\n');
   expect(body.endsWith('\r\n') && !/[^\r]\n/.test(body), `${label}: lines don't all end in CRLF`);
-  expect(lines.every((l) => Buffer.byteLength(l) <= 75), `${label}: a line is longer than 75 octets`);
-  expect(lines[0] === 'BEGIN:VCALENDAR' && lines.includes('END:VCALENDAR') && lines.includes('VERSION:2.0'), `${label}: not a calendar`);
-  expect(lines.includes('TZID:America/Chicago') && lines.includes('BEGIN:VTIMEZONE'), `${label}: no America/Chicago zone`);
-  const starts = lines.filter((l) => l.startsWith('DTSTART;'));
-  expect(starts.length === events && starts.every((l) => /^DTSTART;TZID=America\/Chicago:\d{8}T\d{6}$/.test(l)), `${label}: ${starts.length} events with zoned start times, expected ${events}`);
+  const folded = body.slice(0, -2).split('\r\n');
+  expect(folded.every((l) => Buffer.byteLength(l) <= 75), `${label}: a line is longer than 75 octets`);
+  // Unfolded: a line that starts with a space goes on the one before.
+  const lines = [];
+  for (const l of folded) if (l.startsWith(' ') && lines.length) lines[lines.length - 1] += l.slice(1); else lines.push(l);
+  const parts = [];
+  const open = [];
+  let nested = true;
+  for (const l of lines) {
+    if (l.startsWith('BEGIN:')) { const part = { name: l.slice(6), parent: open.at(-1)?.name ?? null, props: [] }; parts.push(part); open.push(part); }
+    else if (l.startsWith('END:')) nested &&= open.pop()?.name === l.slice(4);
+    else if (open.length) open.at(-1).props.push(l);
+    else nested = false;
+  }
+  expect(nested && !open.length && parts[0]?.name === 'VCALENDAR' && parts.filter((p) => p.parent === null).length === 1, `${label}: BEGIN and END don't nest in one VCALENDAR`);
+  const prop = (part, name) => part?.props.find((p) => p.startsWith(`${name}:`) || p.startsWith(`${name};`));
+  expect(prop(parts[0], 'VERSION') === 'VERSION:2.0' && /^PRODID:.+/.test(prop(parts[0], 'PRODID') ?? ''), `${label}: no VERSION:2.0 or PRODID`);
+  const zones = parts.filter((p) => p.name === 'VTIMEZONE');
+  const rule = (name, from, to, rrule) => parts.some((p) => p.name === name && p.parent === 'VTIMEZONE' && p.props.includes(`TZOFFSETFROM:${from}`) && p.props.includes(`TZOFFSETTO:${to}`) && p.props.includes(`RRULE:${rrule}`));
+  expect(zones.length === 1 && zones[0].props.includes('TZID:America/Chicago') && rule('DAYLIGHT', '-0600', '-0500', 'FREQ=YEARLY;BYMONTH=3;BYDAY=2SU') && rule('STANDARD', '-0500', '-0600', 'FREQ=YEARLY;BYMONTH=11;BYDAY=1SU'),
+    `${label}: not one VTIMEZONE for America/Chicago with its CDT and CST rules`);
+  const local = (t) => `${t.slice(0, 10).replace(/-/g, '')}T${t.slice(11, 16).replace(':', '')}00`;
+  const got = parts.filter((p) => p.name === 'VEVENT' && p.parent === 'VCALENDAR').map((e) => ({
+    uid: prop(e, 'UID')?.slice(4),
+    start: prop(e, 'DTSTART')?.match(/^DTSTART;TZID=America\/Chicago:(\d{8}T\d{6})$/)?.[1],
+    end: prop(e, 'DTEND')?.match(/^DTEND;TZID=America\/Chicago:(\d{8}T\d{6})$/)?.[1],
+    ok: /^DTSTAMP:\d{8}T\d{6}Z$/.test(prop(e, 'DTSTAMP') ?? '') && /^SUMMARY:\S/.test(prop(e, 'SUMMARY') ?? ''),
+  }));
+  expect(got.length === events.length && new Set(got.map((e) => e.uid)).size === got.length, `${label}: ${got.length} events with distinct UIDs, expected ${events.length}`);
+  expect(got.every((e) => e.ok && e.start && e.end && e.start < e.end), `${label}: an event lacks a UTC DTSTAMP, a SUMMARY, or a start before its end in America/Chicago`);
+  for (const s of events) {
+    const e = got.find((x) => x.uid === `${s.id}@kcdtexas.org`);
+    expect(e?.start === local(s.start) && e?.end === local(s.end), `${label}: Session ${s.id} is ${e ? `${e.start} to ${e.end}` : 'missing'}, not ${local(s.start)} to ${local(s.end)}`);
+  }
 }
 
 // A local server on dist/ and a browser.
@@ -106,6 +146,9 @@ try {
   const sessionPages = readdirSync('dist/2027/sessions').filter((n) => statSync(join('dist/2027/sessions', n)).isDirectory());
   const speakerPages = readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory());
   const items = [...schedule.matchAll(/<li class="sch-item[^"]*" data-id="([^"]+)"/g)].map((m) => m[1]);
+  // Each Session on the Schedule with its time, for the calendar files.
+  const timedItems = [...schedule.matchAll(/<li class="sch-item[^"]*" data-id="([^"]+)"[^>]*? data-start="([^"]+)" data-end="([^"]+)" data-url="([^"]+)"/g)]
+    .map(([, id, start, end, url]) => ({ id, start, end, url }));
   expect(/data-schedule/.test(schedule) && items.length > 0, 'the Schedule page has no Sessions');
   expect(items.length === sessionPages.length, `the Schedule lists ${items.length} Sessions, but ${sessionPages.length} Session pages were built`);
   expect(/\bSample\b/.test(text(schedule)), 'the Schedule page does not say "Sample"');
@@ -116,6 +159,8 @@ try {
   expect([...schedule.matchAll(/<li class="sch-item[\s\S]*?<\/li>/g)].every((m) => /class="sch-time"/.test(m[0]) && /class="sch-room"/.test(m[0])), 'a Session in the Schedule has no time or room as text');
   // The fixture: its marks, and the Returning Speaker credit only where an earlier Edition matches.
   const speakers = read('2027/speakers/index.html');
+  const listed = (speakers.match(/<a class="spk-name" href="\/2027\/speakers\/[a-z0-9-]+\/">/g) ?? []).length;
+  expect(listed === speakerPages.length, `the Speakers list links ${listed} Speakers, but ${speakerPages.length} Speaker pages were built`);
   expect(/Fixture Speaker 1/.test(speakers) && /Speaker since 2026/.test(speakers), 'the Speakers list lacks the fixture or the "Speaker since 2026" credit');
   const returning = read('2027/speakers/fixture-speaker-4/index.html');
   expect(/Speaker since 2026/.test(returning), 'Fixture Speaker 4’s page lacks "Speaker since 2026" (the test history)');
@@ -144,11 +189,12 @@ try {
   const prod = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env: { ...process.env, KCD_PROGRAM_SAMPLE: '1', CONTEXT: 'production' } });
   expect(prod.status !== 0 && /\.test-build: this is a test build/.test(prod.stdout + prod.stderr), 'check-dist passes a marked test build with CONTEXT=production');
   // The calendar files.
-  checkIcs('schedule.ics', read('2027/schedule.ics'), items.length);
+  expect(timedItems.length === items.length, `${items.length - timedItems.length} Sessions on the Schedule have no time`);
+  checkIcs('schedule.ics', read('2027/schedule.ics'), timedItems);
   for (const slug of sessionPages) {
     expect(existsSync(join('dist/2027/sessions', `${slug}.ics`)), `no calendar file for ${slug}`);
   }
-  checkIcs(`${sessionPages[0]}.ics`, read(`2027/sessions/${sessionPages[0]}.ics`), 1);
+  checkIcs(`${sessionPages[0]}.ics`, read(`2027/sessions/${sessionPages[0]}.ics`), timedItems.filter((x) => x.url === `/2027/sessions/${sessionPages[0]}/`));
   // The program version, published while a gate is open.
   expect(/^[0-9a-f]{64}\n$/.test(read('2027/program-version.txt')), 'the sample build lacks /2027/program-version.txt');
   // The program script and its cache rule, the /speakers Short Link and the privacy page's My Schedule line.
@@ -195,51 +241,69 @@ try {
     expect(res.status === 0, `${script} fails on the program sample:\n${(res.stdout + res.stderr).split('\n').filter((l) => /fail|✗|violation/i.test(l)).slice(0, 20).join('\n')}`);
   }
 
-  // 4. The program pages in a browser.
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
-  const tab = await ctx.newPage();
-  const errors = [];
-  tab.on('pageerror', (e) => errors.push(e.message));
-  tab.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  await tab.goto(`${base}/2027/schedule/`);
-  expect(await tab.locator('[data-filters]').isVisible(), 'the filters stay hidden with JavaScript on');
-  const visible = () => tab.locator('.sch-item:visible').count();
-  const all = await visible();
-  await tab.locator('label.chip', { hasText: 'Workshop' }).click();
-  const workshops = await tab.locator('.sch-item[data-format="workshop"]').count();
-  expect(await visible() === workshops, `the Workshop filter shows ${await visible()} Sessions, not ${workshops}`);
-  expect(/Showing \d+ of \d+ Sessions/.test(await tab.locator('[data-count]').textContent()), 'the filter count is missing');
-  await tab.locator('label.chip', { hasText: 'Workshop' }).click();
-  await tab.locator('label.chip', { hasText: 'End-User Stories' }).click();
-  expect(await visible() === await tab.locator('.sch-item[data-eu="1"]').count(), 'the End-User Stories filter is wrong');
-  await tab.locator('label.chip', { hasText: 'End-User Stories' }).click();
-  expect(await visible() === all, 'clearing the filters does not show every Session again');
-  // Three stars, with the mouse and the keyboard; they survive a reload.
-  const stars = tab.locator('.sch-item [data-star]');
-  await stars.nth(0).click();
-  await stars.nth(2).click();
-  await stars.nth(4).focus();
-  await tab.keyboard.press('Enter');
-  const picked = await tab.locator('.sch-item [data-star][data-on="true"]').evaluateAll((bs) => bs.map((b) => b.dataset.star));
-  expect(picked.length === 3, `${picked.length} stars are on after three presses`);
-  expect(/^Remove from My Schedule/.test(await stars.nth(0).textContent().then((t) => t.trim())), 'a starred Session doesn’t offer "Remove from My Schedule"');
-  await tab.reload();
-  const kept = await tab.locator('.sch-item [data-star][data-on="true"]').evaluateAll((bs) => bs.map((b) => b.dataset.star));
-  expect(kept.join() === picked.join(), 'My Schedule does not survive a reload');
-  await tab.locator('label.chip', { hasText: 'My Schedule' }).click();
-  expect(await visible() === 3, `the My Schedule view shows ${await visible()} Sessions, not 3`);
-  const [download] = await Promise.all([tab.waitForEvent('download'), tab.locator('[data-my-ics]').click()]);
-  const mine = readFileSync(await download.path(), 'utf8');
-  checkIcs('My Schedule .ics', mine, 3);
-  // The Session page's star shares the same list.
-  const first = await tab.locator(`.sch-item[data-id="${picked[0]}"] .sch-title a`).getAttribute('href');
-  await tab.goto(`${base}${first}`);
-  expect(await tab.locator('.star--words').getAttribute('data-on') === 'true', 'the Session page does not show the starred state');
-  expect(await tab.locator('a[download][href$=".ics"]').count() === 1, 'the Session page lacks "Add to calendar"');
-  await tab.goto(`${base}/2027/schedule/#my`);
-  expect(await tab.locator('[data-filter="my"]').isChecked(), '/2027/schedule/#my does not open the My Schedule view');
-  expect(!errors.length, `browser errors: ${errors.join(' | ')}`);
-  await ctx.close();
+  // 4. The program pages in a browser: on a desktop in light with the mouse, and on a phone in dark with the keyboard.
+  // The filters (on the phone, "Format and room" opens first), three stars that survive a reload, the My Schedule view
+  // and its calendar file, and axe on that view in both themes. The Session page's star shares the list, and
+  // /2027/schedule/#my opens the view.
+  for (const mode of [{ width: 1280, height: 900, scheme: 'light', keys: false }, { width: 390, height: 844, scheme: 'dark', keys: true }]) {
+    const where = `the Schedule at ${mode.width} in ${mode.scheme}, by ${mode.keys ? 'keyboard' : 'mouse'}`;
+    // Reduced motion, so a theme switch takes effect at once, with no color transitions for axe to catch midway.
+    const ctx = await browser.newContext({ viewport: { width: mode.width, height: mode.height }, colorScheme: mode.scheme, isMobile: mode.width < 600, reducedMotion: 'reduce', acceptDownloads: true });
+    const tab = await ctx.newPage();
+    const errors = [];
+    tab.on('pageerror', (e) => errors.push(e.message));
+    tab.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    // A press: by keyboard, focus and then Enter on a button or summary, Space on a box; by mouse, a click.
+    const press = async (target, key = 'Enter') => { if (mode.keys) { await target.focus(); await tab.keyboard.press(key); } else await target.click(); };
+    const toggle = (name) => press(tab.locator('label.chip', { hasText: name }).locator('input'), 'Space');
+    await tab.goto(`${base}/2027/schedule/`);
+    expect(await tab.locator('[data-filters]').isVisible(), `${where}: the filters stay hidden with JavaScript on`);
+    const more = () => tab.locator('[data-more]').evaluate((m) => m.open);
+    expect(await more() === mode.width >= 900, `${where}: "Format and room" is ${await more() ? 'open' : 'closed'} at first`);
+    if (!(await more())) await press(tab.locator('[data-more] > summary'));
+    expect(await more(), `${where}: "Format and room" does not open`);
+    const visible = () => tab.locator('.sch-item:visible').count();
+    const all = await visible();
+    await toggle('Workshop');
+    const workshops = await tab.locator('.sch-item[data-format="workshop"]').count();
+    expect(await visible() === workshops, `${where}: the Workshop filter shows ${await visible()} Sessions, not ${workshops}`);
+    expect(/Showing \d+ of \d+ Sessions/.test(await tab.locator('[data-count]').textContent()), `${where}: the filter count is missing`);
+    await toggle('Workshop');
+    await toggle('End-User Stories');
+    expect(await visible() === await tab.locator('.sch-item[data-eu="1"]').count(), `${where}: the End-User Stories filter is wrong`);
+    await toggle('End-User Stories');
+    expect(await visible() === all, `${where}: clearing the filters does not show every Session again`);
+    // Three stars; they survive a reload.
+    const stars = tab.locator('.sch-item [data-star]');
+    await press(stars.nth(0));
+    await press(stars.nth(2), mode.keys ? 'Space' : 'Enter');
+    await stars.nth(4).focus();
+    await tab.keyboard.press('Enter');
+    const picked = await tab.locator('.sch-item [data-star][data-on="true"]').evaluateAll((bs) => bs.map((b) => b.dataset.star));
+    expect(picked.length === 3, `${where}: ${picked.length} stars are on after three presses`);
+    expect(/^Remove from My Schedule/.test(await stars.nth(0).textContent().then((t) => t.trim())), `${where}: a starred Session doesn’t offer "Remove from My Schedule"`);
+    await tab.reload();
+    const kept = await tab.locator('.sch-item [data-star][data-on="true"]').evaluateAll((bs) => bs.map((b) => b.dataset.star));
+    expect(kept.join() === picked.join(), `${where}: My Schedule does not survive a reload`);
+    await toggle('My Schedule');
+    expect(await visible() === 3, `${where}: the My Schedule view shows ${await visible()} Sessions, not 3`);
+    const [download] = await Promise.all([tab.waitForEvent('download'), press(tab.locator('[data-my-ics]'))]);
+    checkIcs(`My Schedule .ics (${where})`, readFileSync(await download.path(), 'utf8'), timedItems.filter((x) => picked.includes(x.id)));
+    for (const scheme of ['light', 'dark']) {
+      await tab.emulateMedia({ colorScheme: scheme });
+      const violations = await axe(tab);
+      expect(!violations.length, `${where}: the My Schedule view in ${scheme}: axe: ${violations.join(' | ')}`);
+    }
+    // The Session page's star shares the same list.
+    const first = await tab.locator(`.sch-item[data-id="${picked[0]}"] .sch-title a`).getAttribute('href');
+    await tab.goto(`${base}${first}`);
+    expect(await tab.locator('.star--words').getAttribute('data-on') === 'true', `${where}: the Session page does not show the starred state`);
+    expect(await tab.locator('a[download][href$=".ics"]').count() === 1, `${where}: the Session page lacks "Add to calendar"`);
+    await tab.goto(`${base}/2027/schedule/#my`);
+    expect(await tab.locator('[data-filter="my"]').isChecked(), `${where}: /2027/schedule/#my does not open the My Schedule view`);
+    expect(!errors.length, `${where}: browser errors: ${errors.join(' | ')}`);
+    await ctx.close();
+  }
 
   // A credit sits in the normal flow and never covers what it credits: its box intersects no logo, sponsor name,
   // photo or person's name, on a desktop and a phone.
@@ -305,18 +369,36 @@ try {
   expect(/keeps a copy so they still open without a connection/.test(text(read('privacy/index.html'))), 'the privacy page lacks the offline copy line');
   await serve();
   for (const [at, utc] of [['10:30', '15:30'], ['15:00', '20:00']]) {
-    const c = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-    await c.clock.setFixedTime(new Date(`${DAY}T${utc}:00Z`));
-    const p = await c.newPage();
-    await p.goto(`${base}/2027/today/`);
-    const want = await p.evaluate((t) => [...document.querySelectorAll('[data-room-block]')].map((r) => {
-      const s = [...r.querySelectorAll('.td-ses')];
-      const now = s.find((x) => x.dataset.start <= t && t < x.dataset.end);
-      return now?.querySelector('.td-title').textContent ?? null;
-    }), `${DAY}T${at}`);
-    const got = await p.locator('[data-room-block]').evaluateAll((rs) => rs.map((r) => r.querySelector('.td-ses.is-now:not([hidden]) .td-title')?.textContent ?? null));
-    expect(got.join('|') === want.join('|') && got.some(Boolean), `Event Day at ${at}: now is ${got.join(' | ')}`);
-    await c.close();
+    for (const width of [1280, 390]) {
+      const where = `Event Day at ${at}, ${width} px`;
+      const c = await browser.newContext({ viewport: { width, height: 900 }, isMobile: width < 600, reducedMotion: 'reduce' });
+      await c.clock.setFixedTime(new Date(`${DAY}T${utc}:00Z`));
+      const p = await c.newPage();
+      await p.goto(`${base}/2027/today/`);
+      // Each room: what's on now and next by its Sessions' times, and what the page shows, with its labels and the
+      // "Nothing on right now" and "Nothing more today" lines.
+      const rooms = await p.evaluate((t) => [...document.querySelectorAll('[data-room-block]')].map((r) => {
+        const list = [...r.querySelectorAll('.td-ses')];
+        const now = list.find((x) => x.dataset.start <= t && t < x.dataset.end);
+        const next = list.find((x) => x !== now && x.dataset.start >= t);
+        const title = (x) => x?.querySelector('.td-title').textContent ?? 'nothing';
+        const shown = list.filter((x) => !x.hidden);
+        return {
+          want: `now ${title(now)}, next ${title(next)}, labels ${[now && 'Now', next && 'Next'].filter(Boolean).join(',')}`,
+          got: `now ${title(shown.find((x) => x.classList.contains('is-now')))}, next ${title(shown.find((x) => !x.classList.contains('is-now')))}, labels ${shown.map((x) => x.querySelector('[data-label]').textContent).join(',')}`,
+          lines: r.querySelector('[data-none-now]').hidden === Boolean(now) && r.querySelector('[data-none-next]').hidden === Boolean(next),
+          now: Boolean(now),
+        };
+      }), `${DAY}T${at}`);
+      expect(rooms.some((r) => r.now), `${where}: no room has a Session on now`);
+      for (const r of rooms) expect(r.got === r.want && r.lines, `${where}: a room shows ${r.got}${r.lines ? '' : ' (and the wrong "Nothing" line)'}, not ${r.want}`);
+      for (const scheme of ['light', 'dark']) {
+        await p.emulateMedia({ colorScheme: scheme });
+        const violations = await axe(p);
+        expect(!violations.length, `${where} in ${scheme}: axe: ${violations.join(' | ')}`);
+      }
+      await c.close();
+    }
   }
   // Offline use: load the Event Day page and a Session page, go offline, and both reload from the kept copy.
   const offline = await browser.newContext({ viewport: { width: 390, height: 844 } });
