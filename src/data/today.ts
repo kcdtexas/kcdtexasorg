@@ -37,7 +37,8 @@ export const today = {
   nothingNow: 'Nothing on right now.',
   nothingNext: 'Nothing more today in this room.',
   announcementsTitle: 'Announcements',
-  announcements: programDataSample ? sample : announced,
+  /** Only those posted at or before the build's moment, newest last. */
+  announcements: (programDataSample ? sample : announced).filter((a) => `${e.eventDay}T${a.at}` <= builtAt),
   noAnnouncements: 'No announcements yet.',
   mapTitle: 'Venue map',
   mapSoon: 'The venue map goes here once the venue is announced.',

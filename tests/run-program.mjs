@@ -218,6 +218,8 @@ try {
   const today = read('2027/today/index.html');
   expect(/Updated 10:30 a\.m\. CT/.test(today), 'the Event Day page lacks "Updated 10:30 a.m. CT"');
   expect(/<li class="td-ses is-now"/.test(today), 'the Event Day page shows nothing on now at 10:30 without JavaScript');
+  // Only the announcements posted by the build's time: the 9:05 one, not the 12:40 one.
+  expect(/keynote room is full/.test(today) && !/lunch runs 15 minutes late/.test(today), 'the Event Day page at 10:30 shows an announcement posted later, or misses an earlier one');
   await serve();
   for (const [at, utc] of [['10:30', '15:30'], ['15:00', '20:00']]) {
     const c = await browser.newContext({ viewport: { width: 1280, height: 900 } });
