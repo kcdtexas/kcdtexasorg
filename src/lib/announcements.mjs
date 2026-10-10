@@ -4,16 +4,22 @@
 //
 // The file holds one key, `announcements`: empty, or a list of entries, each with
 //   at:   when it's posted, Central time, "YYYY-MM-DD HH:MM", in the week up to and including Event Day;
-//   text: one line of plain text, at most 280 characters;
+//   text: one line in double quotes, at most 280 characters;
 //   link: optional, an https address.
-import { parse } from 'yaml';
+// Without the quotes, a # starts a comment that cuts the text short and a colon breaks the file, so the build
+// refuses unquoted text, and any comment inside an entry.
+import { isMap, isScalar, parseDocument } from 'yaml';
 
 export const ANNOUNCEMENTS_FILE = 'src/data/announcements-2027.yaml';
 const FIELDS = ['at', 'text', 'link'];
-const MAX_TEXT = 280;
+export const MAX_TEXT = 280;
+const QUOTES = 'If the text has a colon or a #, put it in double quotes.';
 
 /** The day `n` days before 'YYYY-MM-DD'. */
 const daysBefore = (day, n) => new Date(Date.parse(`${day}T12:00:00Z`) - n * 86400000).toISOString().slice(0, 10);
+
+/** True when an entry's node holds a comment: on a field's line, between its fields, or after its last one. */
+const hasComment = (node) => Boolean(node.comment) || node.items.some((p) => p.key?.commentBefore || p.key?.comment || p.value?.commentBefore || p.value?.comment);
 
 /**
  * The announcements in the file's text, oldest first, with `at` as 'YYYY-MM-DDTHH:MM'. Throws on a bad file.
@@ -23,31 +29,34 @@ const daysBefore = (day, n) => new Date(Date.parse(`${day}T12:00:00Z`) - n * 864
  */
 export function parseAnnouncements(source, eventDay) {
   const fail = (msg) => { throw new Error(`${ANNOUNCEMENTS_FILE}: ${msg}`); };
-  let doc;
-  try {
-    doc = parse(source, { uniqueKeys: true, prettyErrors: true });
-  } catch (e) {
-    fail(`it isn't valid YAML. ${e instanceof Error ? e.message.split('\n')[0].replace(/:$/, '.') : e}`);
-  }
-  if (doc === null || doc === undefined) return [];
-  if (typeof doc !== 'object' || Array.isArray(doc) || Object.keys(doc).some((k) => k !== 'announcements')) fail('the file must have one key, "announcements", with the entries under it.');
-  const list = doc.announcements ?? [];
+  const doc = parseDocument(source, { uniqueKeys: true, prettyErrors: true });
+  if (doc.errors.length) fail(`it isn't valid YAML. ${doc.errors[0].message.split('\n')[0].replace(/:$/, '.')} ${QUOTES}`);
+  const top = doc.toJS();
+  if (top === null || top === undefined) return [];
+  if (typeof top !== 'object' || Array.isArray(top) || Object.keys(top).some((k) => k !== 'announcements')) fail('the file must have one key, "announcements", with the entries under it.');
+  const list = top.announcements ?? [];
   if (!Array.isArray(list)) fail('"announcements" must be a list of entries, each starting with "- at:".');
+  // The entries' nodes, in the same order, for how each field is written.
+  const nodes = doc.get('announcements')?.items ?? [];
   const first = daysBefore(eventDay, 6);
   return list.map((entry, i) => {
     const name = `entry ${i + 1}${entry && typeof entry.at === 'string' ? ` (at "${entry.at}")` : ''}`;
     const bad = (field, msg) => fail(`${name}: "${field}" ${msg}`);
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) fail(`${name}: an entry needs "at" and "text", and may have "link".`);
+    const node = nodes[i];
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) || !isMap(node)) fail(`${name}: an entry needs "at" and "text", and may have "link".`);
     for (const key of Object.keys(entry)) if (!FIELDS.includes(key)) bad(key, 'is not a field. The fields are "at", "text" and "link".');
     const at = entry.at;
     const m = typeof at === 'string' ? at.match(/^(\d{4}-\d{2}-\d{2}) ([01]\d|2[0-3]):([0-5]\d)$/) : null;
     const t = m ? Date.parse(`${m[1]}T00:00:00Z`) : NaN;
     if (Number.isNaN(t) || new Date(t).toISOString().slice(0, 10) !== m[1]) bad('at', `must be a Central time as "YYYY-MM-DD HH:MM" in quotes, such as "${eventDay} 10:15".`);
     if (m[1] < first || m[1] > eventDay) bad('at', `must be on Event Day (${eventDay}) or in the 6 days before it.`);
-    if (typeof entry.text !== 'string' || !entry.text.trim()) bad('text', 'is missing or empty.');
+    if (entry.text === undefined || entry.text === null || (typeof entry.text === 'string' && !entry.text.trim())) bad('text', 'is missing or empty.');
+    const textNode = node.get('text', true);
+    if (!isScalar(textNode) || textNode.type !== 'QUOTE_DOUBLE') bad('text', 'must be in double quotes, such as text: "Lunch is in the hall."');
     const text = entry.text.trim();
     if (/[\r\n]/.test(text)) bad('text', 'must be one line.');
     if (text.length > MAX_TEXT) bad('text', `is ${text.length} characters; the most is ${MAX_TEXT}.`);
+    if (hasComment(node)) fail(`${name}: has a # comment, which the page would leave out. Put all of the text inside the double quotes, and remove the comment.`);
     let link = null;
     if (entry.link !== undefined && entry.link !== null) {
       let url = null;

@@ -5,7 +5,7 @@
 #
 # Each entry has three fields:
 #   at     when it's posted, Central time, as "YYYY-MM-DD HH:MM" in quotes, on Event Day or in the 6 days before
-#   text   one line of plain text, at most 280 characters
+#   text   one line in double quotes, at most 280 characters. Write a quote inside it as \".
 #   link   optional, an https address
 #
 # The build checks every entry, and a mistake stops it with a message naming the entry and the field. The site
@@ -14,5 +14,5 @@
 announcements:
 # Add each announcement at the end of this file, in the shape of this example but without the "# ":
 # - at: "2027-04-23 10:15"
-#   text: The 10:30 Sessions start 10 minutes late.
+#   text: "The 10:30 Sessions start 10 minutes late."
 #   link: https://kcdtexas.org/2027/schedule/

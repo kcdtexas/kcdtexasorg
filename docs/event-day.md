@@ -16,11 +16,11 @@ Announcements show on `/2027/today/`, newest first. They live in `src/data/annou
 2. Add the announcement at the end of the file, in the shape of the example there, without the `# ` at the start of each line:
    ```yaml
    - at: "2027-04-23 10:15"
-     text: The 10:30 Sessions start 10 minutes late.
+     text: "The 10:30 Sessions start 10 minutes late."
      link: https://kcdtexas.org/2027/schedule/
    ```
    - `at` is the time it's posted, in Central time, in quotes. Use the current time: an entry with a later time waits for the next build after that time.
-   - `text` is one line, at most 280 characters.
+   - `text` is one line in double quotes, at most 280 characters. Write a quote inside it as `\"`.
    - `link` is optional and must start with `https://`.
 3. Press "Commit changes", commit to `main`, and write a message such as "Announce: the 10:30 Sessions start late". If GitHub only offers a pull request, open it and merge it yourself; the fast track needs no second approval.
 
