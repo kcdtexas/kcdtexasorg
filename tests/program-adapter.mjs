@@ -7,8 +7,8 @@
 //      error, the test-only addresses refused on Netlify and in GitHub Actions, and the photos.
 //   4. scripts/program-check.mjs.
 //   5. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
-//      run and restored after: production from the local Sessionize and the CSV, a deploy preview (the test data,
-//      no request), production with no variable, and production with a failing platform.
+//      run and restored after: production from the local Sessionize and the CSV, a deploy preview and a branch
+//      deploy (the test data, no request), production with no variable, and production with a failing platform.
 // Usage: node tests/program-adapter.mjs [--no-builds]
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -361,11 +361,15 @@ try {
       b = await build(prodCsv);
       expect(b.status === 0 && existsSync('dist/2027/speakers/fixture-person-c/index.html') && !b.log.includes(CSV_SECRET), `the production build from the CSV fails or prints its address:\n${b.log.slice(-1500)}`);
 
-      // A deploy preview with the gates open and the variables set: the test data, and no request.
-      state.requests.length = 0;
-      b = await build({ ...prodSessionize, ...prodCsv, CONTEXT: 'deploy-preview' });
-      expect(b.status === 0 && state.requests.length === 0, `the deploy preview fails or reads the platform (${state.requests.length} requests):\n${b.log.slice(-1500)}`);
-      expect(b.status === 0 && /using the test program/.test(b.log) && /\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')) && !existsSync('dist/2027/speakers/fixture-person-a'), 'the deploy preview does not use the test data');
+      // A deploy preview and a branch deploy with the gates open and both variables set to this server: the test
+      // data, labeled "Sample" and marked as a test build, and no request to the platform.
+      for (const context of ['deploy-preview', 'branch-deploy']) {
+        state.requests.length = 0;
+        b = await build({ ...prodSessionize, ...prodCsv, CONTEXT: context });
+        expect(b.status === 0 && state.requests.length === 0, `the ${context} build fails or reads the platform (${state.requests.length} requests):\n${b.log.slice(-1500)}`);
+        expect(b.status === 0 && /using the test program/.test(b.log) && /\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')) && !existsSync('dist/2027/speakers/fixture-person-a')
+          && /KCD_PROGRAM_SAMPLE/.test(readFileSync('dist/.test-build', 'utf8')), `the ${context} build does not use the labeled test data`);
+      }
 
       // Production with no variable, and with a failing platform: the build fails, with a redacted message.
       b = await build({ CONTEXT: 'production' });
@@ -375,9 +379,12 @@ try {
       expect(b.status !== 0 && /HTTP 500/.test(b.log) && !b.log.includes(ID), `production with a failing platform doesn't fail, or prints the ID:\n${b.log.slice(-1500)}`);
       state.mode = 'ok';
     });
-    // A deploy preview with only the Speakers' gate open: the speakers-only test data, with no times or rooms.
+    // A deploy preview with only the Speakers' gate open: the speakers-only test data, with no times or rooms, and no
+    // request to the platform.
     await withGates(speakersOnly, async () => {
-      const b = await build({ ...prodSessionize, CONTEXT: 'deploy-preview' });
+      state.requests.length = 0;
+      const b = await build({ ...prodSessionize, ...prodCsv, CONTEXT: 'deploy-preview' });
+      expect(state.requests.length === 0, `the speakers-only deploy preview reads the platform (${state.requests.length} requests)`);
       expect(b.status === 0 && /using the test program/.test(b.log) && existsSync('dist/2027/speakers/index.html') && existsSync('dist/2027/sessions')
         && !existsSync('dist/2027/today') && !existsSync('dist/2027/schedule.ics') && !/data-schedule/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')),
       `the deploy preview with only speakersPublic open does not use the speakers-only test data:\n${b.log.slice(-1500)}`);

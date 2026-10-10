@@ -9,6 +9,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'yaml';
+import { importTs } from './lib/import-ts.mjs';
 
 // Pages that must be built, as URL paths: a path ending in "/" is that folder's index.html,
 // anything else is the file itself. tests/smoke.mjs treats a link to a v1 page that isn't
@@ -62,7 +63,55 @@ export const TEST_BUILD_MARKER = '.test-build';
 // An image address on a host other than ours.
 const EXTERNAL_IMAGE = /(?:https?:)?\/\/(?!kcdtexas\.org\/)[^\s"'()<>/]+\/[^\s"'()<>]*?\.(?:jpe?g|png|webp|avif|gif|svg)(?=[\s"'()<>?#]|$)/gi;
 
-function check() {
+/**
+ * The program's gates (ADR 0009) against what's built, in every build: the gates in src/data/edition-2027.ts, or a
+ * --program-sample test build's. Closed, nothing of the program ships. A gate open builds the Speakers and the
+ * program version; `speakersPublic` alone shows no time, room, calendar file or Event Day page, and the Schedule's
+ * gate builds them. Outside a production build (deploy previews, branch deploys, local builds), an open gate shows
+ * the test program, labeled "Sample": scripts/build.sh keeps the platform's variables from the build, and the test
+ * program has no Speaker photos to download.
+ */
+function programGates({ edition2027 }, walk) {
+  const failures = [];
+  const sample = process.env.KCD_PROGRAM_SAMPLE;
+  const gates = sample === '1' ? { speakersPublic: true, schedulePublic: true } : sample === 'speakers' ? { speakersPublic: true, schedulePublic: false } : edition2027.program;
+  const open = Boolean(gates.speakersPublic || gates.schedulePublic);
+  const timed = Boolean(gates.schedulePublic);
+  const has = (p) => existsSync(join(DIST, p));
+  const files = (dir, test) => (has(dir) ? readdirSync(join(DIST, dir)).filter(test) : []);
+  const state = sample ? `the test program's gates (KCD_PROGRAM_SAMPLE=${sample})` : 'the gates in src/data/edition-2027.ts';
+  const pages = walk(DIST).filter((f) => /[\\/]2027[\\/](?:speakers|sessions)[\\/].*\.html$/.test(f));
+  const built = {
+    'the Speakers (dist/2027/speakers/)': [has('2027/speakers'), open],
+    'the Session pages (dist/2027/sessions/)': [has('2027/sessions'), open ? null : false],
+    'the program version (dist/2027/program-version.txt)': [has('2027/program-version.txt'), open],
+    "the program's Share Cards (dist/cards/session-*, speaker-*)": [files('cards', (n) => /^(?:session|speaker)-/.test(n)).length > 0, open ? null : false],
+    'the Event Day page (dist/2027/today/)': [has('2027/today'), timed],
+    'the Sessions by time on the Schedule page': [has('2027/schedule/index.html') && /data-schedule/.test(readFileSync(join(DIST, '2027/schedule/index.html'), 'utf8')), timed],
+    'the calendar files (dist/2027/schedule.ics, dist/2027/sessions/*.ics)': [has('2027/schedule.ics') || files('2027/sessions', (n) => n.endsWith('.ics')).length > 0, timed ? null : false],
+    'a time or a room on a Speaker or Session page': [pages.some((f) => /data-start="\d|class="(?:sch-time|sch-room|page-facts)"/.test(readFileSync(f, 'utf8'))), timed ? null : false],
+  };
+  for (const [what, [is, want]] of Object.entries(built)) {
+    if (want !== null && is !== want) failures.push(`${what}: ${is ? 'built' : 'missing'}, but ${state} ${open ? (timed ? 'are open' : 'open only speakersPublic') : 'are closed'}`);
+  }
+  if (has('2027/program-version.txt') && !/^[0-9a-f]{64}\n$/.test(readFileSync(join(DIST, '2027/program-version.txt'), 'utf8'))) failures.push('dist/2027/program-version.txt is not one SHA-256 line');
+
+  // The preview rule.
+  if (process.env.CONTEXT !== 'production') {
+    for (const v of ['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL']) {
+      if (process.env[v] !== undefined) failures.push(`${v} reaches a build that isn't a production build (CONTEXT=${process.env.CONTEXT ?? 'unset'}); scripts/build.sh unsets it there`);
+    }
+    if (open) {
+      if (!sample) failures.push('a program gate is open outside a production build, but the build has no test program (scripts/build.sh sets KCD_PROGRAM_SAMPLE)');
+      if (!has(TEST_BUILD_MARKER)) failures.push(`a program gate is open outside a production build, but dist/${TEST_BUILD_MARKER} is missing`);
+      if (has('2027/speakers/index.html') && !/\bSample\b/.test(readFileSync(join(DIST, '2027/speakers/index.html'), 'utf8'))) failures.push('dist/2027/speakers/index.html: the test program is not labeled "Sample"');
+      for (const photo of files('2027/speakers', (n) => n.endsWith('.webp'))) failures.push(`dist/2027/speakers/${photo}: a Speaker photo outside a production build, where the test program has none`);
+    }
+  }
+  return failures;
+}
+
+async function check() {
   const failures = [];
 
   const pageFile = (path) => (path.endsWith('/') ? join(path, 'index.html') : path).replace(/^\//, '');
@@ -167,6 +216,8 @@ function check() {
     if (/\bFixture\b/.test(readFileSync(file, 'utf8'))) failures.push(`${file}: contains a fixture name`);
   }
 
+  failures.push(...programGates(await importTs(new URL('../src/data/edition-2027.ts', import.meta.url)), walk));
+
   // The sitemap lists every page except the 404 page, at absolute kcdtexas.org addresses, and robots.txt names it.
   if (existsSync(join(DIST, 'sitemap.xml'))) {
     const listed = [...readFileSync(join(DIST, 'sitemap.xml'), 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
@@ -260,4 +311,4 @@ function check() {
   console.log(`Build check passed: ${htmlFiles.length} pages.`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) check();
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) await check();

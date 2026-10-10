@@ -165,11 +165,28 @@ try {
   expect(organizerCredits(about)['Mars Toktonaliev'] === null, 'About: a held Organizer shows a credit');
   expect(organizerCredits(about)['Amy Marrich'] === null, 'About: a first-time Organizer shows a credit');
   expect((read('2027/sponsors/index.html').match(/<span class="credit">Since 2026<\/span>/g) ?? []).length === 3, 'the 2027 wall lacks its three sample "Since 2026" credits');
-  // check-dist refuses this build without its flag.
-  const env = { ...process.env };
-  delete env.KCD_PROGRAM_SAMPLE;
-  const guard = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env });
-  expect(guard.status !== 0 && /Sample/.test(guard.stdout + guard.stderr) && /Fixture/.test(guard.stdout + guard.stderr), 'check-dist passes the program sample without its flag');
+  // check-dist refuses this build without its flag: the labels, the fixture's names, and the program built with the
+  // Edition's gates closed.
+  const checkDist = (env) => {
+    const res = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env: Object.fromEntries(Object.entries({ ...process.env, ...env }).filter(([, v]) => v !== undefined)) });
+    return { status: res.status, log: res.stdout + res.stderr };
+  };
+  const guard = checkDist({ KCD_PROGRAM_SAMPLE: undefined, KCD_SPONSORS_SAMPLE: undefined });
+  expect(guard.status !== 0 && /Sample/.test(guard.log) && /Fixture/.test(guard.log) && /the Session pages \(dist\/2027\/sessions\/\): built, but the gates in src\/data\/edition-2027\.ts are closed/.test(guard.log),
+    'check-dist passes the program sample without its flag');
+  // The preview rule in check-dist: a build that isn't a production build never has the platform's variables, and a
+  // test build never has a Speaker photo.
+  const flags = { KCD_PROGRAM_SAMPLE: '1', KCD_SPONSORS_SAMPLE: '1' };
+  expect(checkDist(flags).status === 0, 'check-dist fails the sample build with its flags');
+  for (const context of ['deploy-preview', 'branch-deploy']) {
+    const res = checkDist({ ...flags, CONTEXT: context, SESSIONIZE_ENDPOINT_ID: 'fxEndpoint42', PROGRAM_CSV_URL: 'https://example.com/p.csv' });
+    expect(res.status !== 0 && /SESSIONIZE_ENDPOINT_ID reaches a build that isn't a production build/.test(res.log) && /PROGRAM_CSV_URL reaches/.test(res.log) && !res.log.includes('fxEndpoint42'),
+      `check-dist passes a ${context} build with the platform's variables, or prints a value`);
+  }
+  writeFileSync('dist/2027/speakers/planted-small.webp', '');
+  const photo = checkDist(flags);
+  rmSync('dist/2027/speakers/planted-small.webp');
+  expect(photo.status !== 0 && /planted-small\.webp: a Speaker photo outside a production build/.test(photo.log), 'check-dist passes a Speaker photo in a test build');
 
   // 3. The smoke and browser tests on the sample build: axe on every page, both themes, desktop and phone.
   await serve();
@@ -361,6 +378,16 @@ try {
     expect(/^\/speakers\s/m.test(read('_redirects')), 'the speakers-only build lacks the /speakers Short Link');
     const sm = read('sitemap.xml');
     expect(/\/2027\/speakers\/<\/loc>/.test(sm) && !/\/2027\/today\//.test(sm), 'the speakers-only sitemap is wrong');
+    // The Share Cards give no time or room either.
+    const alt = sessionHtml.match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1] ?? '';
+    expect(/^Sample: Fixture Session/.test(alt) && !/Central|Fixture Room/.test(alt), `${fx}: the Share Card's alt text gives a time or a room: ${alt}`);
+    // check-dist refuses a calendar file with only speakersPublic open.
+    writeFileSync('dist/2027/schedule.ics', 'BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n');
+    const timed = checkDist({ KCD_PROGRAM_SAMPLE: 'speakers' });
+    rmSync('dist/2027/schedule.ics');
+    expect(timed.status !== 0 && /the calendar files \(dist\/2027\/schedule\.ics, dist\/2027\/sessions\/\*\.ics\): built, but the test program's gates \(KCD_PROGRAM_SAMPLE=speakers\) open only speakersPublic/.test(timed.log),
+      'check-dist passes a calendar file with only speakersPublic open');
+    expect(checkDist({ KCD_PROGRAM_SAMPLE: 'speakers' }).status === 0, 'check-dist fails the speakers-only build with its flag');
   }
   await serve();
   for (const script of ['tests/smoke.mjs', 'tests/browser.mjs']) {
