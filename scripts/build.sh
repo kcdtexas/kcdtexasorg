@@ -2,7 +2,7 @@
 # Builds kcdtexas.org. The same script runs locally and in CI.
 #
 # Usage: scripts/build.sh [--zip] [--serve] [--skip-install] [--now YYYY-MM-DD] [--tickets-day YYYY-MM-DD]
-#                         [--program-public] [--sponsors-sample] [--program-sample] [--clock HH:MM]
+#                         [--program-public] [--sponsors-sample] [--program-sample[=speakers]] [--clock HH:MM]
 #   --zip           also write out/kcdtexas-<commit>.zip (for Cloudflare Pages
 #                   dashboard uploads; Netlify drag-and-drop takes the dist/ folder)
 #   --serve         preview the built site at http://127.0.0.1:4321
@@ -19,6 +19,8 @@
 #   --program-sample  open the program gates on test data: the 2026 Schedule and the made-up fixture
 #                   (src/lib/program.ts). The program pages, the Event Day page and the loyalty credits
 #                   say "Sample". Never in production, and never deployed.
+#   --program-sample=speakers  the same test data with only the `speakersPublic` gate open: the Speakers, the
+#                   titles and the abstracts, with no times, rooms, calendar files or Event Day page.
 #   --clock HH:MM   the time of day the build describes (Central), with --now, for the Event Day page's
 #                   "Updated" stamp and its now and next. Never in production.
 set -euo pipefail
@@ -61,6 +63,9 @@ while [ $# -gt 0 ]; do
     --program-sample)
       if production; then echo "--program-sample is not allowed in a production build" >&2; exit 2; fi
       export KCD_PROGRAM_SAMPLE=1 ;;
+    --program-sample=speakers)
+      if production; then echo "--program-sample is not allowed in a production build" >&2; exit 2; fi
+      export KCD_PROGRAM_SAMPLE=speakers ;;
     --clock)
       [[ "${2:-}" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || { echo "--clock needs a time as HH:MM" >&2; exit 2; }
       if production; then echo "--clock is not allowed in a production build" >&2; exit 2; fi
@@ -84,8 +89,10 @@ fi
 if [ -n "${KCD_SPONSORS_SAMPLE:-}" ]; then
   echo "Building with sample 2027 sponsor tiles. Test builds only; never deploy this build."
 fi
-if [ -n "${KCD_PROGRAM_SAMPLE:-}" ]; then
+if [ "${KCD_PROGRAM_SAMPLE:-}" = 1 ]; then
   echo "Building with the sample program (the 2026 Schedule and the fixture). Test builds only; never deploy this build."
+elif [ -n "${KCD_PROGRAM_SAMPLE:-}" ]; then
+  echo "Building with the sample Speakers and Sessions, no times or rooms (the 2026 Schedule and the fixture). Test builds only; never deploy this build."
 fi
 
 step "Checking Node.js (needs 22.12 or newer)"
@@ -109,9 +116,11 @@ step "Choosing the program data"
 # variables.
 if [ "${CONTEXT:-}" != production ]; then
   unset SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL
-  if [ -z "${KCD_PROGRAM_SAMPLE:-}" ] && [ "$(node scripts/program-check.mjs --gates)" = open ]; then
+  gates="$(node scripts/program-check.mjs --which-gates)"
+  if [ -z "${KCD_PROGRAM_SAMPLE:-}" ] && [ "$gates" != closed ]; then
+    # The test program opens the same gates as the Edition file: only the Speakers', or the Schedule's too.
     echo "A program gate is open, and this isn't a production build: using the test program, labeled \"Sample\"."
-    export KCD_PROGRAM_SAMPLE=1
+    if [ "$gates" = speakers ]; then export KCD_PROGRAM_SAMPLE=speakers; else export KCD_PROGRAM_SAMPLE=1; fi
   else
     echo "Not a production build: no real program data."
   fi

@@ -1,5 +1,5 @@
 // The 2027 schedule page's words (Session Committee). Dates come from the Edition file.
-import { cfpSentence, edition2027, longDate, programDataSample, programSample, programState, shortDate, shortDateYear } from './edition-2027';
+import { cfpSentence, edition2027, longDate, programDataSample, programSampleGates, programSample, programState, shortDate, shortDateYear } from './edition-2027';
 
 const e = edition2027;
 // The program's words follow its gate, never the date (plan-release-5): its day, "soon" if the day passes
@@ -17,7 +17,7 @@ export const schedule = {
   kicker: 'Schedule',
   lead: `${when.lead} The Session Committee selects the Sessions.`,
   // build.sh --program-public: the gate is open but this build has no program data.
-  sample: programDataSample ? 'Sample: this test build shows the 2026 Schedule and made-up Sessions, not the 2027 program.' : programSample ? 'Sample: this test build has no program data.' : '',
+  sample: programDataSample ? `Sample: this test build shows the 2026 ${programSampleGates.schedulePublic ? 'Schedule' : 'Speakers'} and made-up Sessions, not the 2027 program.` : programSample ? 'Sample: this test build has no program data.' : '',
   // The Schedule itself, once its gate is open (src/lib/program.ts).
   program: {
     title: 'Sessions by time',

@@ -6,7 +6,8 @@
 // adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. Then it builds with
 // the gates closed and checks that no program page, card, calendar file, script reference or credit is built, and
 // that the planted marker reaches no served file and no build log in either build. At the end dist/ is rebuilt as
-// a normal build.
+// a normal build. Between them it builds the gate matrix's middle case, only `speakersPublic` open
+// (--program-sample=speakers), and checks it has no times, rooms, calendar files or Event Day page.
 // Usage: node tests/run-program.mjs [--keep-dist]
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -135,6 +136,10 @@ try {
   checkIcs(`${sessionPages[0]}.ics`, read(`2027/sessions/${sessionPages[0]}.ics`), 1);
   // The program version, published while a gate is open.
   expect(/^[0-9a-f]{64}\n$/.test(read('2027/program-version.txt')), 'the sample build lacks /2027/program-version.txt');
+  // The program script and its cache rule, the /speakers Short Link and the privacy page's My Schedule line.
+  expect(existsSync('dist/schedule.js') && /^\/schedule\.js$/m.test(read('_headers')), 'the sample build lacks /schedule.js or its _headers rule');
+  expect(/^\/speakers\s+\/2027\/speakers\/\s+302$/m.test(read('_redirects')), 'the sample build lacks the /speakers Short Link');
+  expect(/My Schedule, the list is kept only in this browser/.test(text(read('privacy/index.html'))), 'the privacy page lacks the My Schedule line');
   // The sitemap lists the program pages while a gate is open.
   const sitemap = read('sitemap.xml');
   expect(/\/2027\/speakers\/<\/loc>/.test(sitemap) && /\/2027\/sessions\//.test(sitemap) && /\/2027\/today\/<\/loc>/.test(sitemap), 'the sitemap misses the program pages');
@@ -259,7 +264,39 @@ try {
     await c.close();
   }
 
-  // 6. The history registry: a new file in src/data/history/ joins with no code change, and a bad one fails the
+  // 6. The gate matrix: only `speakersPublic` open (--program-sample=speakers). The Speakers, the titles and the
+  // abstracts, with no times, rooms, calendar files or Event Day page; the program version is still published.
+  const speakersOnly = build(['--program-sample=speakers']);
+  if (speakersOnly.status !== 0) throw new Error(`the speakers-only sample build failed:\n${speakersOnly.log.slice(-3000)}`);
+  expect(!speakersOnly.log.includes(marker), 'the speakers-only build log contains the planted marker');
+  {
+    const sessionDirs = readdirSync('dist/2027/sessions').filter((n) => statSync(join('dist/2027/sessions', n)).isDirectory());
+    expect(sessionDirs.length === sessionPages.length && existsSync('dist/2027/speakers/index.html') && existsSync('dist/2027/speakers/fixture-speaker-4/index.html'), 'the speakers-only build lacks Session or Speaker pages');
+    for (const p of ['2027/today', '2027/schedule.ics']) expect(!existsSync(join('dist', p)), `the speakers-only build has ${p}`);
+    expect(!readdirSync('dist/2027/sessions').some((n) => n.endsWith('.ics')), 'the speakers-only build has Session calendar files');
+    expect(/^[0-9a-f]{64}\n$/.test(read('2027/program-version.txt')), 'the speakers-only build lacks /2027/program-version.txt');
+    const sched = read('2027/schedule/index.html');
+    expect(!/data-schedule/.test(sched) && !/schedule\.js/.test(sched), 'the speakers-only Schedule page shows the Sessions by time or loads /schedule.js');
+    const fx = 'fixture-session-how-we-run-kubernetes-for-our-own-business';
+    const sessionHtml = read(`2027/sessions/${fx}/index.html`);
+    expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title">/.test(sessionHtml), `${fx}: no title or abstract`);
+    expect(!/Time \(Central\)|<dt>Room<\/dt>|\.ics"/.test(sessionHtml), `${fx}: shows a time, a room or "Add to calendar"`);
+    for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`]) {
+      const html = read(page);
+      expect(!/class="sch-(?:time|room|meta)"|data-start="\d/.test(html), `${page}: shows a time or a room`);
+      expect(/2026 Speakers and made-up Sessions/.test(html), `${page}: lacks the speakers-only Sample label`);
+    }
+    expect(/^\/speakers\s/m.test(read('_redirects')), 'the speakers-only build lacks the /speakers Short Link');
+    const sm = read('sitemap.xml');
+    expect(/\/2027\/speakers\/<\/loc>/.test(sm) && !/\/2027\/today\//.test(sm), 'the speakers-only sitemap is wrong');
+  }
+  await serve();
+  for (const script of ['tests/smoke.mjs', 'tests/browser.mjs']) {
+    const res = spawnSync(process.execPath, [script, base], { encoding: 'utf8', env: { ...process.env, KCD_PROGRAM_SAMPLE: 'speakers' } });
+    expect(res.status === 0, `${script} fails on the speakers-only sample:\n${(res.stdout + res.stderr).split('\n').filter((l) => /fail|✗|violation/i.test(l)).slice(0, 20).join('\n')}`);
+  }
+
+  // 7. The history registry: a new file in src/data/history/ joins with no code change, and a bad one fails the
   // build with its name. The test file stands in for 2025 (a copy of any real one is put back afterwards): with a
   // complete 2025 Organizers record, a normal build prints the Organizer credits, each year from the records.
   const historyFile = 'src/data/history/2025.ts';
@@ -283,7 +320,7 @@ try {
     if (keptFile) renameSync(keptFile, historyFile);
   }
 
-  // 7. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
+  // 8. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
   const closed = build([]);
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
@@ -292,6 +329,9 @@ try {
   expect(!readdirSync('dist/cards').some((n) => /^(?:session|speaker)-/.test(n)), 'a closed gate still draws program cards');
   expect(!walk('dist').some((f) => f.endsWith('.html') && /schedule\.js/.test(readFileSync(f, 'utf8'))), 'a page loads /schedule.js with the gates closed');
   expect(!/\/2027\/(?:speakers|sessions|today)\//.test(read('sitemap.xml')), 'the sitemap lists program pages with the gates closed');
+  expect(!existsSync('dist/schedule.js') && !/schedule\.js/.test(read('_headers')), 'a closed gate still ships /schedule.js or its _headers rule');
+  expect(!/^\/speakers\s/m.test(read('_redirects')), 'a closed gate still serves the /speakers Short Link');
+  expect(!/My Schedule/.test(read('privacy/index.html')), 'the privacy page mentions My Schedule with the gates closed');
   for (const f of served()) {
     const body = readFileSync(f, 'utf8');
     expect(!body.includes(marker) && !/Fixture (?:Speaker|Session)/.test(body), `${f}: the fixture reaches a normal build`);

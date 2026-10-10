@@ -81,8 +81,14 @@ function check() {
   // Every Short Link from the data file is served, and there is no catch-all.
   const redirects = readFileSync(join(DIST, '_redirects'), 'utf8');
   if (/^\/\*/m.test(redirects)) failures.push('_redirects contains a catch-all (/*)');
-  for (const { from, mode } of parse(readFileSync('src/data/short-links.yaml', 'utf8'))) {
-    const served = new RegExp(`^${from}\\s`, 'm').test(redirects) || (mode === 'replaced-by-page' && existsSync(join(DIST, from, 'index.html')));
+  for (const { from, mode, while: page } of parse(readFileSync('src/data/short-links.yaml', 'utf8'))) {
+    const listed = new RegExp(`^${from}\\s`, 'm').test(redirects);
+    // A "while" link is served only while its page is built.
+    if (page !== undefined && !existsSync(join(DIST, page, 'index.html'))) {
+      if (listed) failures.push(`Short Link ${from} is served without its page ${page}`);
+      continue;
+    }
+    const served = listed || (mode === 'replaced-by-page' && existsSync(join(DIST, from, 'index.html')));
     if (!served) failures.push(`Short Link ${from} is not served`);
   }
 
@@ -131,6 +137,11 @@ function check() {
       if (!/<meta name="robots" content="noindex">/.test(html)) failures.push(`${file}: the 404 page lacks noindex`);
     } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
   }
+
+  // /schedule.js and its cache rule ship only in a build where a page loads it.
+  const loaded = pages.some(({ html }) => html.includes('<script src="/schedule.js" defer></script>'));
+  if (existsSync(join(DIST, 'schedule.js')) !== loaded) failures.push(loaded ? 'a page loads /schedule.js, but dist/schedule.js is missing' : 'dist/schedule.js ships, but no page loads it');
+  if (/^\/schedule\.js$/m.test(readFileSync(join(DIST, '_headers'), 'utf8')) !== existsSync(join(DIST, 'schedule.js'))) failures.push('_headers has a /schedule.js rule without the file, or the file without its rule');
 
   for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {
     for (const m of readFileSync(file, 'utf8').matchAll(/url\(\s*['"]?((?:https?:)?\/\/[^'")\s]+)/gi)) failures.push(`${file}: loads from another host: ${m[1]}`);

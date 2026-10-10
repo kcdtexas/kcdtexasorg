@@ -25,8 +25,12 @@ const sampleTicketsUrl = 'https://community2.cncf.io/kcd-texas/';
 export const programSample = import.meta.env?.KCD_PROGRAM_PUBLIC === '1';
 /** True only in a test build with --sponsors-sample. */
 export const sponsorsSample = import.meta.env?.KCD_SPONSORS_SAMPLE === '1';
-/** True only in a test build with --program-sample: the program gates open on test data (src/lib/program.ts). */
-export const programDataSample = import.meta.env?.KCD_PROGRAM_SAMPLE === '1';
+/** True only in a test build with --program-sample: the program gates open on test data (src/lib/program.ts).
+ *  --program-sample=speakers (KCD_PROGRAM_SAMPLE=speakers) opens only `speakersPublic`: the Speakers, the titles
+ *  and the abstracts, with no times or rooms. */
+export const programDataSample = import.meta.env?.KCD_PROGRAM_SAMPLE === '1' || import.meta.env?.KCD_PROGRAM_SAMPLE === 'speakers';
+/** The gates a --program-sample test build opens. */
+export const programSampleGates = { speakersPublic: true, schedulePublic: import.meta.env?.KCD_PROGRAM_SAMPLE === '1' };
 
 // The last day sponsorships are open: through Event Day, Apr 23. With null, they also stay open through Event Day.
 // The day after is a rebuild day in scripts/rebuild-dates.mjs.
@@ -150,7 +154,7 @@ export const ticketsOnSale = (day = asOfDay): boolean => ticketsStatus(day) === 
 /** The Speakers, the keynotes and the Schedule are public: the `schedulePublic` gate is open, or a test build
  *  says so (--program-public with no program data, --program-sample with test data). */
 export function programPublic(): boolean {
-  return programSample || programDataSample || edition2027.program.schedulePublic;
+  return programSample || (programDataSample ? programSampleGates.schedulePublic : edition2027.program.schedulePublic);
 }
 
 /** Where the program stands, by its gate, never by the date alone: 'out' once public; 'dated' before its day;

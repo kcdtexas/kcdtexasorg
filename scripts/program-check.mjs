@@ -4,6 +4,9 @@
 //   node scripts/program-check.mjs --gates
 //       Prints "open" when a program gate is open in the checked-out src/data/edition-2027.ts, else "closed".
 //       Reads nothing else. scripts/build.sh and the workflow use it.
+//   node scripts/program-check.mjs --which-gates
+//       Prints "closed", "speakers" (only `speakersPublic` open) or "schedule" (the Schedule's gate open), from the
+//       same file. scripts/build.sh uses it to pick the test program for a non-production build.
 //   node scripts/program-check.mjs
 //       Prints exactly "changed" or "unchanged" on stdout, and nothing else: no program data, no hash. When
 //       GITHUB_OUTPUT is set, it also appends "changed=true" or "changed=false" to that file.
@@ -41,6 +44,8 @@ async function check(env) {
 
 if (process.argv.includes('--gates')) {
   console.log(gatesOpen(gates) ? 'open' : 'closed');
+} else if (process.argv.includes('--which-gates')) {
+  console.log(gates.schedulePublic ? 'schedule' : gates.speakersPublic ? 'speakers' : 'closed');
 } else {
   try {
     const changed = await check(process.env);

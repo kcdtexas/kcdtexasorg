@@ -6,14 +6,15 @@
 //   closed: no program at all, and no source is read;
 //   speakersPublic: the Speakers, the titles and the abstracts, with no times or rooms;
 //   schedulePublic: adds the times and the rooms.
-// A test build with --program-sample opens both on test data: the 2026 Schedule (src/data/program-2026-schedule.ts)
-// moved to the 2027 Event Day, plus the made-up fixture (src/data/program-fixture.ts). The pages label it "Sample".
+// A test build with --program-sample opens both on test data, and --program-sample=speakers only `speakersPublic`:
+// the 2026 Schedule (src/data/program-2026-schedule.ts) moved to the 2027 Event Day, plus the made-up fixture
+// (src/data/program-fixture.ts). The pages label it "Sample".
 // Real data comes from Sessionize or the CSV fallback (src/lib/program-source/), read only in a production build
 // (CONTEXT=production) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
 // Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007), and the
 // public model's hash is published at /2027/program-version.txt for the refresh check (scripts/program-check.mjs).
 import { edition2026 } from '../data/edition-2026';
-import { edition2027, programDataSample } from '../data/edition-2027';
+import { edition2027, programDataSample, programSampleGates } from '../data/edition-2027';
 import { home } from '../data/home';
 import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../data/program-2026';
 import { breaks2026, rooms2026, sessions2026 } from '../data/program-2026-schedule';
@@ -198,8 +199,8 @@ async function build(src: Source, open: { speakersPublic: boolean; schedulePubli
   };
 }
 
-/** The gates this build uses: the Edition's, or both open in a --program-sample test build. */
-export const gates = programDataSample ? { speakersPublic: true, schedulePublic: true } : edition2027.program;
+/** The gates this build uses: the Edition's, or the sample's in a --program-sample test build. */
+export const gates = programDataSample ? programSampleGates : edition2027.program;
 
 // Read once per build while a gate is open; a closed gate reads no source at all.
 const built = gates.speakersPublic || gates.schedulePublic ? await build(await source(), gates) : null;

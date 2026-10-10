@@ -277,6 +277,10 @@ try {
   const checkEnv = { ...testEnv, SESSIONIZE_ENDPOINT_ID: ID, KCD_PROGRAM_LIVE_URL: `${origin}/live/program-version.txt` };
   let res = await run(process.execPath, ['scripts/program-check.mjs', '--gates'], {});
   expect(res.status === 0 && res.out === 'closed\n', `--gates with the gates closed prints ${JSON.stringify(res.out)}`);
+  for (const [gates, want] of [[closed, 'closed'], [speakersOnly, 'speakers'], [both, 'schedule']]) {
+    res = await withGates(gates, () => run(process.execPath, ['scripts/program-check.mjs', '--which-gates'], {}));
+    expect(res.status === 0 && res.out === `${want}\n`, `--which-gates prints ${JSON.stringify(res.out)}, not "${want}"`);
+  }
   state.requests.length = 0;
   res = await check(checkEnv);
   expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\n' && state.requests.length === 0, `closed gates: ${JSON.stringify(res.out)}, ${state.requests.length} requests`);
@@ -370,6 +374,13 @@ try {
       b = await build(prodSessionize);
       expect(b.status !== 0 && /HTTP 500/.test(b.log) && !b.log.includes(ID), `production with a failing platform doesn't fail, or prints the ID:\n${b.log.slice(-1500)}`);
       state.mode = 'ok';
+    });
+    // A deploy preview with only the Speakers' gate open: the speakers-only test data, with no times or rooms.
+    await withGates(speakersOnly, async () => {
+      const b = await build({ ...prodSessionize, CONTEXT: 'deploy-preview' });
+      expect(b.status === 0 && /using the test program/.test(b.log) && existsSync('dist/2027/speakers/index.html') && existsSync('dist/2027/sessions')
+        && !existsSync('dist/2027/today') && !existsSync('dist/2027/schedule.ics') && !/data-schedule/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')),
+      `the deploy preview with only speakersPublic open does not use the speakers-only test data:\n${b.log.slice(-1500)}`);
     });
     // The gates closed again: a normal build, with no program version.
     const b = await build({});
