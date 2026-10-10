@@ -7,8 +7,9 @@
 //      error, the test-only addresses refused on Netlify and in GitHub Actions, and the photos.
 //   4. scripts/program-check.mjs.
 //   5. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
-//      run and restored after: production from the local Sessionize and the CSV, a deploy preview and a branch
-//      deploy (the test data, no request), production with no variable, and production with a failing platform.
+//      run and restored after: production from the local Sessionize and the CSV, a program with more Share Cards
+//      than a build draws, a deploy preview and a branch deploy (the test data, no request), production with no
+//      variable, and production with a failing platform.
 // Usage: node tests/program-adapter.mjs [--no-builds]
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -360,6 +361,26 @@ try {
       // Production, from the CSV.
       b = await build(prodCsv);
       expect(b.status === 0 && existsSync('dist/2027/speakers/fixture-person-c/index.html') && !b.log.includes(CSV_SECRET), `the production build from the CSV fails or prints its address:\n${b.log.slice(-1500)}`);
+
+      // More Share Cards than a build draws: 151 Sessions by one Speaker. The build draws the first 150, Sessions
+      // first, and the 151st Session and the Speaker keep the title card.
+      const budget = Number(readFileSync('src/lib/cards/program-cards.ts', 'utf8').match(/PROGRAM_CARD_BUDGET = (\d+)/)[1]);
+      const many = fixture();
+      const talk = many.sessions.find((s) => s.id === '1002');
+      const at = (minutes) => `2027-04-23T${String(8 + Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`;
+      many.sessions = Array.from({ length: budget + 1 }, (_, i) => ({ ...talk, id: String(3000 + i), title: `Fixture Load Session ${i + 1}`, speakers: [many.speakers[0].id], startsAt: at(i * 3), endsAt: at(i * 3 + 30) }));
+      state.fixture = JSON.stringify(many);
+      b = await build(prodSessionize);
+      state.fixture = fixtureText;
+      expect(b.status === 0, `the production build with ${budget + 1} Sessions fails:\n${b.log.slice(-1500)}`);
+      if (b.status === 0) {
+        const drawn = readdirSync('dist/cards').filter((n) => /^(?:session|speaker)-/.test(n));
+        const cardOf = (page) => readFileSync(`dist/2027/${page}/index.html`, 'utf8').match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
+        expect(drawn.length === budget && drawn.every((n) => n.startsWith('session-')), `${budget + 1} Sessions and a Speaker drew ${drawn.length} cards (${drawn.filter((n) => n.startsWith('speaker-')).length} Speakers'), not the first ${budget}`);
+        expect(cardOf('sessions/fixture-load-session-1') === 'session-fixture-load-session-1' && cardOf(`sessions/fixture-load-session-${budget + 1}`) === 'default' && cardOf('speakers/fixture-person-a') === 'default',
+          `past the budget a page does not keep the title card: ${cardOf(`sessions/fixture-load-session-${budget + 1}`)}, ${cardOf('speakers/fixture-person-a')}`);
+        expect(!/Download the Share Card/.test(readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8')), 'a Speaker past the budget offers a Share Card to download');
+      }
 
       // A deploy preview and a branch deploy with the gates open and both variables set to this server: the test
       // data, labeled "Sample" and marked as a test build, and no request to the platform.

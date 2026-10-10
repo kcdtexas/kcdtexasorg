@@ -24,6 +24,11 @@ let checks = 0;
 const expect = (ok, message) => { checks += 1; if (!ok) failures.push(message); };
 const DAY = '2027-04-23';
 const STAMP_INSET = Number(readFileSync('src/lib/cards/program-cards.ts', 'utf8').match(/STAMP_INSET = (\d+)/)[1]);
+const CARD_BUDGET = Number(readFileSync('src/lib/cards/program-cards.ts', 'utf8').match(/PROGRAM_CARD_BUDGET = (\d+)/)[1]);
+// The most a build may spend drawing the Share Cards, in seconds. The sample's 59 take about 29 s here (a Session's
+// card 0.1 s, a Speaker's 0.85 s), so the 150 the budget allows take about 75 s at that mix, and 130 s if all 150
+// were Speakers' cards.
+const CARD_SECONDS = 180;
 const marker = readFileSync('src/data/program-fixture.ts', 'utf8').match(/plantedMarker = '([^']+)'/)[1];
 const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
 const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
@@ -184,6 +189,15 @@ try {
     const px = await sharp(join('dist/cards', name)).removeAlpha().extract({ left: 1200 - STAMP_INSET - 8, top: STAMP_INSET + 2, width: 4, height: 4 }).raw().toBuffer();
     expect([...px].every((v) => v > 240), `cards/${name}: no "Sample" stamp in the top right corner`);
   }
+  // The Share Cards' time budget: a build draws at most 150 (tests/program-adapter.mjs builds one with more), and at
+  // this build's pace, from each card's time in Astro's log, 150 take under CARD_SECONDS.
+  expect(CARD_BUDGET === 150, `PROGRAM_CARD_BUDGET is ${CARD_BUDGET}, not 150`);
+  const cardTimes = [...sample.log.matchAll(/\/cards\/(?:session|speaker)-[a-z0-9-]+\.png \(\+([\d.]+)(m?s)\)/g)].map((m) => Number(m[1]) / (m[2] === 'ms' ? 1000 : 1));
+  const cardTotal = cardTimes.reduce((a, b) => a + b, 0);
+  const atBudget = (cardTotal / Math.max(1, cardTimes.length)) * CARD_BUDGET;
+  expect(cardTimes.length === programCards.length, `the build log times ${cardTimes.length} Share Cards, but the build drew ${programCards.length}`);
+  expect(atBudget < CARD_SECONDS, `${CARD_BUDGET} Share Cards would take ${atBudget.toFixed(0)} s at this build's pace (${cardTimes.length} in ${cardTotal.toFixed(1)} s), over the ${CARD_SECONDS} s budget`);
+  console.log(`Share Cards: ${cardTimes.length} drawn in ${cardTotal.toFixed(1)} s; ${CARD_BUDGET} at this pace take about ${atBudget.toFixed(0)} s (budget ${CARD_SECONDS} s).`);
   // A test build is marked, and check-dist refuses it in a production context.
   expect(existsSync('dist/.test-build'), 'the sample build has no dist/.test-build marker');
   const prod = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env: { ...process.env, KCD_PROGRAM_SAMPLE: '1', CONTEXT: 'production' } });

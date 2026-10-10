@@ -7,7 +7,8 @@ import { formatName, program, sessionsOf, speakersOf, timeRange, type Session, t
 import { CARD } from './cards';
 import { chip, color, h, img, photo, type, type Node } from './kit';
 
-/** At most this many program cards per build (about 0.3 s each). */
+/** At most this many program cards per build. A Session's card takes about 0.1 s to draw and a Speaker's about 0.85 s,
+ *  its photo band most of it; tests/run-program.mjs holds 150 of them to a time budget. */
 export const PROGRAM_CARD_BUDGET = 150;
 const PAD = 56;
 const domain = 'kcdtexas.org';
