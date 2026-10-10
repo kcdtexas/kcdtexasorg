@@ -9,8 +9,17 @@ The site reads the program (Sessions, Speakers, the Schedule) from Sessionize. I
 The build downloads the file from the address in the host environment variable `PROGRAM_CSV_URL`. A published Google Sheet works: in Google Sheets, choose File, Share, Publish to web, the sheet, and "Comma-separated values (.csv)".
 
 - The address must be https.
-- Treat it as a secret, like the Sessionize endpoint ID. It goes in Netlify's production environment variables and in the GitHub environment `production`, never in git. The build never prints it, error messages included.
+- Treat it as a secret, like the Sessionize endpoint ID, and never put it in git. The next section says where it goes. The build never prints it, error messages included.
 - When `SESSIONIZE_ENDPOINT_ID` is also set, the build reads Sessionize and ignores the CSV.
+
+## Where the setting goes
+
+`SESSIONIZE_ENDPOINT_ID` or `PROGRAM_CSV_URL` goes in two places:
+
+- **Netlify:** the site's environment variables, scoped to the **Production** deploy context only, not to all deploy contexts. Mark it as a secret value where the plan allows it.
+- **GitHub:** a secret of the `production` environment, which only `main` can use. The refresh workflow's check reads it there (`docs/rebuilds.md`).
+
+Deploy previews run code from pull requests, so the value must never be available to them. Add it only shortly before the program goes public.
 
 ## When it's read
 
@@ -33,7 +42,7 @@ The build downloads the file from the address in the host environment variable `
 | `tagline` | speaker | Their role and company, as printed under the name |
 | `bio` | speaker | The bio, as the Speaker wrote it |
 | `photo` | speaker | An https address of the photo. The build downloads it, crops it square and serves it from kcdtexas.org. |
-| `links` | speaker | https addresses, separated by spaces or `;`. The kind comes from the address: github.com, bsky.app, linkedin.com, x.com or twitter.com, a Mastodon profile (`https://<server>/@<name>`), and anything else is the Speaker's website. |
+| `links` | speaker | https addresses, separated by spaces or `;`. The kind comes from the address: github.com, bsky.app, linkedin.com, x.com or twitter.com, a Mastodon profile (`https://<server>/@<name>`), and anything else is the Speaker's website. Instagram, Facebook and Sessionize addresses are dropped, and only the first link of each kind is kept. |
 | `title` | session, break | The title |
 | `format` | session | `Keynote`, `Talk`, `Workshop` or `Panel` |
 | `end_user` | session | `yes` for an End-User Story; `no` or empty otherwise |
