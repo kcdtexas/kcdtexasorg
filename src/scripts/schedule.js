@@ -59,7 +59,7 @@
   function download() {
     var z = 'America/Chicago', s = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
     function t(v) { return v.replace(/[-:]/g, '') + '00'; }
-    function x(v) { return v.replace(/[\;,]/g, '\\$&'); }
+    function x(v) { return v.replace(/[\\;,]/g, '\\$&').replace(/\r?\n/g, '\\n'); }
     var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//KCD Texas//kcdtexas.org//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:My Schedule, KCD Texas 2027',
       'BEGIN:VTIMEZONE', 'TZID:' + z, 'BEGIN:DAYLIGHT', 'TZOFFSETFROM:-0600', 'TZOFFSETTO:-0500', 'TZNAME:CDT', 'DTSTART:20070311T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU', 'END:DAYLIGHT',
       'BEGIN:STANDARD', 'TZOFFSETFROM:-0500', 'TZOFFSETTO:-0600', 'TZNAME:CST', 'DTSTART:20071104T020000', 'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU', 'END:STANDARD', 'END:VTIMEZONE'];
