@@ -57,7 +57,8 @@
   .sch-break-title { font-weight: 700; }
   .sch-items--list { margin-top: 8px; }
 
-  /* Option A: from 1100 px, a column per room. */
+  /* From 1100 px, a column per room. While a filter is on, the matching Sessions show as a list instead, so no
+     room column stands empty. */
   @media (min-width: 1100px) {
     .sch { --time-col: 112px; }
     .sch--rooms-1 { --rooms: 1; } .sch--rooms-2 { --rooms: 2; } .sch--rooms-3 { --rooms: 3; } .sch--rooms-4 { --rooms: 4; }
@@ -69,7 +70,9 @@
     .sch-wide { grid-column: 1 / -1; }
     .sch-col-1 { grid-column: 1; } .sch-col-2 { grid-column: 2; } .sch-col-3 { grid-column: 3; } .sch-col-4 { grid-column: 4; }
     .sch-col-5 { grid-column: 5; } .sch-col-6 { grid-column: 6; } .sch-col-7 { grid-column: 7; } .sch-col-8 { grid-column: 8; }
-    .sch-items--list { grid-template-columns: 1fr; }
+    .sch-items--list, .sch.is-filtered .sch-items { grid-template-columns: 1fr; }
+    .sch.is-filtered .sch-head { display: none; }
+    .sch.is-filtered .sch-item { grid-column: 1; }
     .sch-title { font-size: 17px; }
   }
 
@@ -123,6 +126,7 @@
   .td-map { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; padding: 20px; border: 1px dashed var(--muted); background: var(--surface); color: var(--muted); text-align: center; }
 
   @media (max-width: 599px) {
+    .actions .star--words { width: 100%; }
     .spk-list { grid-template-columns: 1fr; }
     .spk-head { grid-template-columns: 1fr; gap: 16px; }
     .spk-photo--lg { width: 120px; font-size: 44px; }
