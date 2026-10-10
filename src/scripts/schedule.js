@@ -111,15 +111,17 @@
   }
   if (day) { tick(); setInterval(tick, 60000); setTimeout(function () { location.reload(); }, 300000); }
 
-  // Offline use: /sw.js keeps a copy of the program and Event Day pages (scope /2027/), told what this page loaded.
-  // The build sets OFFLINE, and from the day after Event Day nothing registers.
-  var OFFLINE = true, sw = navigator.serviceWorker;
-  if (OFFLINE && sw) {
-    sw.register('/sw.js', { scope: '/2027/' }).then(function () { return sw.ready; }).then(function (r) {
+  paint(); apply();
+
+  // Offline use, after the stars and the filters are drawn: /sw.js keeps a copy of the program and Event Day pages
+  // (scope /2027/), told what this page loaded. The build sets OFFLINE, and from the day after Event Day nothing
+  // registers. Reading navigator.serviceWorker can throw where storage is blocked, so it sits in a try.
+  var OFFLINE = true, sw;
+  try {
+    sw = OFFLINE && navigator.serviceWorker;
+    if (sw) sw.register('/sw.js', { scope: '/2027/' }).then(function () { return sw.ready; }).then(function (r) {
       function send() { r.active.postMessage({ keep: [location.href.split('#')[0]].concat(performance.getEntriesByType('resource').map(function (x) { return x.name; })) }); }
       if (d.readyState === 'complete') send(); else addEventListener('load', send);
     }).catch(function () {});
-  }
-
-  paint(); apply();
+  } catch (e) {}
 })(document);
