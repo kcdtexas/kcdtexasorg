@@ -52,8 +52,11 @@ const FOCUSED = () => {
   if (!el || el === document.body) return null;
   const s = getComputedStyle(el);
   const r = el.getBoundingClientRect();
-  // Seen: some part of it is on screen and on top (not under the sticky header or anything else).
-  const seen = [...el.getClientRects()].some((b) => {
+  // Seen: some part of it is on screen and on top (not under the sticky header or anything else): the middle of one of
+  // its boxes or of its words. A link's tap padding may lie under the next line's link; its words never do.
+  const words = document.createRange();
+  words.selectNodeContents(el);
+  const seen = [...el.getClientRects(), ...[...words.getClientRects()].filter((b) => b.width > 0 && b.height > 0)].some((b) => {
     const x = Math.min(Math.max(b.left + b.width / 2, 0), innerWidth - 1);
     const y = Math.min(Math.max(b.top + b.height / 2, 0), innerHeight - 1);
     const hit = document.elementFromPoint(x, y);

@@ -235,10 +235,14 @@ try {
         const box = cr.getBoundingClientRect();
         const holder = cr.closest('li, header');
         const content = [...holder.querySelectorAll('img, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e));
-        const hit = content.find((e) => {
-          const r = e.getBoundingClientRect();
-          return r.width && r.height && box.left < r.right - 0.5 && r.left < box.right - 0.5 && box.top < r.bottom - 0.5 && r.top < box.bottom - 0.5;
-        });
+        // A link by its words: its tap padding (tests/targets.mjs) is invisible.
+        const shapes = (e) => {
+          if (e.tagName !== 'A') return [e.getBoundingClientRect()];
+          const words = document.createRange();
+          words.selectNodeContents(e);
+          return [...words.getClientRects()];
+        };
+        const hit = content.find((e) => shapes(e).some((r) => r.width && r.height && box.left < r.right - 0.5 && r.left < box.right - 0.5 && box.top < r.bottom - 0.5 && r.top < box.bottom - 0.5));
         return { text: cr.textContent.trim(), hit: hit ? `${hit.tagName.toLowerCase()}.${hit.className} "${(hit.textContent || hit.alt || '').trim().slice(0, 40)}"` : null };
       }));
       expect(found.length > 0, `${path} at ${width}: no credit to check`);

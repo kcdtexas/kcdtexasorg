@@ -79,7 +79,7 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
       {card && (
         <section class="page-sec" aria-labelledby="card">
           <h2 id="card" class="page-h2">{w.card}</h2>
-          <p><a href={`/cards/${card.id}.png`} download>{w.cardText}</a></p>
+          <p class="spk-download"><a href={`/cards/${card.id}.png`} download>{w.cardText}</a></p>
         </section>
       )}
 

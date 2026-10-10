@@ -8,6 +8,16 @@
   .badge--keynote { background: var(--fg); color: var(--bg); }
   .badge--eu { background: var(--signal); border-color: var(--signal-edge, var(--signal)); color: var(--on-signal); }
 
+  /* Tap targets (tests/targets.mjs): the program's links that stand alone are at least 44 px tall, with the --tap
+     padding from base.css. An inline link's padding leaves its line as it is; a block one gives the space back with
+     an equal negative margin, so nothing moves. Each link sits above the plain text around it, so the text doesn't
+     take its padding back. A Session's Speakers sit just under its title: their padding goes below their names,
+     and the title keeps its own words. */
+  .kicker > a, .sch-title a, .sch-who a, .spk-links a, .spk-download a, .td-info dd > a, .spk-name, .td-title { position: relative; }
+  .kicker > a, .sch-title a, .spk-links a, .spk-download a, .td-info dd > a { padding-block: var(--tap); }
+  .sch-who a { padding-block: 4px calc(2 * var(--tap) - 4px); }
+  .spk-name, .td-title { padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); }
+
   /* The loyalty credit: a short line under a name or a logo. */
   .credit { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 700; font-size: 14px; line-height: 1.3; color: var(--fg); }
   .credit::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--signal); box-shadow: 0 0 0 1px var(--signal-edge, transparent); }
