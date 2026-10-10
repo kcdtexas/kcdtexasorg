@@ -141,7 +141,18 @@ try {
     ['https://example.com/', { type: 'Other', title: 'Something' }, null], ['https://example.com/', { fallback: 'site' }, 'site'], ['http://github.com/x', {}, null],
   ]) expect(linkKind(url, hint) === kind, `linkKind(${url}, ${JSON.stringify(hint)}) is ${linkKind(url, hint)}, not ${kind}`);
 
-  // The allowlist and the gates: the planted marker never reaches the model.
+  // The allowlist and the gates: the planted marker never reaches the model. The fixture plants it in every text
+  // field the allowlist drops, the names Sessionize sends besides fullName included, and in no field it keeps.
+  const fx = fixture();
+  for (const [field, value] of [
+    ["a Speaker's firstName", fx.speakers[0].firstName], ["a Speaker's lastName", fx.speakers[0].lastName],
+    ["a kept link's title", fx.speakers[0].links.find((l) => l.linkType === 'Twitter').title], ["another kept link's title", fx.speakers[1].links[1].title],
+    ["a Session's liveUrl", fx.sessions[0].liveUrl], ['an answer to another question', fx.sessions[0].questionAnswers[0].answerValue],
+    ["a Speaker's answer", fx.speakers[0].questionAnswers[0].answerValue], ['another question', fx.questions[1].question],
+    ['a question type', fx.questions[1].questionType], ['another category', fx.categories[2].title], ["another category's item", fx.categories[2].items[0].name],
+    ["a category's type", fx.categories[2].type], ["a service session's description", fx.sessions[7].description],
+    ['a declined Session', fx.sessions[5].title], ['a Speaker with no accepted Session', fx.speakers[4].fullName],
+  ]) expect(String(value).includes(marker), `the fixture has no planted marker in ${field}`);
   const model = publicProgram(raw, { schedulePublic: true });
   expect(!JSON.stringify(model).includes(marker), 'the planted marker reaches the model');
   expect(!JSON.stringify(model).includes('instagram') && !model.speakers.some((s) => s.links.some((l) => /sessionize\.com/.test(l.url))) && !JSON.stringify(model).includes('live.fixture'), 'a dropped link or field reaches the model');

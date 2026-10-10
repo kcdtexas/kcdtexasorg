@@ -174,8 +174,8 @@
   "speakers": [
     {
       "id": "aaaaaaaa-0000-4000-8000-00000000000a",
-      "firstName": "Fixture Person",
-      "lastName": "A",
+      "firstName": "Fixture Person kcd-planted-marker-q7x4v2",
+      "lastName": "A kcd-planted-marker-q7x4v2",
       "fullName": "Fixture Person A",
       "bio": "Fixture Person A is made up for the adapter tests.",
       "tagLine": "Platform Engineer, Fixture Company",
@@ -184,7 +184,7 @@
       "links": [
         { "title": "Github", "url": "https://github.com/fixture-person-a", "linkType": "Other" },
         { "title": "bluesky", "url": "https://bsky.app/profile/fixture-person-a.example", "linkType": "Other" },
-        { "title": "X (Twitter)", "url": "https://twitter.com/fixture_person_a", "linkType": "Twitter" },
+        { "title": "X (Twitter) kcd-planted-marker-q7x4v2", "url": "https://twitter.com/fixture_person_a", "linkType": "Twitter" },
         { "title": "Sessionize", "url": "https://sessionize.com/kcd-planted-marker-q7x4v2", "linkType": "Sessionize" }
       ],
       "sessions": [1001, 1005],
@@ -202,7 +202,7 @@
       "isTopSpeaker": false,
       "links": [
         { "title": "LinkedIn", "url": "https://www.linkedin.com/in/fixture-person-b", "linkType": "LinkedIn" },
-        { "title": "Company Website", "url": "https://fixture-b.example/", "linkType": "Company_Website" },
+        { "title": "Company Website kcd-planted-marker-q7x4v2", "url": "https://fixture-b.example/", "linkType": "Company_Website" },
         { "title": "Instagram", "url": "https://instagram.com/kcd-planted-marker-q7x4v2", "linkType": "Instagram" },
         { "title": "Not https", "url": "http://fixture-b.example/kcd-planted-marker-q7x4v2", "linkType": "Blog" }
       ],
@@ -259,7 +259,7 @@
   ],
   "questions": [
     { "id": 501, "question": "End-User Story", "questionType": "Yes/No", "sort": 1 },
-    { "id": 502, "question": "Notes for the reviewers kcd-planted-marker-q7x4v2", "questionType": "Long_Text", "sort": 2 }
+    { "id": 502, "question": "Notes for the reviewers kcd-planted-marker-q7x4v2", "questionType": "Long_Text kcd-planted-marker-q7x4v2", "sort": 2 }
   ],
   "categories": [
     {
@@ -289,7 +289,7 @@
       "title": "Level kcd-planted-marker-q7x4v2",
       "items": [{ "id": 401, "name": "kcd-planted-marker-q7x4v2", "sort": 1 }],
       "sort": 3,
-      "type": "session"
+      "type": "session kcd-planted-marker-q7x4v2"
     }
   ],
   "rooms": [
