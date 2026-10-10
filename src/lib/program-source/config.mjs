@@ -1,7 +1,7 @@
 // The program platform settings, in one place, for src/lib/program.ts and the scripts.
 //
-// The Sessionize names are the ones the Call for Speakers and the API endpoint use. Change a name here when the
-// Session Committee names a category or a question differently.
+// The Sessionize names are the ones the Call for Speakers and the API endpoint use (docs/program-csv.md has the
+// CSV's). Change a name here when the Session Committee names a category or a question differently.
 export const sessionize = {
   /** The API v2 base. Only tests point it elsewhere (KCD_PROGRAM_TEST_BASE, src/lib/program-source/remote.mjs). */
   base: 'https://sessionize.com/api/v2',

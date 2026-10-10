@@ -8,9 +8,9 @@
 //   schedulePublic: adds the times and the rooms.
 // A test build with --program-sample opens both on test data: the 2026 Schedule (src/data/program-2026-schedule.ts)
 // moved to the 2027 Event Day, plus the made-up fixture (src/data/program-fixture.ts). The pages label it "Sample".
-// Real data comes from Sessionize (src/lib/program-source/), read only in a production build (CONTEXT=production)
-// with a gate open; scripts/build.sh gives every other build with a gate open the test data. Speaker photos are
-// downloaded and resized at build time and served from /2027/speakers/ (ADR 0007).
+// Real data comes from Sessionize or the CSV fallback (src/lib/program-source/), read only in a production build
+// (CONTEXT=production) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
+// Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007).
 import { edition2026 } from '../data/edition-2026';
 import { edition2027, programDataSample } from '../data/edition-2027';
 import { home } from '../data/home';
@@ -159,7 +159,7 @@ async function source(): Promise<Source> {
   if (programDataSample) return sample();
   const choice = chooseSource(edition2027.program, env);
   // scripts/build.sh builds every non-production build with a gate open on the test data (--program-sample).
-  if (choice.kind !== 'sessionize') throw new Error('A program gate is open outside a production build: build with scripts/build.sh, which uses the test data there.');
+  if (choice.kind !== 'sessionize' && choice.kind !== 'csv') throw new Error('A program gate is open outside a production build: build with scripts/build.sh, which uses the test data there.');
   const raw = await readPlatform(choice, env);
   return { ...raw, edition: () => edition2027.year };
 }

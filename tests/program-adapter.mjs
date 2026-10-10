@@ -1,12 +1,13 @@
 // The program platform's tests (src/lib/program-source/), with no real network: a local HTTP server stands in
-// for Sessionize and the photo host.
+// for Sessionize, the photo host and the CSV's address.
 //   1. The Sessionize adapter on tests/fixtures/sessionize-all.json, each quirk, Central time across DST, the
 //      validation failures and the allowlist (the planted marker never reaches the model).
-//   2. The rules: which builds read the platform, the redaction of the endpoint ID in every error, the
-//      test-only address refused on Netlify and in GitHub Actions, and the photos.
-//   3. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
-//      run and restored after: production from the local Sessionize, a deploy preview (the test data, no
-//      request), production with no variable, and production with a failing platform.
+//   2. The CSV fallback on tests/fixtures/program.csv.
+//   3. The rules: which builds read the platform, the redaction of the endpoint ID and the CSV address in every
+//      error, the test-only addresses refused on Netlify and in GitHub Actions, and the photos.
+//   4. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
+//      run and restored after: production from the local Sessionize and the CSV, a deploy preview (the test data,
+//      no request), production with no variable, and production with a failing platform.
 // Usage: node tests/program-adapter.mjs [--no-builds]
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -14,6 +15,7 @@ import { createServer } from 'node:http';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/central.mjs';
+import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
 import { publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
@@ -30,13 +32,15 @@ async function rejects(fn, test, message) {
 
 const marker = readFileSync('src/data/program-fixture.ts', 'utf8').match(/plantedMarker = '([^']+)'/)[1];
 const fixtureText = readFileSync('tests/fixtures/sessionize-all.json', 'utf8');
+const csvText = readFileSync('tests/fixtures/program.csv', 'utf8');
 const ID = 'fxEndpoint42';
+const CSV_SECRET = 'csv-token-fx9';
 const both = { speakersPublic: true, schedulePublic: true };
 const speakersOnly = { speakersPublic: true, schedulePublic: false };
 const closed = { speakersPublic: false, schedulePublic: false };
 const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
 
-// The local stand-in for Sessionize and the photo host.
+// The local stand-in for every remote address.
 const state = { mode: 'ok', fixture: fixtureText, requests: [] };
 const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
 const server = createServer((req, res) => {
@@ -49,6 +53,7 @@ const server = createServer((req, res) => {
     if (state.mode === 'invalid') return send(200, 'application/json', JSON.stringify({ sessions: 'none' }));
     return send(200, 'application/json', local(state.fixture));
   }
+  if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(csvText));
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
   if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
   if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
@@ -58,6 +63,7 @@ await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const testEnv = { KCD_PROGRAM_TEST_BASE: `${origin}/api/v2` };
 const prodSessionize = { ...testEnv, CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID };
+const prodCsv = { CONTEXT: 'production', PROGRAM_CSV_URL: `${origin}/sheets/${CSV_SECRET}/program.csv` };
 const fixture = () => JSON.parse(fixtureText);
 
 /** A child process, run without blocking the local server. */
@@ -161,16 +167,37 @@ try {
   await rejects(() => publicProgram(adaptSessionize(broken((d) => { d.sessions[0].endsAt = '2027-04-23T08:00:00'; })), { schedulePublic: true }), (m) => /ends before it starts/.test(m), 'a Session that ends before it starts');
   await rejects(() => publicProgram(adaptSessionize(broken((d) => { d.sessions[0].speakers.push('nobody'); })), { schedulePublic: true }), (m) => /unknown Speakers nobody/.test(m), 'a Session with an unknown Speaker');
 
-  // 2. The rules. A Proxy proves which variables a choice reads.
+  // 2. The CSV fallback.
+  const rows = parseCsv('a,"b,c","d ""e""\nf"\r\n\r\n1,2,3\n');
+  expect(JSON.stringify(rows) === JSON.stringify([['a', 'b,c', 'd "e"\nf'], ['1', '2', '3']]), `parseCsv is wrong: ${JSON.stringify(rows)}`);
+  const csv = adaptCsv(csvText);
+  const csvModel = publicProgram(csv, { schedulePublic: true });
+  expect(csv.sessions.length === 3 && csv.speakers.length === 3 && csv.breaks.length === 1, 'the CSV rows are not read by type');
+  expect(csvModel.rooms.join('|') === 'Fixture Hall|Fixture Room B', 'the CSV rooms are not in order of first use');
+  expect(csv.sessions[0].abstract === 'A made-up abstract, with a comma, "quotes" and\na second line.', 'a quoted CSV field is wrong');
+  expect(csv.sessions[1].endUser && !csv.sessions[0].endUser && !csv.sessions[2].endUser && csv.sessions[2].format === 'panel', 'the CSV format or end_user is wrong');
+  expect(csv.sessions[2].speakers.join() === 'p1,p2,p3' && csv.sessions[2].start === '2027-04-23T15:00', 'the CSV speakers or times are wrong');
+  expect(csv.speakers[0].links.map((l) => l.kind).join() === 'github,site' && csv.speakers[1].links.map((l) => l.kind).join() === 'linkedin,bluesky', 'the CSV links are not mapped by host');
+  expect(!JSON.stringify(csvModel).includes(marker), 'the planted marker reaches the CSV model');
+  for (const [what, text, pattern] of [
+    ['no type column', 'id,title,name\n', /no "type" column/],
+    ['an unknown type', 'type,id,title,name\nroom,1,x,\n', /row 2, type/],
+    ['an unknown format', 'type,id,title,name,format\nsession,1,x,,fireside\n', /row 2, format/],
+    ['a bad end_user', 'type,id,title,name,format,end_user\nsession,1,x,,talk,maybe\n', /row 2, end_user/],
+    ['a bad time', 'type,id,title,name,format,start\nsession,1,x,,talk,noon\n', /row 2, start/],
+    ['an open quote', 'type,id,title,name\nspeaker,1,,"x\n', /never closed/],
+  ]) await rejects(() => adaptCsv(text), (m) => pattern.test(m), `the CSV on ${what}`);
+
+  // 3. The rules. A Proxy proves which variables a choice reads.
   const watched = (env) => {
     const read = new Set();
     return { read, env: new Proxy(env, { get: (t, k) => { read.add(k); return t[k]; } }) };
   };
   for (const context of [undefined, 'deploy-preview', 'branch-deploy', 'dev']) {
     for (const gates of [both, speakersOnly]) {
-      const w = watched({ CONTEXT: context, SESSIONIZE_ENDPOINT_ID: ID });
+      const w = watched({ CONTEXT: context, SESSIONIZE_ENDPOINT_ID: ID, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
       expect(chooseSource(gates, w.env).kind === 'test', `CONTEXT=${context} with a gate open does not use the test data`);
-      expect(!w.read.has('SESSIONIZE_ENDPOINT_ID'), `CONTEXT=${context} reads the platform variable`);
+      expect(!w.read.has('SESSIONIZE_ENDPOINT_ID') && !w.read.has('PROGRAM_CSV_URL'), `CONTEXT=${context} reads the platform variables`);
     }
   }
   for (const context of [undefined, 'production']) {
@@ -178,10 +205,13 @@ try {
     expect(chooseSource(closed, w.env).kind === 'none' && !w.read.has('SESSIONIZE_ENDPOINT_ID'), `closed gates read a source (CONTEXT=${context})`);
   }
   expect(chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID }).kind === 'sessionize', 'production with the ID does not read Sessionize');
-  await rejects(() => chooseSource(both, { CONTEXT: 'production' }), (m) => /SESSIONIZE_ENDPOINT_ID is not set/.test(m), 'production with a gate open and no variable');
+  expect(chooseSource(speakersOnly, { CONTEXT: 'production', PROGRAM_CSV_URL: 'https://example.com/p.csv' }).kind === 'csv', 'production with the CSV address does not read the CSV');
+  expect(chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID, PROGRAM_CSV_URL: 'https://example.com/p.csv' }).kind === 'sessionize', 'Sessionize does not come first');
+  await rejects(() => chooseSource(both, { CONTEXT: 'production' }), (m) => /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL is set/.test(m), 'production with a gate open and no variable');
   await rejects(() => chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: 'bad/id?x' }), (m) => /not a Sessionize endpoint ID/.test(m) && !m.includes('bad/id'), 'a malformed endpoint ID');
+  await rejects(() => chooseSource(both, { CONTEXT: 'production', NETLIFY: 'true', PROGRAM_CSV_URL: `http://127.0.0.1/${CSV_SECRET}` }), (m) => /must be an https address/.test(m) && !m.includes(CSV_SECRET), 'a plain-http CSV address on Netlify');
 
-  // The test address: this machine only, and never on Netlify or in GitHub Actions.
+  // The test addresses: this machine only, and never on Netlify or in GitHub Actions.
   expect(sessionizeBase({}) === 'https://sessionize.com/api/v2' && sessionizeBase(testEnv) === `${origin}/api/v2`, 'the Sessionize base is wrong');
   for (const extra of [{ NETLIFY: 'true' }, { GITHUB_ACTIONS: 'true' }]) {
     await rejects(() => sessionizeBase({ ...testEnv, ...extra }), (m) => /refused on Netlify and in GitHub Actions/.test(m), `KCD_PROGRAM_TEST_BASE with ${Object.keys(extra)[0]}`);
@@ -190,22 +220,25 @@ try {
   await rejects(() => sessionizeBase({ KCD_PROGRAM_TEST_BASE: 'https://evil.example/api' }), (m) => /a server on this machine/.test(m), 'a remote KCD_PROGRAM_TEST_BASE');
   expect(fetchable('https://cdn.example/a.jpg', { NETLIFY: 'true' }) && !fetchable('http://cdn.example/a.jpg', {}) && !fetchable('https://u:p@cdn.example/a.jpg', {}), 'fetchable is wrong');
 
-  // Reading the platform: the local Sessionize, and redacted failures.
+  // Reading the platform: the local Sessionize and CSV, and redacted failures.
   state.requests.length = 0;
   const live = await readPlatform(chooseSource(both, prodSessionize), prodSessionize);
   expect(state.requests.includes(`/api/v2/${ID}/view/All`) && live.sessions.length === 5, 'readPlatform does not read the All view');
   const viaServer = publicModel(live, both, prodSessionize);
   expect(viaServer.model.speakers.find((s) => s.name.endsWith(' A'))?.photo === `${origin}/photos/a.jpg`, 'a local test photo is dropped');
+  const viaCsv = await readPlatform(chooseSource(both, prodCsv), prodCsv);
+  expect(viaCsv.sessions.length === 3, 'readPlatform does not read the CSV');
   const noServer = { ...prodSessionize, KCD_PROGRAM_TEST_BASE: 'http://127.0.0.1:9/api/v2' };
   for (const [mode, env, pattern] of [
     ['500', prodSessionize, /HTTP 500/], ['notjson', prodSessionize, /not JSON/], ['invalid', prodSessionize, /sessions is not a list/],
-    ['ok', noServer, /the request failed/],
+    ['ok', noServer, /the request failed/], ['500', prodCsv, /HTTP 500/],
   ]) {
     state.mode = mode;
-    await rejects(() => readPlatform(chooseSource(both, env), env), (m) => pattern.test(m) && !m.includes(ID) && !m.includes('127.0.0.1') && /could not be read/.test(m), `a ${mode} platform`);
+    await rejects(() => readPlatform(chooseSource(both, env), env), (m) => pattern.test(m) && !m.includes(ID) && !m.includes(CSV_SECRET) && !m.includes('127.0.0.1') && /could not be read/.test(m), `a ${mode} platform (${env.PROGRAM_CSV_URL ? 'CSV' : 'Sessionize'})`);
   }
   state.mode = 'ok';
   expect(!redact(`https://sessionize.com/api/v2/${ID}/view/All and ${encodeURIComponent(ID)}`, prodSessionize).includes(ID), 'redact keeps the endpoint ID');
+  expect(!redact(`x ${prodCsv.PROGRAM_CSV_URL} and ${encodeURIComponent(prodCsv.PROGRAM_CSV_URL)} y`, prodCsv).includes(CSV_SECRET), 'redact keeps the CSV address');
 
   // The photos: square WebP in two sizes, from our server only.
   const pic = await downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 1', {});
@@ -217,7 +250,7 @@ try {
   await rejects(() => downloadPhoto(`${origin}/photos/broken.jpg`, 'Speaker 4', {}), (m) => /could not be read/.test(m), 'a broken photo');
   await rejects(() => downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 5', { NETLIFY: 'true' }), (m) => /must be https/.test(m), 'a plain-http photo on Netlify');
 
-  // 3. Full builds with a gate open.
+  // 4. Full builds with a gate open.
   if (!process.argv.includes('--no-builds')) {
     const build = (env, flags = []) => run('bash', ['scripts/build.sh', '--skip-install', ...flags], env);
     const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
@@ -258,15 +291,19 @@ try {
         expect(/Fixture Sponsor Callout/.test(schedule) && /Fixture Panel: Plenum, but Not a Keynote/.test(schedule) && !/Declined/.test(schedule), 'the Schedule lacks a break or a Session, or shows a declined one');
       }
 
-      // A deploy preview with the gates open and the variable set: the test data, and no request.
+      // Production, from the CSV.
+      b = await build(prodCsv);
+      expect(b.status === 0 && existsSync('dist/2027/speakers/fixture-person-c/index.html') && !b.log.includes(CSV_SECRET), `the production build from the CSV fails or prints its address:\n${b.log.slice(-1500)}`);
+
+      // A deploy preview with the gates open and the variables set: the test data, and no request.
       state.requests.length = 0;
-      b = await build({ ...prodSessionize, CONTEXT: 'deploy-preview' });
+      b = await build({ ...prodSessionize, ...prodCsv, CONTEXT: 'deploy-preview' });
       expect(b.status === 0 && state.requests.length === 0, `the deploy preview fails or reads the platform (${state.requests.length} requests):\n${b.log.slice(-1500)}`);
       expect(b.status === 0 && /using the test program/.test(b.log) && /\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')) && !existsSync('dist/2027/speakers/fixture-person-a'), 'the deploy preview does not use the test data');
 
       // Production with no variable, and with a failing platform: the build fails, with a redacted message.
       b = await build({ CONTEXT: 'production' });
-      expect(b.status !== 0 && /SESSIONIZE_ENDPOINT_ID is not set/.test(b.log), `production with no variable doesn't fail clearly:\n${b.log.slice(-1500)}`);
+      expect(b.status !== 0 && /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL is set/.test(b.log), `production with no variable doesn't fail clearly:\n${b.log.slice(-1500)}`);
       state.mode = '500';
       b = await build(prodSessionize);
       expect(b.status !== 0 && /HTTP 500/.test(b.log) && !b.log.includes(ID), `production with a failing platform doesn't fail, or prints the ID:\n${b.log.slice(-1500)}`);

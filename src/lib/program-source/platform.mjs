@@ -1,24 +1,25 @@
-// Where the program comes from, and reading it. The rules (ADR 0009):
+// Where the program comes from, and reading it. The rules (ADR 0009, docs/program-csv.md):
 //   - a closed gate reads nothing;
-//   - real data only in a Netlify production build (CONTEXT=production) with a gate open, from Sessionize with
-//     SESSIONIZE_ENDPOINT_ID, and the build fails when it isn't set;
+//   - real data only in a Netlify production build (CONTEXT=production) with a gate open: from Sessionize when
+//     SESSIONIZE_ENDPOINT_ID is set, else from the CSV at PROGRAM_CSV_URL, and the build fails when neither is;
 //   - every other build (deploy previews, branch deploys, local builds) uses the test data and never looks at
-//     that variable;
+//     those variables;
 //   - a failed fetch or data that doesn't validate fails the build, so the host keeps the last good deploy.
-// Every error message is redacted: it names the variable, never its value.
+// Every error message is redacted: it names the variables, never their values.
+import { adaptCsv } from './csv.mjs';
 import { publicProgram } from './model.mjs';
 import { fetchable, fetchBytes, ProgramSourceError, redact, sessionizeBase } from './remote.mjs';
 import { adaptSessionize } from './sessionize.mjs';
 
 /**
  * @typedef {{ speakersPublic: boolean, schedulePublic: boolean }} Gates
- * @typedef {{ kind: 'none' } | { kind: 'test' } | { kind: 'sessionize' }} Choice
+ * @typedef {{ kind: 'none' } | { kind: 'test' } | { kind: 'sessionize' } | { kind: 'csv' }} Choice
  */
 
 export const gatesOpen = (gates) => Boolean(gates.speakersPublic || gates.schedulePublic);
 
 /**
- * Which source a build reads. Only a production build with a gate open looks at the platform variable.
+ * Which source a build reads. Only a production build with a gate open looks at the platform variables.
  * @param {Gates} gates
  * @param {Record<string, string | undefined>} env
  * @returns {Choice}
@@ -30,7 +31,11 @@ export function chooseSource(gates, env) {
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(env.SESSIONIZE_ENDPOINT_ID)) throw new ProgramSourceError('SESSIONIZE_ENDPOINT_ID is not a Sessionize endpoint ID (letters, digits, "-" and "_").', env);
     return { kind: 'sessionize' };
   }
-  throw new ProgramSourceError('A program gate is open in a production build, but SESSIONIZE_ENDPOINT_ID is not set. Add it to the host\'s production environment variables.', env);
+  if (env.PROGRAM_CSV_URL) {
+    if (!fetchable(env.PROGRAM_CSV_URL, env)) throw new ProgramSourceError('PROGRAM_CSV_URL must be an https address.', env);
+    return { kind: 'csv' };
+  }
+  throw new ProgramSourceError('A program gate is open in a production build, but neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL is set. Add one to the host\'s production environment variables (docs/program-csv.md).', env);
 }
 
 /**
@@ -46,6 +51,10 @@ export async function readPlatform(choice, env) {
       let data;
       try { data = JSON.parse(body.toString('utf8')); } catch { throw new Error('Sessionize (the All view of SESSIONIZE_ENDPOINT_ID): the response is not JSON'); }
       return adaptSessionize(data);
+    }
+    if (choice.kind === 'csv') {
+      const { body } = await fetchBytes(env.PROGRAM_CSV_URL ?? '', { env, what: 'The program CSV (PROGRAM_CSV_URL)', accept: 'text/csv, text/plain' });
+      return adaptCsv(body.toString('utf8'));
     }
   } catch (e) {
     // A fresh error: no cause or stack from a fetch that could carry the address.

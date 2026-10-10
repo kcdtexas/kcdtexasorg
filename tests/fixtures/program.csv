@@ -1,0 +1,9 @@
+type,id,title,name,format,end_user,speakers,start,end,room,abstract,tagline,bio,photo,links,recording,notes
+speaker,p1,,Fixture Person A,,,,,,,,"Platform Engineer, Fixture Company","Fixture Person A is made up for the CSV tests.",https://photos.fixture.invalid/a.jpg,https://github.com/fixture-person-a https://fixture-a.example/,,kcd-planted-marker-q7x4v2
+speaker,p2,,Fixture Person B,,,,,,,,Site Reliability Engineer,,,https://www.linkedin.com/in/fixture-person-b;https://bsky.app/profile/fixture-b.example,,kcd-planted-marker-q7x4v2
+speaker,p3,,Fixture Person C,,,,,,,,,,,,,kcd-planted-marker-q7x4v2
+session,s1,Fixture Keynote: The CSV Opening,,Keynote,no,p1,2027-04-23 09:00,2027-04-23 09:45,Fixture Hall,"A made-up abstract, with a comma, ""quotes"" and
+a second line.",,,,,,kcd-planted-marker-q7x4v2
+session,s2,Fixture Talk: An End-User Story from a Sheet,,Talk,yes,p2,2027-04-23 10:00,2027-04-23 10:30,Fixture Room B,,,,,,https://www.youtube.com/watch?v=fixtureCsv,kcd-planted-marker-q7x4v2
+session,s3,Fixture Panel: Everyone from the Sheet,,Panel,,p1;p2;p3,2027-04-23T15:00,2027-04-23T15:45,Fixture Hall,,,,,,,kcd-planted-marker-q7x4v2
+break,,Lunch,,,,,2027-04-23 12:00,2027-04-23 13:00,,,,,,,,kcd-planted-marker-q7x4v2

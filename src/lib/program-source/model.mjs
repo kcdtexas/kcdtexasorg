@@ -1,4 +1,4 @@
-// The program allowlist. A source (the test data, Sessionize) hands over raw records; publicProgram() copies only
+// The program allowlist. A source (the test data, Sessionize, the CSV) hands over raw records; publicProgram() copies only
 // the public fields, so anything else a platform sends (emails, phone numbers, review notes, the planted marker)
 // never reaches the model. The gates apply here too: with only speakersPublic open, the times, rooms and breaks
 // are dropped.

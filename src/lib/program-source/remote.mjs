@@ -1,6 +1,6 @@
 // Reading from a program platform: the address rules, the fetch, and the redaction that keeps the platform's
-// address out of every message. SESSIONIZE_ENDPOINT_ID is a secret (CLAUDE.md): an error names the variable,
-// never its value, and never the address built from it.
+// address out of every message. SESSIONIZE_ENDPOINT_ID and PROGRAM_CSV_URL are secrets (CLAUDE.md): an error
+// names the variable, never its value, and never the address built from it.
 //
 // Addresses must be https. The one exception is for tests: a plain-http server on this machine (127.0.0.1,
 // localhost or [::1]) stands in for the platform and the photo host, and KCD_PROGRAM_TEST_BASE points the
@@ -16,7 +16,7 @@ export const localTestsAllowed = (env) => !env.NETLIFY && !env.GITHUB_ACTIONS;
 /** The message with every secret value (as is and URL-encoded) replaced by its variable's name. */
 export function redact(message, env) {
   let out = String(message);
-  for (const [name, value] of [['SESSIONIZE_ENDPOINT_ID', env.SESSIONIZE_ENDPOINT_ID]]) {
+  for (const [name, value] of [['SESSIONIZE_ENDPOINT_ID', env.SESSIONIZE_ENDPOINT_ID], ['PROGRAM_CSV_URL', env.PROGRAM_CSV_URL]]) {
     if (typeof value !== 'string' || !value) continue;
     for (const v of new Set([value, encodeURIComponent(value), encodeURI(value)])) out = out.split(v).join(`<${name}>`);
   }
