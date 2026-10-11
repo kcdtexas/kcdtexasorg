@@ -147,8 +147,10 @@
   .td-board a { color: var(--band-link); }
   .td-board :focus-visible { outline-color: var(--band-fg); }
   .td-board .td-break-item { background: transparent; border: 1px solid var(--band-line); color: var(--band-fg); }
-  .td-page--gd .td-rooms { gap: 0; border-top: 3px solid var(--band-fg); }
-  .td-page--gd .td-room { padding: 14px 18px 18px; border-top: 0; border-right: 1px solid var(--band-line); border-bottom: 1px solid var(--band-line); }
+  /* The rooms' 1 px rules sit only between columns, however many fit: each room has its rule on its left, 1 px
+     into the column before it, and the list clips the first column's. Stacked on phones, the rooms have none. */
+  .td-page--gd .td-rooms { gap: 0; overflow: hidden; border-top: 3px solid var(--band-fg); }
+  .td-page--gd .td-room { margin-left: -1px; padding: 14px 18px 18px; border-top: 0; border-left: 1px solid var(--band-line); border-bottom: 1px solid var(--band-line); }
   .td-page--gd .td-room-name { font-stretch: 100%; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--band-muted); }
   .td-page--gd .td-label { border-color: var(--band-line); color: var(--band-fg); }
   .td-page--gd .is-now .td-label { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
