@@ -87,7 +87,7 @@
     .sch-break { margin-bottom: 8px; }
   }
 
-  /* The Speakers. The photo's place holds the initials until photos are downloaded at build time. */
+  /* The Speakers. A Speaker with no photo gets their initials in the photo's place. */
   .page-sec > .spk-list, .page-sec > .td-rooms { max-width: none; }
   .spk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: var(--gutter); margin-top: 8px; border-top: 3px solid var(--fg); }
   .spk-list--rows { grid-template-columns: 1fr; }

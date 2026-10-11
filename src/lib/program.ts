@@ -141,13 +141,13 @@ function sample(): Source {
     id: `s26-s${i + 1}`, title: s.title, format: s.format, endUser: s.speakers.some((n) => endUsers.has(norm(n))),
     speakers: s.speakers.map(idOf), start: moved(s.start), end: moved(s.end), room: s.room,
   }));
-  // A fixture Speaker with a 2026 Speaker's name is the same person: one Speaker with both Sessions.
-  const fixtureIds = new Map(fixtureSpeakers.map((f) => [f.id, speakers.get(norm(f.name))?.id ?? f.id]));
-  const fixture = fixtureSpeakers.filter((f) => fixtureIds.get(f.id) === f.id);
+  // The fixture is made up, so none of its Speakers has a 2026 Speaker's name.
+  const real = fixtureSpeakers.find((f) => speakers.has(norm(f.name)));
+  if (real) throw new Error(`src/data/program-fixture.ts: ${real.id} has a 2026 Speaker's name; the fixture's names are made up`);
   const fixtureSessionIds = new Set(fixtureSessions.map((s) => s.id));
   return {
-    speakers: [...speakers.values(), ...fixture],
-    sessions: [...sessions, ...fixtureSessions.map((s) => ({ ...s, speakers: s.speakers.map((id) => fixtureIds.get(id) ?? id) }))],
+    speakers: [...speakers.values(), ...fixtureSpeakers],
+    sessions: [...sessions, ...fixtureSessions],
     edition: (id) => (fixtureSessionIds.has(id) ? edition2027.year : edition2026.year),
     rooms: [...rooms2026, ...new Set(fixtureSessions.map((s) => s.room!))],
     breaks: breaks2026.map((b) => ({ ...b, start: moved(b.start), end: moved(b.end) })),

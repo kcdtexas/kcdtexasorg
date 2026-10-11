@@ -66,7 +66,7 @@ function speakerCard(p: Speaker): Entry {
       img(await photo('src/assets/photos/band-043-171.jpg', CARD.width, bandH), CARD.width, bandH),
       h('div', { height: 6, background: color.gold }),
       h('div', { flex: 1, padding: `0 ${PAD}px`, gap: 36, alignItems: 'flex-start' },
-        // The photo's place: the initials until Speaker photos are downloaded at build time.
+        // The photo's place, with the Speaker's initials: the card has no Speaker photo.
         h('div', { width: 220, height: 220, marginTop: -110, alignItems: 'center', justifyContent: 'center', background: color.surface, border: `6px solid ${color.bg}`, fontSize: 96, color: color.fg, ...type.display }, initials),
         h('div', { flex: 1, flexDirection: 'column', gap: 10, paddingTop: 30 },
           h('div', { fontSize: 24, color: color.gold, ...type.label }, `I’m speaking at KCD Texas ${edition2027.year}`),
