@@ -23,7 +23,7 @@ export interface Credit {
   editions: number;
 }
 
-/** A name for matching: no accents, apostrophes or extra spaces, lower case ("Peter ONeill" is "Peter O’Neill"). */
+/** A name for matching: no accents, apostrophes or extra spaces, lower case. */
 export const norm = (name: string) =>
   name.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[’‘']/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 

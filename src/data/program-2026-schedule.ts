@@ -1,12 +1,13 @@
 // The 2026 Schedule as test data: from the public KCD Texas 2026 Schedule (May 15, 2026), only the Session
-// titles, the Speaker names, the times (Central), the rooms and the formats. No bios, photos or abstracts.
+// titles, the Speaker names, the times (Central), the rooms and the formats. No bios, photos or abstracts. The names
+// are written as /2026/ prints them (program-2026.ts), where Sessionize spelled two differently.
 // Affiliations come from program-2026.ts's printed lines, matched by name, in src/lib/program.ts.
 
 export type Format2026 = 'keynote' | 'talk' | 'workshop' | 'panel';
 
 export interface ScheduleSession2026 {
   title: string;
-  speakers: readonly string[]; // names exactly as Sessionize prints them
+  speakers: readonly string[]; // names as /2026/ prints them
   /** Central local time, 'YYYY-MM-DDTHH:MM'. */
   start: string;
   end: string;
@@ -30,8 +31,8 @@ export const sessions2026: readonly ScheduleSession2026[] = [
   { title: 'AI-Driven DevOps: How LLMs and Agents Are Changing Software Delivery', speakers: ['Kedar Kulkarni'], start: '2026-05-15T11:50', end: '2026-05-15T12:15', room: 'Room 2', format: 'talk' },
   { title: 'Kubernetes-Powered Multi-Cloud Apache Airflow at Scale: The Astro Architecture', speakers: ['Goutam Tadi'], start: '2026-05-15T13:15', end: '2026-05-15T13:40', room: 'Room 1', format: 'talk' },
   { title: 'Stop Wasting GPUs: How We Built a Golden Path for GPU Sharing on Kubernetes', speakers: ['Engin Diri'], start: '2026-05-15T13:15', end: '2026-05-15T13:40', room: 'Room 2', format: 'talk' },
-  { title: 'Identity-Aware Access Control with Reverse Proxies', speakers: ['Peter ONeill', 'Chris De La Garza'], start: '2026-05-15T13:15', end: '2026-05-15T14:45', room: 'Room 3', format: 'workshop' },
-  { title: 'KServe and the Next Step for LLM Workloads: LLMInferenceService in Context', speakers: ['Jooho lee'], start: '2026-05-15T13:55', end: '2026-05-15T14:20', room: 'Room 1', format: 'talk' },
+  { title: 'Identity-Aware Access Control with Reverse Proxies', speakers: ['Peter O’Neill', 'Chris De La Garza'], start: '2026-05-15T13:15', end: '2026-05-15T14:45', room: 'Room 3', format: 'workshop' },
+  { title: 'KServe and the Next Step for LLM Workloads: LLMInferenceService in Context', speakers: ['Jooho Lee'], start: '2026-05-15T13:55', end: '2026-05-15T14:20', room: 'Room 1', format: 'talk' },
   { title: 'Linux for the Cloud Native Engineer', speakers: ['Marina Moore'], start: '2026-05-15T13:55', end: '2026-05-15T14:20', room: 'Room 2', format: 'talk' },
   { title: 'We Migrated to Karpenter and Our Costs Went Up: A Journey to Real Savings', speakers: ['Abhinav Dahiya'], start: '2026-05-15T14:35', end: '2026-05-15T15:00', room: 'Room 1', format: 'talk' },
   { title: 'Sandbox Breakouts: Rapid Unscheduled Agentic Assembly', speakers: ['Andrew Martin'], start: '2026-05-15T14:35', end: '2026-05-15T15:00', room: 'Room 2', format: 'talk' },
