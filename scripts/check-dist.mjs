@@ -60,8 +60,40 @@ const BUDGETS = {
 const DIST = 'dist';
 /** The file scripts/build.sh writes into dist/ for any build with a test flag. */
 export const TEST_BUILD_MARKER = '.test-build';
-// An image address on a host other than ours.
-const EXTERNAL_IMAGE = /(?:https?:)?\/\/(?!kcdtexas\.org\/)[^\s"'()<>/]+\/[^\s"'()<>]*?\.(?:jpe?g|png|webp|avif|gif|svg)(?=[\s"'()<>?#]|$)/gi;
+
+// A page's start tags, as [the tag, its name, its attributes as written]; a quoted value may hold a ">".
+const START_TAG = /<([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+/** A start tag's attributes, as a Map of lower-case names to values ('' for a bare attribute). */
+const attributesOf = (text) => new Map([...text.matchAll(/([^\s"'=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)]
+  .map((m) => [m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? '']));
+
+// A full address (http, https or "//"): the pages load every file by its path, from their own host.
+const FULL_ADDRESS = /^(?:https?:)?\/\//i;
+// The <link> types that make the browser fetch the address, or connect to its host.
+const LOADING_LINK = /^(?:icon|apple-touch-icon|mask-icon|manifest|stylesheet|preload|modulepreload|prefetch|preconnect|dns-prefetch)$/i;
+/** The addresses in a stylesheet's url(). */
+const cssUrls = (css) => [...css.matchAll(/url\(\s*(['"]?)([^'")\s]+)\1\s*\)/gi)].map((m) => m[2]);
+/**
+ * Every address a page makes the browser load: src, srcset and poster on any element, the href of a <link> that
+ * loads (an icon, a stylesheet, a preload; not the canonical address), the href of an SVG <image>, and CSS url() in
+ * a <style> or a style attribute. A <meta> (og:image gives other sites the card's address), an <a href> or an
+ * address in the text loads nothing.
+ */
+export function loadedUrls(html) {
+  const page = html.replace(/<!--[\s\S]*?-->/g, '');
+  const urls = [];
+  for (const [, name, text] of page.matchAll(START_TAG)) {
+    const tag = name.toLowerCase();
+    const a = attributesOf(text);
+    for (const key of ['src', 'poster']) if (a.has(key)) urls.push(a.get(key));
+    if (a.has('srcset')) urls.push(...a.get('srcset').split(',').map((c) => c.trim().split(/\s+/)[0]).filter(Boolean));
+    if (tag === 'link' && a.has('href') && (a.get('rel') ?? '').split(/\s+/).some((r) => LOADING_LINK.test(r))) urls.push(a.get('href'));
+    if (tag === 'image' || tag === 'feimage') for (const key of ['href', 'xlink:href']) if (a.has(key)) urls.push(a.get(key));
+    if (a.has('style')) urls.push(...cssUrls(a.get('style')));
+  }
+  for (const [, css] of page.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) urls.push(...cssUrls(css));
+  return urls;
+}
 
 /**
  * The program's gates (ADR 0009) against what's built, in every build: the gates in src/data/edition-2027.ts, or a
@@ -170,16 +202,9 @@ async function check() {
     if (scripts.some((m) => /schedule\.js/.test(m[0])) && !programPage) failures.push(`${file}: loads /schedule.js outside the program pages`);
     if (/<link rel="stylesheet" href="\/schedule\.css">/.test(html) && !programPage) failures.push(`${file}: loads /schedule.css outside the program pages`);
     if (/\sstyle="/i.test(html)) failures.push(`${file}: contains an inline style attribute`);
-    // Plain <a href> links to other sites are fine; loading anything from them is not.
-    for (const m of html.matchAll(/\s(?:src|srcset)="(https?:\/\/[^"]+)"/gi)) {
-      failures.push(`${file}: loads a third-party resource: ${m[1]}`);
-    }
-    for (const m of html.matchAll(/<link[^>]+href="(https?:\/\/[^"]+)"[^>]*>/gi)) {
-      if (!/rel="canonical"/.test(m[0])) failures.push(`${file}: <link> to another host: ${m[1]}`);
-    }
-    // No image from another host anywhere on the page, outside a plain link: Speaker photos are downloaded at
-    // build time (src/lib/program-source/photos.mjs).
-    for (const m of html.replace(/<a\b[^>]*>/gi, '').matchAll(EXTERNAL_IMAGE)) failures.push(`${file}: an image from another host: ${m[0]}`);
+    // Nothing loads from another host: Speaker photos are downloaded at build time (src/lib/program-source/photos.mjs).
+    // A plain link to another site, a preview build's og:image (CARD_ORIGIN) or an address in a bio loads nothing.
+    for (const url of loadedUrls(html)) if (FULL_ADDRESS.test(url)) failures.push(`${file}: loads from another host: ${url}`);
     for (const marker of findDraftMarkers(html)) failures.push(`${file}: draft marker ${marker}`);
     if (/(^|\/)404\.html$/.test(file)) {
       // The 404 page is served at any unknown address: no canonical address, and noindex.
@@ -205,7 +230,7 @@ async function check() {
   if (worker && !/register\('\/sw\.js', \{ scope: '\/2027\/' \}\)/.test(readFileSync(join(DIST, 'schedule.js'), 'utf8'))) failures.push('schedule.js does not register /sw.js with the scope /2027/');
 
   for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {
-    for (const m of readFileSync(file, 'utf8').matchAll(/url\(\s*['"]?((?:https?:)?\/\/[^'")\s]+)/gi)) failures.push(`${file}: loads from another host: ${m[1]}`);
+    for (const url of cssUrls(readFileSync(file, 'utf8'))) if (FULL_ADDRESS.test(url)) failures.push(`${file}: loads from another host: ${url}`);
   }
 
   // The planted marker (src/data/program-fixture.ts) sits in a field the program allowlist drops (ADR 0009): it
