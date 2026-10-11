@@ -15,7 +15,7 @@ export const ticketsAction: Action = ticketsOnSale() && edition2027.tickets.url
  *  On Event Day with the Schedule's data (its gate open, or --program-sample's test data), the Event Day page
  *  instead (/2027/today/). */
 const scheduleData = programDataSample ? programSampleGates.schedulePublic : edition2027.program.schedulePublic;
-const afterAction: Action = phase === 'event-day' && scheduleData ? { href: paths.today, label: 'Open the live schedule' }
+const afterAction: Action = phase === 'event-day' && scheduleData ? { href: paths.today, label: 'See what’s on now' }
   : programPublic() ? { href: paths.schedule, label: 'See the Schedule' }
   : phase === 'event-day' ? { href: paths.travel, label: 'Getting to Dallas' }
   : { href: paths.edition2026, label: '2026 talks' };
