@@ -13,7 +13,7 @@ import { isMap, isScalar, parseDocument } from 'yaml';
 export const ANNOUNCEMENTS_FILE = 'src/data/announcements-2027.yaml';
 const FIELDS = ['at', 'text', 'link'];
 export const MAX_TEXT = 280;
-const QUOTES = 'If the text has a colon or a #, put it in double quotes.';
+const QUOTES = 'Put the text in double quotes, and write a quote inside it as \\".';
 
 /** The day `n` days before 'YYYY-MM-DD'. */
 const daysBefore = (day, n) => new Date(Date.parse(`${day}T12:00:00Z`) - n * 86400000).toISOString().slice(0, 10);

@@ -48,8 +48,12 @@ for (const [what, text] of [
   ['folded over lines', '>\n    Doors open\n    at 8.'],
   ['a number', '42'],
 ]) expect(quotes.test(error(`- at: "2027-04-23 12:00"\n  text: ${text}\n`)), `text ${what} passes: ${error(`- at: "2027-04-23 12:00"\n  text: ${text}\n`) || 'no error'}`);
+// A file that isn't valid YAML: an unquoted colon, or a quote inside the text that isn't written as \".
+const hint = /^src\/data\/announcements-2027\.yaml: it isn't valid YAML\. .+ Put the text in double quotes, and write a quote inside it as \\"\.$/;
 const colon = error('- at: "2027-04-23 12:00"\n  text: Note: lunch runs late.\n');
-expect(/^src\/data\/announcements-2027\.yaml: it isn't valid YAML\. .+ If the text has a colon or a #, put it in double quotes\.$/.test(colon), `unquoted text with a colon fails without the hint: ${colon || 'no error'}`);
+expect(hint.test(colon), `unquoted text with a colon fails without the hint: ${colon || 'no error'}`);
+const quote = error('- at: "2027-04-23 12:00"\n  text: "Room "B" is open."\n');
+expect(hint.test(quote), `a quote inside the text, not written as \\", fails without the hint: ${quote || 'no error'}`);
 
 // A comment inside an entry: after a field, between fields, or in place of a field.
 const comment = /entry 1 \(at "2027-04-23 12:00"\): has a # comment, which the page would leave out\. Put all of the text inside the double quotes, and remove the comment\./;
