@@ -3,7 +3,7 @@
 // draft markers, and each page's weight.
 //
 // Usage: node scripts/check-dist.mjs
-// tests/smoke.mjs imports REQUIRED_PAGES and DRAFT_MARKERS from here, so the checks only run
+// tests/smoke.mjs imports REQUIRED_PAGES and findDraftMarkers from here, so the checks only run
 // when this file is the script being run.
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative, resolve, sep } from 'node:path';
@@ -45,7 +45,7 @@ const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input'
  * (a Session's id and room, a link's address) has data-ugc-attrs instead, and this leaves out only its attributes'
  * values: the words it holds are checked.
  */
-export function withoutProgramText(html) {
+function withoutProgramText(html) {
   let out = '';
   let from = 0;
   // The data-ugc element being left out: its name, and how deep its own tag nests in it.
@@ -75,13 +75,13 @@ const sampleLabels = (html) => [...html.matchAll(TAG)].filter(([, end, , text]) 
 const sampleBuild = Boolean(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE);
 /** The made-up names of the test program (src/data/program-fixture.ts) and the test history's Organizer
  *  (src/data/history-test.ts). Only --program-sample builds show them. */
-export const FIXTURE_NAMES = /\bFixture (?:Speaker|Session|Room|Company|Organizer)\b/;
+const FIXTURE_NAMES = /\bFixture (?:Speaker|Session|Room|Company|Organizer)\b/;
 
 // Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template placeholder left unfilled
 // such as "{cfpOpens}"; and outside the test builds that show them, "Sample" and the fixture's names. Checked against
 // the whole HTML, comments and attributes included, without the text Speakers and Organizers write
 // (withoutProgramText). No page has inline scripts or styles that could hold braces.
-export const DRAFT_MARKERS = [
+const DRAFT_MARKERS = [
   { name: '[TBD', pattern: /\[TBD/ },
   { name: 'TODO', pattern: /\bTODO\b/ },
   { name: '{placeholder}', pattern: /\{[A-Za-z_][\w.]*\}/ },
@@ -110,7 +110,7 @@ const BUDGETS = {
 
 const DIST = 'dist';
 /** The file scripts/build.sh writes into dist/ for any build with a test flag. */
-export const TEST_BUILD_MARKER = '.test-build';
+const TEST_BUILD_MARKER = '.test-build';
 
 // A full address (http, https or "//"): the pages load every file by its path, from their own host.
 const FULL_ADDRESS = /^(?:https?:)?\/\//i;
@@ -124,7 +124,7 @@ const cssUrls = (css) => [...css.matchAll(/url\(\s*(['"]?)([^'")\s]+)\1\s*\)/gi)
  * a <style> or a style attribute. A <meta> (og:image gives other sites the card's address), an <a href> or an
  * address in the text loads nothing.
  */
-export function loadedUrls(html) {
+function loadedUrls(html) {
   const page = html.replace(/<!--[\s\S]*?-->/g, '');
   const urls = [];
   for (const [, end, name, text] of page.matchAll(TAG)) {
