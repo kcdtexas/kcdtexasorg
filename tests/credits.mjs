@@ -1,10 +1,11 @@
 // The loyalty credits' rules (src/lib/credits.ts) on made-up histories: a credit's year comes from the records,
 // one Edition alone gets nothing, a missing or incomplete record hides that kind's credits, a name on an earlier
-// incomplete record holds that person's credit back, a sponsor needs a Sponsorship in the current Edition, and a
-// history file with a bad shape fails with its file name.
+// incomplete record holds that person's credit back, a sponsor needs a Sponsorship in the current Edition, a test
+// build's Organizer credits read the test history alone, and a history file with a bad shape fails with its file
+// name.
 // tests/run-local.mjs runs it; tests/run-program.mjs checks the same rules in real builds.
 // Usage: node --experimental-strip-types tests/credits.mjs (Node 22.12 needs the flag to read TypeScript)
-import { creditFor, mergeHistory, validateHistory } from '../src/lib/credits.ts';
+import { creditFor, mergeHistory, recordsFor, validateHistory } from '../src/lib/credits.ts';
 
 const failures = [];
 let checks = 0;
@@ -76,6 +77,21 @@ const merged = mergeHistory(full, [{ year: 2026, speakers: people(['Test Speaker
 expect(creditFor(merged, 'speakers', ['Test Speaker'], rule(2024))?.since === 2026, 'a test record does not join its Edition');
 expect(creditFor(merged, 'speakers', ['Bo Example'], rule(2024))?.since === 2024, 'a test record replaces the real one');
 expect(merged.find((h) => h.year === 2027).sponsors.complete === false, 'a joined record with an incomplete part is complete');
+
+// The records a test build reads. Its history starts in 2026, so with the real records joined, an Organizer of 2025
+// and 2026 would show a wrong "since 2026". The Organizers' credits read the test history alone: no real Organizer
+// gets one, and the made-up Organizer gets the one its history gives. The Speakers' and the sponsors' join the two.
+const from2026 = full.filter((h) => h.year >= 2026);
+const test = [
+  { year: 2025, organizers: people(['Test Organizer']) },
+  { year: 2026, organizers: people(['Test Organizer']), speakers: people(['Test Speaker']) },
+  { year: 2027, organizers: people(['Test Organizer']) },
+];
+expect(recordsFor('organizers', from2026, null) === from2026 && recordsFor('speakers', from2026, null) === from2026, 'a normal build does not read the Editions\' records alone');
+expect(creditFor(mergeHistory(from2026, test), 'organizers', ['Cy Example'], rule(2026))?.since === 2026, 'the joined records no longer show the wrong "since 2026" this rule prevents');
+expect(creditFor(recordsFor('organizers', from2026, test), 'organizers', ['Cy Example'], rule(2026)) === null, 'a real Organizer gets a credit in a test build');
+expect(same(creditFor(recordsFor('organizers', from2026, test), 'organizers', ['Test Organizer'], rule(2026)), { since: 2025, editions: 3 }), 'the made-up Organizer lacks "since 2025", 3 Editions');
+expect(creditFor(recordsFor('speakers', from2026, test), 'speakers', ['Test Speaker'], rule(2026))?.since === 2026 && creditFor(recordsFor('speakers', from2026, test), 'speakers', ['Bo Example'], rule(2026))?.since === 2026, 'a test build\'s Speakers do not read the test and the real records joined');
 
 // The file check: the right shape passes, and every bad shape names the file.
 const good = { year: 2025, organizers: people(['Ann Example']), speakers: people(['Bo Example']), sponsors: ids(['acme']) };

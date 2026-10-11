@@ -69,7 +69,7 @@ process.on('exit', () => writeFileSync(ANNOUNCEMENTS, announcementsText));
 const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/track'];
 
 /** Each Organizer on About and their credit's words, or null. */
-const organizerCredits = (html) => Object.fromEntries([...html.matchAll(/<li>\s*<img[^>]*class="pg-org-photo"[\s\S]*?<\/li>/g)]
+const organizerCredits = (html) => Object.fromEntries([...html.matchAll(/<li>\s*<(?:img|svg)[^>]*class="pg-org-photo"[\s\S]*?<\/li>/g)]
   .map((m) => [m[0].match(/<b>([^<]+)<\/b>/)[1], m[0].match(/<span class="credit">([^<]+)<\/span>/)?.[1] ?? null]));
 
 /** A calendar file, as RFC 5545 asks: CRLF lines of at most 75 octets; BEGIN and END nested in one VCALENDAR; one
@@ -229,12 +229,14 @@ try {
   // The sitemap lists the program pages while a gate is open.
   const sitemap = read('sitemap.xml');
   expect(/\/2027\/speakers\/<\/loc>/.test(sitemap) && /\/2027\/sessions\//.test(sitemap) && /\/2027\/today\/<\/loc>/.test(sitemap), 'the sitemap misses the program pages');
-  // The loyalty credits from the test history: About (Mars Toktonaliev held), the walls and a Speaker page.
+  // The loyalty credits from the test history: About, the walls and a Speaker page. About adds a made-up Organizer,
+  // with initials and no photo, whose made-up history gives "Organizer since 2025"; no real Organizer shows a credit.
   const about = read('about/index.html');
-  expect(/Organizer since 2026/.test(about) && /\bSample\b/.test(text(about)), 'About lacks "Organizer since 2026" or its Sample label');
-  expect(organizerCredits(about)['Joel Hernandez'] === 'Organizer since 2026', 'About: a 2026 and 2027 Organizer lacks "Organizer since 2026"');
-  expect(organizerCredits(about)['Mars Toktonaliev'] === null, 'About: a held Organizer shows a credit');
-  expect(organizerCredits(about)['Amy Marrich'] === null, 'About: a first-time Organizer shows a credit');
+  const organizers = organizerCredits(about);
+  expect(organizers['Fixture Organizer'] === 'Organizer since 2025' && /<li><svg class="pg-org-photo"[^>]*>[\s\S]*?<\/svg><b>Fixture Organizer<\/b>/.test(about), `About: the made-up Organizer shows ${organizers['Fixture Organizer']}, not "Organizer since 2025", or has no initials`);
+  expect(text(about).includes('Sample: this test build adds a made-up Organizer to show the credit.'), 'About lacks the Sample label for the made-up Organizer');
+  const credited = Object.entries(organizers).filter(([name, credit]) => name !== 'Fixture Organizer' && credit !== null);
+  expect(Object.keys(organizers).length === 13 && !credited.length, `About: real Organizers show credits in a test build: ${credited.map(([name, credit]) => `${name} (${credit})`).join(', ')}`);
   expect((read('2027/sponsors/index.html').match(/<span class="credit">Since 2026<\/span>/g) ?? []).length === 3, 'the 2027 wall lacks its three sample "Since 2026" credits');
   // check-dist refuses this build without its flag: the labels, the fixture's names, and the program built with the
   // Edition's gates closed.
@@ -346,7 +348,7 @@ try {
       const found = await p.locator('.credit').evaluateAll((credits) => credits.map((cr) => {
         const box = cr.getBoundingClientRect();
         const holder = cr.closest('li, header');
-        const content = [...holder.querySelectorAll('img, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e));
+        const content = [...holder.querySelectorAll('img, .pg-org-photo, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e));
         // A link by its words: its tap padding (tests/targets.mjs) is invisible.
         const shapes = (e) => {
           if (e.tagName !== 'A') return [e.getBoundingClientRect()];
@@ -563,9 +565,10 @@ try {
   expect(!existsSync('dist/sw.js') && !/sw\.js|worker-src/.test(read('_headers')), 'a closed gate still ships /sw.js, its _headers rule or worker-src');
   expect(!/^\/speakers\s/m.test(read('_redirects')), 'a closed gate still serves the /speakers Short Link');
   expect(!/My Schedule/.test(read('privacy/index.html')), 'the privacy page mentions My Schedule with the gates closed');
+  expect(!/Fixture Organizer/.test(read('about/index.html')) && Object.keys(organizerCredits(read('about/index.html'))).length === 12, 'a normal build adds the made-up Organizer to About');
   for (const f of served()) {
     const body = readFileSync(f, 'utf8');
-    expect(!body.includes(marker) && !/Fixture (?:Speaker|Session)/.test(body), `${f}: the fixture reaches a normal build`);
+    expect(!body.includes(marker) && !/Fixture (?:Speaker|Session|Organizer)/.test(body), `${f}: the fixture reaches a normal build`);
     if (!existsSync('src/data/history/2025.ts')) expect(!/class="credit"/.test(body), `${f}: a normal build shows a credit with no 2025 record`);
   }
 } finally {
