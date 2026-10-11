@@ -166,6 +166,8 @@
     .spk-head { grid-template-columns: 1fr; gap: 16px; }
     .spk-photo--lg { width: 120px; font-size: 44px; }
     .td-info-sec { grid-template-columns: 1fr; }
+    /* Stacked, the venue map gets its own rule, as "Good to know" has the section's. */
+    .td-info-sec > div + div { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--fg); }
     .sch-time-h { font-size: 26px; }
     .chip { padding: 0 12px; font-size: 14px; }
   }
