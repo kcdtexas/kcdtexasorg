@@ -247,7 +247,8 @@ export const RUNS = [
   { name: 'the program sample the day after Event Day', flags: ['--now', '2027-04-24', '--program-sample'], checks: ({ home, privacy, sw, js }) => ({
     'still the Recap, with the Schedule': headCta(home).join() === '/2027/schedule/,Schedule' && !/class="dates"/.test(home),
     'offline use off: /sw.js clears its copies and removes itself, /schedule.js registers none': /OFF = true/.test(sw) && /OFFLINE = false/.test(js),
-    'the privacy page no longer mentions the offline copy': !/without a connection/.test(privacy),
+    'the privacy page no longer offers the offline copy': !/without a connection/.test(privacy),
+    'the privacy page says the old offline copy is deleted': /Until Event Day, your browser kept a copy/.test(privacy),
   }) },
   { name: 'only the Speakers public (speakersPublic)', flags: ['--now', '2027-03-10', '--program-sample=speakers'], checks: ({ home, schedule, speakers, today, ics }) => ({
     'the Speakers page, labeled "Sample"': /\bSample\b/.test(text(speakers)),

@@ -220,7 +220,7 @@ try {
   // The program script and its cache rule, the /speakers Short Link and the privacy page's My Schedule line.
   expect(existsSync('dist/schedule.js') && /^\/schedule\.js$/m.test(read('_headers')), 'the sample build lacks /schedule.js or its _headers rule');
   expect(/^\/speakers\s+\/2027\/speakers\/\s+302$/m.test(read('_redirects')), 'the sample build lacks the /speakers Short Link');
-  expect(/My Schedule, the list is kept only in this browser/.test(text(read('privacy/index.html'))), 'the privacy page lacks the My Schedule line');
+  expect(/your browser keeps My Schedule in its local storage, on this device only/.test(text(read('privacy/index.html'))), 'the privacy page lacks the My Schedule line');
   // The sitemap lists the program pages while a gate is open.
   const sitemap = read('sitemap.xml');
   expect(/\/2027\/speakers\/<\/loc>/.test(sitemap) && /\/2027\/sessions\//.test(sitemap) && /\/2027\/today\/<\/loc>/.test(sitemap), 'the sitemap misses the program pages');
@@ -359,7 +359,7 @@ try {
   // 5. The announcements file: a bad entry stops the build with a message naming the entry and the field.
   for (const [entry, want] of [
     ['- at: "2027-04-23 9:15"\n  text: Doors open.', /entry 1 \(at "2027-04-23 9:15"\): "at" must be/],
-    ['- at: "2027-04-23 09:15"\n  text: Doors open.\n- at: "2027-04-23 10:15"\n  text: More.\n  link: http://example.com/', /entry 2 \(at "2027-04-23 10:15"\): "link" must be an https address/],
+    ['- at: "2027-04-23 09:15"\n  text: "Doors open."\n- at: "2027-04-23 10:15"\n  text: "More."\n  link: http://example.com/', /entry 2 \(at "2027-04-23 10:15"\): "link" must be an https address/],
     ['- at: "2027-04-23 09:15"\n  txt: Doors open.', /entry 1 \(at "2027-04-23 09:15"\): "txt" is not a field/],
   ]) {
     writeFileSync(ANNOUNCEMENTS, `${announcementsText}${entry}\n`);
@@ -371,7 +371,7 @@ try {
   // 6. The program sample on Event Day at 10:30 a.m.: the hero's one link, the page's stamp, and now and next,
   // which follow the browser's clock in Central time. Two announcements from the file: the 10:15 one shows, with
   // its link, and the 11:00 one doesn't yet.
-  writeFileSync(ANNOUNCEMENTS, `${announcementsText}- at: "2027-04-23 10:15"\n  text: Test announcement posted at 10:15.\n  link: https://example.com/today\n- at: "2027-04-23 11:00"\n  text: Test announcement posted at 11:00.\n`);
+  writeFileSync(ANNOUNCEMENTS, `${announcementsText}- at: "2027-04-23 10:15"\n  text: \"Test announcement posted at 10:15.\"\n  link: https://example.com/today\n- at: "2027-04-23 11:00"\n  text: \"Test announcement posted at 11:00.\"\n`);
   const eventDay = build(['--program-sample', '--now', DAY, '--clock', '10:30']);
   writeFileSync(ANNOUNCEMENTS, announcementsText);
   if (eventDay.status !== 0) throw new Error(`the Event Day sample build failed:\n${eventDay.log.slice(-3000)}`);
@@ -386,7 +386,7 @@ try {
   expect(/<time datetime="2027-04-23T10:15">10:15 a\.m\.<\/time> Test announcement posted at 10:15\. <a href="https:\/\/example\.com\/today">Details<\/a>/.test(today) && !/posted at 11:00/.test(today), 'the Event Day page at 10:30 does not show the file\'s 10:15 announcement with its link, or shows the 11:00 one');
   // Offline use: /sw.js and its rules ship, and the privacy page says so.
   expect(/OFF = false/.test(read('sw.js')) && /OFFLINE = true/.test(read('schedule.js')), 'the Event Day build does not turn offline use on');
-  expect(/keeps a copy so they still open without a connection/.test(text(read('privacy/index.html'))), 'the privacy page lacks the offline copy line');
+  expect(/your browser keeps a copy so it opens without a connection/.test(text(read('privacy/index.html'))), 'the privacy page lacks the offline copy line');
   await serve();
   for (const [at, utc] of [['10:30', '15:30'], ['15:00', '20:00']]) {
     for (const width of [1280, 390]) {
@@ -444,7 +444,8 @@ try {
   const after = build(['--program-sample', '--now', '2027-04-24']);
   if (after.status !== 0) throw new Error(`the day-after sample build failed:\n${after.log.slice(-3000)}`);
   expect(/OFF = true/.test(read('sw.js')) && /OFFLINE = false/.test(read('schedule.js')), 'the day-after build does not turn offline use off');
-  expect(!/without a connection/.test(read('privacy/index.html')), 'the day-after privacy page still mentions the offline copy');
+  expect(!/without a connection/.test(read('privacy/index.html')), 'the day-after privacy page still offers the offline copy');
+  expect(/Until Event Day, your browser kept a copy/.test(text(read('privacy/index.html'))), 'the day-after privacy page lacks the line on the old offline copy');
   await serve();
   await off.goto(`${base}/2027/today/`);
   const gone = async () => (await navigator.serviceWorker.getRegistrations()).length === 0 && (await caches.keys()).length === 0;
