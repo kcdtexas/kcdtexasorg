@@ -253,7 +253,9 @@ export const RUNS = [
   { name: 'only the Speakers public (speakersPublic)', flags: ['--now', '2027-03-10', '--program-sample=speakers'], checks: ({ home, schedule, speakers, today, ics }) => ({
     'the Speakers page, labeled "Sample"': /\bSample\b/.test(text(speakers)),
     'no Event Day page, no calendar file, no Sessions by time': !today && !ics && !/data-schedule/.test(schedule),
-    'key dates: Schedule "Coming soon"': keyDates(home).Schedule === 'Coming soon',
+    'key dates: Schedule "Coming soon", with "Meet the Speakers" to the Speakers page': keyDates(home).Schedule === 'Coming soon' && /pr-lane--sched [^"]*">(?:(?!<\/li>)[\s\S])*<a href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(home),
+    'program block: "The Speakers are out.", the Schedule soon, and "Meet the Speakers" filled': /The Speakers are out\. See who’s speaking\. The Schedule comes out soon\./.test(text(sectionOf(home, 'program'))) && /<a class="btn" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(sectionOf(home, 'program')),
+    'the Schedule page: the Schedule comes later, with a link to the Speakers': /The Schedule comes out soon\. Meet the Speakers now\./.test(text(schedule)) && !/together with the Speakers/.test(text(schedule)) && /<a class="btn" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(schedule),
   }) },
 ];
 

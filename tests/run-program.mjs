@@ -2,17 +2,21 @@
 // (tests/program-adapter.mjs). Then it builds the site with the program sample and the sample sponsors
 // (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: the Share Cards' "Sample" stamp
 // and their time budget, the test-build marker, the calendar files (RFC 5545, with the America/Chicago zone), the
-// credits from the test history, and scripts/check-dist.mjs's rules on the gates and on builds that aren't production
-// builds. It runs the smoke and browser tests on it (axe and the 44 px targets on every new page, in both themes, on
-// a desktop and a phone), then drives the program pages in a browser, by mouse on a desktop in light and by keyboard
-// on a phone in dark: the filters, My Schedule across reloads and its calendar file, and the credits' boxes. It
-// checks the announcements file (a bad entry stops the build; only entries posted by the build's time show), Event
-// Day's now and next at 10:30 a.m. and 3:00 p.m. (with axe in both themes), and offline use (the Event Day page and a
-// Session page reload offline; from the day after Event Day the worker removes itself). It builds the gate matrix's
-// middle case, only `speakersPublic` open (--program-sample=speakers), and checks it has no times, rooms, calendar
-// files or Event Day page. It adds a history file to src/data/history/ (a good one, then a bad one) and removes it
-// again. Last it builds with the gates closed and checks that no program page, card, calendar file, script
-// reference or credit is built, and that the planted marker reaches no served file and no build log in any build.
+// marks on the program's text and the "Sample" labels, the program pages' own styles, the credits from the test
+// history (on About, only its made-up Organizer's), and scripts/check-dist.mjs's rules on the gates and on builds
+// that aren't production builds. It runs the smoke and browser tests on it (axe and the 44 px targets on every new
+// page, in both themes, on a desktop and a phone), then drives the program pages in a browser, by mouse on a desktop
+// in light and by keyboard on a phone in dark: the filters, My Schedule across reloads and its calendar file, and the
+// credits' boxes. It checks the announcements file (a bad entry stops the build; only entries posted by the build's
+// time show), Event Day's now and next at 10:30 a.m. and 3:00 p.m. (with axe in both themes), and offline use (the
+// Event Day page and a Session page reload offline; from the day after Event Day the worker removes itself). It
+// builds the gate matrix's middle case, only `speakersPublic` open (--program-sample=speakers), and checks it has no
+// times, rooms, calendar files, stars or Event Day page, and that the home page and the Schedule page link to the
+// Speakers. It adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. It builds
+// a preview's og:image (CARD_ORIGIN), which check-dist passes, unlike an image a page loads from another host. Last
+// it builds with the gates closed and checks that no program page, card, calendar file, script, style or credit is
+// built, that check-dist fails a planted "Sample" label, and that the planted marker reaches no served file and no
+// build log in any build.
 // dist/ ends as a normal build, also when a step fails, unless --keep-dist.
 // Usage: node tests/run-program.mjs [--keep-dist]
 import { spawn, spawnSync } from 'node:child_process';
@@ -478,7 +482,9 @@ try {
   await offline.close();
 
   // 7. The gate matrix: only `speakersPublic` open (--program-sample=speakers). The Speakers, the titles and the
-  // abstracts, with no times, rooms, calendar files or Event Day page; the program version is still published.
+  // abstracts, with no times, rooms, calendar files or Event Day page; the program version is still published. The
+  // home page and the Schedule page link to the Speakers, the Schedule page says the Schedule comes later, and no
+  // page offers the My Schedule star, which the privacy page then leaves out.
   const speakersOnly = build(['--program-sample=speakers']);
   if (speakersOnly.status !== 0) throw new Error(`the speakers-only sample build failed:\n${speakersOnly.log.slice(-3000)}`);
   expect(!speakersOnly.log.includes(marker), 'the speakers-only build log contains the planted marker');
@@ -494,11 +500,16 @@ try {
     const sessionHtml = read(`2027/sessions/${fx}/index.html`);
     expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title" data-ugc>/.test(sessionHtml), `${fx}: no title or abstract`);
     expect(!/Time \(Central\)|<dt>Room<\/dt>|\.ics"/.test(sessionHtml), `${fx}: shows a time, a room or "Add to calendar"`);
-    for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`]) {
+    for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`, '2027/schedule/index.html']) {
       const html = read(page);
       expect(!/class="sch-(?:time|room|meta)"|data-start="\d/.test(html), `${page}: shows a time or a room`);
-      expect(/2026 Speakers and made-up Sessions/.test(html), `${page}: lacks the speakers-only Sample label`);
+      expect(text(html).includes('Sample: this test build shows the 2026 Speakers and Sessions, without times or rooms, plus made-up Sessions, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
+      expect(!/data-star=/.test(html), `${page}: offers the My Schedule star while only the Speakers are public`);
     }
+    expect(text(sched).includes('The Schedule comes out soon. Meet the Speakers now.') && !/together with the Speakers/.test(text(sched))
+      && /<a class="btn" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(sched), 'the speakers-only Schedule page does not say the Schedule comes later, or does not link to the Speakers');
+    expect(/<a href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(read('index.html')), 'the speakers-only home page does not link to the Speakers');
+    expect(!/If you star a Session/.test(read('privacy/index.html')) && /without a connection/.test(read('privacy/index.html')), 'the speakers-only privacy page mentions My Schedule, or lacks the offline copy');
     expect(/^\/speakers\s/m.test(read('_redirects')), 'the speakers-only build lacks the /speakers Short Link');
     const sm = read('sitemap.xml');
     expect(/\/2027\/speakers\/<\/loc>/.test(sm) && !/\/2027\/today\//.test(sm), 'the speakers-only sitemap is wrong');
