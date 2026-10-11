@@ -8,13 +8,14 @@
 // with no program change, March and April rebuild only on the rebuild days.
 // No second deploy of one program change: after a program change the rebuild job notes the live program version
 // before it starts the build and waits until the live site publishes another one, and runs queue behind each other.
-// No version passes between the jobs or goes in the log. The note and the wait also run here, faster, against a
-// local stand-in for the live site.
+// Only a 404 leaves the note empty; any other failure to read the version stops the job before the build. No
+// version passes between the jobs or goes in the log. The note and the wait also run here, faster, against a local
+// stand-in for the live site, with a 404, a 503 and no answer.
 // Runs actionlint on the workflow when it's installed (or at $ACTIONLINT), with shellcheck when that's installed too.
 // No network beyond this machine, no build.
 // Usage: node tests/rebuild.mjs
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -113,9 +114,11 @@ expect(/needs\.program\.outputs\.changed == 'true'/.test(wf.jobs.rebuild?.if ?? 
 expect(wf.jobs.rebuild?.environment === 'production', 'the rebuild job does not name the production environment');
 expect(/secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(wf.jobs.rebuild?.steps)), 'the rebuild job does not use NETLIFY_BUILD_HOOK');
 // No second deploy of one program change. After a program change (a rebuild day or a forced run doesn't wait), the
-// rebuild job notes the live program version just before the build hook, in a file on the runner, and after the
-// hook waits until the live version differs from it (or appears, if there was none), checking every 20 seconds or
-// so for at most 10 minutes; it fails with a pointer to Netlify's deploy log. No job passes a version on, no step's
+// rebuild job notes the live program version just before the build hook, in a file on the runner, with the HTTP
+// status: a 404 leaves the note empty (no program is live yet), and any other failure stops the job before the
+// hook, since an empty note would let the wait take the old version for the new one. After the hook it waits until
+// the live version differs from the note (or appears, if there was none), checking every 20 seconds or so for at
+// most 10 minutes; it fails with a pointer to Netlify's deploy log. No job passes a version on, no step's
 // environment holds one, and no command prints one. Runs queue in one group, so the next run sees the new live site.
 const rebuildSteps = wf.jobs.rebuild?.steps ?? [];
 const hookAt = rebuildSteps.findIndex((s) => /secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(s)));
@@ -129,7 +132,10 @@ const afterChange = "needs.program.outputs.changed == 'true' && needs.check.outp
 expect(hookAt >= 0 && noteAt >= 0 && noteAt < hookAt && hookAt < waitAt, 'the rebuild job does not note the live program version before the build hook and wait for a new one after it');
 expect(note?.if === afterChange && wait?.if === afterChange, `the note and the wait run on ${JSON.stringify(note?.if)} and ${JSON.stringify(wait?.if)}: both must run only after a program change, not on a rebuild day or a forced run`);
 expect(JSON.stringify(note?.env) === JSON.stringify({ LIVE: liveVersionUrl }) && JSON.stringify(wait?.env) === JSON.stringify({ LIVE: liveVersionUrl }), `the note's and the wait's environments are ${JSON.stringify(note?.env)} and ${JSON.stringify(wait?.env)}, not only LIVE, ${liveVersionUrl} (src/lib/program-source/config.mjs)`);
-expect(/> "\$RUNNER_TEMP\/live-version"\s*$/.test(noteRun) && /^\s*before="\$\(cat "\$RUNNER_TEMP\/live-version"\)"/m.test(loop), 'the note does not keep the live version in a file on the runner for the wait');
+expect(/-o "\$RUNNER_TEMP\/live-version"/.test(noteRun) && /^\s*before="\$\(cat "\$RUNNER_TEMP\/live-version"\)"/m.test(loop), 'the note does not keep the live version in a file on the runner for the wait');
+expect(/%\{http_code\}/.test(noteRun) && /--retry \d+/.test(noteRun) && /--max-time \d+/.test(noteRun), 'the note does not record the HTTP status, or has no retries or time limit');
+// The hook runs only after the note succeeded: no always(), failure() or cancelled() in its condition.
+expect(!/\b(?:always|failure|cancelled)\(\)/.test(rebuildSteps[hookAt]?.if ?? ''), `the build hook runs on ${JSON.stringify(rebuildSteps[hookAt]?.if)}, even after a failed note`);
 expect(Object.values(wf.jobs).every((j) => !Object.keys(j.outputs ?? {}).some((k) => /version/i.test(k))), 'a job passes a program version on to another');
 const deadline = Number(loop.match(/SECONDS \+ (\d+)\)/)?.[1]);
 const every = Number(loop.match(/\bsleep (\d+)\b/)?.[1]);
@@ -283,50 +289,69 @@ if (!edition.program.speakersPublic && !edition.program.schedulePublic) {
   expect(res.status === 0 && res.stdout === 'unchanged\n', `program-check with the gates closed: exit ${res.status}, ${JSON.stringify(res.stdout)}`);
 }
 
-// The note and the wait as GitHub runs them, the wait with a 3-second limit and 0.2-second checks, against a local
-// stand-in for the live site. The wait ends once the live version differs from the noted one (on the third request),
-// or once a missing file appears; it fails with its message when the live version stays the same or stays missing.
-// Neither prints a version.
+// The note and the wait as GitHub runs them, against a local stand-in for the live site: the note with one retry and
+// 1 second per try, the wait with a 3-second limit and 0.2-second checks. The note keeps the live version, or nothing
+// for a 404, and gets past one failed request. When the live site keeps failing or doesn't answer, the note fails
+// with its message, so GitHub skips the build hook and the wait. The wait ends once the live version differs from the
+// noted one (on the third request), or once a missing file appears; it fails with its message when the live version
+// stays the same or stays missing, also after the note's failed request. Neither prints a version.
 if (noteRun && loop) {
   const [OLD, NEW] = ['b1'.repeat(32), 'f0'.repeat(32)];
+  // serve() gives the live version, null for a 404, another status code, or HANG for no answer at all.
+  const HANG = Symbol('no answer');
   let hits = 0;
   let serve = () => null;
   const site = createServer((req, res) => {
     hits += 1;
     const body = serve();
-    res.writeHead(body === null ? 404 : 200, { 'content-type': 'text/plain' });
-    res.end(body === null ? 'Not found' : `${body}\n`);
+    if (body === HANG) return;
+    const status = typeof body === 'number' ? body : body === null ? 404 : 200;
+    res.writeHead(status, { 'content-type': 'text/plain' });
+    res.end(status === 200 ? `${body}\n` : `Error ${status}`);
   });
   await new Promise((r) => site.listen(0, '127.0.0.1', r));
   const runner = mkdtempSync(join(tmpdir(), 'rebuild-runner-'));
+  const quick = noteRun.replace(/--retry \d+/, '--retry 1').replace(/--max-time \d+/, '--max-time 1');
   const fast = loop.replace(/SECONDS \+ \d+\)/, 'SECONDS + 3)').replace(/\bsleep \d+\b/, 'sleep 0.2');
   const runStep = (script) => new Promise((resolve) => {
     hits = 0;
     const env = { ...process.env, NO_PROXY: '127.0.0.1', no_proxy: '127.0.0.1', RUNNER_TEMP: runner, LIVE: `http://127.0.0.1:${site.address().port}/2027/program-version.txt` };
-    const child = spawn('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', script], { env });
+    const child = spawn('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', script], { env, timeout: 30_000 });
     let out = '';
     for (const s of [child.stdout, child.stderr]) s.on('data', (d) => { out += d; });
     child.on('close', (status) => resolve({ status, out, hits }));
   });
   try {
-    for (const [what, atNote, inWait, wantStatus, wantHits] of [
-      ['a new version replaces the noted one', () => OLD, () => (hits >= 3 ? NEW : OLD), 0, 3],
-      ['the noted version stays live', () => OLD, () => OLD, 1, null],
-      ['a missing file appears', () => null, () => (hits >= 2 ? NEW : null), 0, 2],
-      ['the file stays missing', () => null, () => null, 1, null],
+    for (const { what, atNote, kept: want, noteHits = 1, inWait, waitStatus, waitHits = null } of [
+      { what: 'a new version replaces the noted one', atNote: () => OLD, kept: OLD, inWait: () => (hits >= 3 ? NEW : OLD), waitStatus: 0, waitHits: 3 },
+      { what: 'the noted version stays live', atNote: () => OLD, kept: OLD, inWait: () => OLD, waitStatus: 1 },
+      { what: 'a missing file (404) appears', atNote: () => null, kept: '', inWait: () => (hits >= 2 ? NEW : null), waitStatus: 0, waitHits: 2 },
+      { what: 'the file stays missing (404)', atNote: () => null, kept: '', inWait: () => null, waitStatus: 1 },
+      { what: 'the live site fails once (503), then the noted version stays live', atNote: () => (hits >= 2 ? OLD : 503), kept: OLD, noteHits: 2, inWait: () => OLD, waitStatus: 1 },
+      { what: 'the live site keeps failing (503)', atNote: () => 503, kept: null, noteHits: 2 },
+      { what: 'the live site doesn’t answer', atNote: () => HANG, kept: null, noteHits: 2 },
     ]) {
       serve = atNote;
-      const n = await runStep(noteRun);
+      rmSync(join(runner, 'live-version'), { force: true });
+      const n = await runStep(quick);
+      const kept = existsSync(join(runner, 'live-version')) ? readFileSync(join(runner, 'live-version'), 'utf8').trim() : null;
+      expect(n.hits === noteHits, `${what}: the note made ${n.hits} requests, not ${noteHits}`);
+      if (want === null) {
+        // GitHub runs no later step after a failed one: the build hook and the wait are skipped.
+        expect(n.status === 1 && /^::error::.*live program version/m.test(n.out), `${what}: the note exits ${n.status}, not 1 with its message: ${JSON.stringify(n.out)}`);
+        expect(!n.out.includes(OLD), `${what}: the note prints a version: ${JSON.stringify(n.out)}`);
+        continue;
+      }
       serve = inWait;
       const w = await runStep(fast);
-      const kept = readFileSync(join(runner, 'live-version'), 'utf8');
       const all = n.out + w.out;
-      expect(n.status === 0 && kept === (atNote() ?? ''), `${what}: the note exits ${n.status} and keeps ${JSON.stringify(kept)}`);
-      expect(w.status === wantStatus && (wantHits === null || w.hits === wantHits), `${what}: the wait exits ${w.status} after ${w.hits} requests, not ${wantStatus}${wantHits === null ? '' : ` after ${wantHits}`}: ${JSON.stringify(w.out)}`);
-      expect(wantStatus === 0 ? /has the new program/.test(w.out) : /^::error::.*Netlify/m.test(w.out), `${what}: the wait says ${JSON.stringify(w.out)}`);
+      expect(n.status === 0 && kept === want, `${what}: the note exits ${n.status} and keeps ${JSON.stringify(kept)}, not ${JSON.stringify(want)}`);
+      expect(w.status === waitStatus && (waitHits === null || w.hits === waitHits), `${what}: the wait exits ${w.status} after ${w.hits} requests, not ${waitStatus}${waitHits === null ? '' : ` after ${waitHits}`}: ${JSON.stringify(w.out)}`);
+      expect(waitStatus === 0 ? /has the new program/.test(w.out) : /^::error::.*Netlify/m.test(w.out), `${what}: the wait says ${JSON.stringify(w.out)}`);
       expect(!all.includes(OLD) && !all.includes(NEW), `${what}: the note or the wait prints a version: ${JSON.stringify(all)}`);
     }
   } finally {
+    site.closeAllConnections();
     site.close();
     rmSync(runner, { recursive: true, force: true });
   }

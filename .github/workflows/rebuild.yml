@@ -120,14 +120,23 @@ jobs:
     steps:
       # After a program change, the run waits until the live site has the new program (the last step). Just before
       # the build starts, it notes the live program version, a hash of the public program that the site publishes,
-      # in a file on the runner: no version passes between the jobs, and no command prints one.
+      # in a file on the runner: no version passes between the jobs, and no command prints one. Only a 404 means
+      # there's no version yet (no program is live), and leaves the note empty. Any other failure stops the run
+      # before the build: with an empty note, the wait would take the old version for the new one.
       - name: Note the live program version
         if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
         env:
           LIVE: https://kcdtexas.org/2027/program-version.txt
         run: |
-          noted="$(curl -fsS --retry 3 --retry-all-errors --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
-          printf '%s' "$noted" > "$RUNNER_TEMP/live-version"
+          status="$(curl -sS --retry 3 --retry-all-errors --max-time 10 -H 'Cache-Control: no-cache' -o "$RUNNER_TEMP/live-version" -w '%{http_code}' "$LIVE" || true)"
+          case "$status" in
+            200) ;;
+            404) : > "$RUNNER_TEMP/live-version" ;;
+            *)
+              if [ "${status:-000}" = 000 ]; then why='no answer'; else why="HTTP $status"; fi
+              echo "::error::Couldn't read the live program version ($why). No build started; the next run checks again."
+              exit 1 ;;
+          esac
       - name: Start a Netlify production build
         env:
           HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
