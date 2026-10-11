@@ -377,7 +377,7 @@ try {
   if (eventDay.status !== 0) throw new Error(`the Event Day sample build failed:\n${eventDay.log.slice(-3000)}`);
   expect(!eventDay.log.includes(marker), 'the Event Day sample build log contains the planted marker');
   const home = read('index.html');
-  expect(/<a class="btn btn--door" href="\/2027\/today\/">Open the live schedule<\/a>/.test(home), 'the Event Day hero lacks "Open the live schedule"');
+  expect(/<a class="btn btn--door" href="\/2027\/today\/">See what’s on now<\/a>/.test(home), 'the Event Day hero lacks "See what’s on now"');
   const today = read('2027/today/index.html');
   expect(/Updated 10:30 a\.m\. CT/.test(today), 'the Event Day page lacks "Updated 10:30 a.m. CT"');
   expect(/<li class="td-ses is-now"/.test(today), 'the Event Day page shows nothing on now at 10:30 without JavaScript');

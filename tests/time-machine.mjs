@@ -238,7 +238,7 @@ export const RUNS = [
     'offline use on: /sw.js keeps copies, /schedule.js registers it': /OFF = false/.test(sw) && /OFFLINE = true/.test(js),
   }) },
   { name: 'the program sample on Event Day at 10:30', flags: ['--now', '2027-04-23', '--clock', '10:30', '--program-sample'], checks: ({ home, today, sw }) => ({
-    'hero: one filled button, "Open the live schedule", to the Event Day page': doorsAre(home, 'filled Open the live schedule') && heroDoors(home)[0].href === '/2027/today/',
+    'hero: one filled button, "See what’s on now", to the Event Day page': doorsAre(home, 'filled See what’s on now') && heroDoors(home)[0].href === '/2027/today/',
     'header: "Schedule", to the Schedule': headCta(home).join() === '/2027/schedule/,Schedule',
     'Event Day page: "Updated 10:30 a.m. CT", with what is on now': /Updated 10:30 a\.m\. CT/.test(today) && /<li class="td-ses is-now"/.test(today),
     'no sponsor call to action': !sponsorAsks(home).length,
