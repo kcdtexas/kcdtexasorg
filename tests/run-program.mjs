@@ -217,8 +217,13 @@ try {
   checkIcs(`${sessionPages[0]}.ics`, read(`2027/sessions/${sessionPages[0]}.ics`), timedItems.filter((x) => x.url === `/2027/sessions/${sessionPages[0]}/`));
   // The program version, published while a gate is open.
   expect(/^[0-9a-f]{64}\n$/.test(read('2027/program-version.txt')), 'the sample build lacks /2027/program-version.txt');
-  // The program script and its cache rule, the /speakers Short Link and the privacy page's My Schedule line.
+  // The program script and its cache rule, the program pages' styles, the /speakers Short Link and the privacy page's
+  // My Schedule line.
   expect(existsSync('dist/schedule.js') && /^\/schedule\.js$/m.test(read('_headers')), 'the sample build lacks /schedule.js or its _headers rule');
+  const styles = '<link rel="stylesheet" href="/schedule.css">';
+  expect(existsSync('dist/schedule.css') && /@layer program\{/.test(read('schedule.css')) && [schedule, read('2027/speakers/index.html'), read('2027/today/index.html'), read(`2027/sessions/${sessionPages[0]}/index.html`)].every((h) => h.includes(styles)),
+    'the sample build lacks /schedule.css, or a program page does not load it');
+  expect(!read('index.html').includes(styles) && !read('about/index.html').includes(styles), 'a page outside the program loads /schedule.css');
   expect(/^\/speakers\s+\/2027\/speakers\/\s+302$/m.test(read('_redirects')), 'the sample build lacks the /speakers Short Link');
   expect(/your browser keeps My Schedule in its local storage, on this device only/.test(text(read('privacy/index.html'))), 'the privacy page lacks the My Schedule line');
   // The sitemap lists the program pages while a gate is open.
@@ -253,6 +258,12 @@ try {
   const photo = checkDist(flags);
   rmSync('dist/2027/speakers/planted-small.webp');
   expect(photo.status !== 0 && /planted-small\.webp: a Speaker photo outside a production build/.test(photo.log), 'check-dist passes a Speaker photo in a test build');
+  // check-dist refuses the program pages' styles on another page.
+  const aboutHtml = read('about/index.html');
+  writeFileSync('dist/about/index.html', aboutHtml.replace('</head>', `${styles}</head>`));
+  const styled = checkDist(flags);
+  writeFileSync('dist/about/index.html', aboutHtml);
+  expect(styled.status !== 0 && /about\/index\.html: loads \/schedule\.css outside the program pages/.test(styled.log), 'check-dist passes /schedule.css on a page outside the program');
 
   // 3. The smoke and browser tests on the sample build: axe on every page, both themes, desktop and phone.
   await serve();
@@ -433,8 +444,9 @@ try {
   await offline.setOffline(true);
   for (const path of ['/2027/today/', sessionPath]) {
     const res = await off.goto(`${base}${path}`).catch(() => null);
-    const shown = res && await off.evaluate(() => [document.querySelector('h1')?.textContent.trim(), getComputedStyle(document.body).fontFamily]);
-    expect(res?.status() === 200 && shown[0] && /Archivo/.test(shown[1]), `${path} does not reload offline with its text and styles`);
+    const shown = res && await off.evaluate(() => [document.querySelector('h1')?.textContent.trim(), getComputedStyle(document.body).fontFamily,
+      [...document.styleSheets].some((s) => s.href?.endsWith('/schedule.css') && s.cssRules.length > 0)]);
+    expect(res?.status() === 200 && shown[0] && /Archivo/.test(shown[1]) && shown[2], `${path} does not reload offline with its text, the shared styles and the program pages' styles`);
   }
   // The browser is offline for the worker too: a page it never kept doesn't load.
   expect(await off.goto(`${base}/2027/sessions/never-kept/`).then(() => false, () => true), 'a page that was never kept loads offline, so the offline check proves nothing');
@@ -533,6 +545,9 @@ try {
   expect(!walk('dist').some((f) => f.endsWith('.html') && /schedule\.js/.test(readFileSync(f, 'utf8'))), 'a page loads /schedule.js with the gates closed');
   expect(!/\/2027\/(?:speakers|sessions|today)\//.test(read('sitemap.xml')), 'the sitemap lists program pages with the gates closed');
   expect(!existsSync('dist/schedule.js') && !/schedule\.js/.test(read('_headers')), 'a closed gate still ships /schedule.js or its _headers rule');
+  // The program pages' styles ship only with them: no /schedule.css, and none of their rules in the shared stylesheet.
+  expect(!existsSync('dist/schedule.css') && !walk('dist').some((f) => f.endsWith('.html') && readFileSync(f, 'utf8').includes('/schedule.css')), 'a closed gate still ships or loads /schedule.css');
+  expect(!walk('dist/_astro').some((f) => f.endsWith('.css') && /\.(?:sch-item|spk-card|td-board|ses-title|star)\b/.test(readFileSync(f, 'utf8'))), 'the shared stylesheet has the program pages\' rules');
   expect(!existsSync('dist/sw.js') && !/sw\.js|worker-src/.test(read('_headers')), 'a closed gate still ships /sw.js, its _headers rule or worker-src');
   expect(!/^\/speakers\s/m.test(read('_redirects')), 'a closed gate still serves the /speakers Short Link');
   expect(!/My Schedule/.test(read('privacy/index.html')), 'the privacy page mentions My Schedule with the gates closed');

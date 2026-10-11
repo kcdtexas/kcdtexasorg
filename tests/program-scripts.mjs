@@ -2,8 +2,8 @@
 //   - My Schedule's calendar file escapes text as the build's calendar files do (src/lib/ics.ts);
 //   - /schedule.js draws the stars before it registers the offline worker, and a browser that throws on
 //     navigator.serviceWorker (storage blocked) still gets them; from the day after Event Day it never asks;
-//   - /sw.js keeps the program pages, their CSS, fonts and images (the logos in /brand/ too) and /schedule.js, and
-//     nothing else, and both scripts stay within their budgets as built.
+//   - /sw.js keeps the program pages, their CSS (/schedule.css too), fonts and images (the logos in /brand/ too) and
+//     /schedule.js, and nothing else, and both scripts stay within their budgets as built.
 // tests/run-local.mjs runs it; tests/run-program.mjs drives both scripts in a browser.
 // Usage: node tests/program-scripts.mjs
 import { readFileSync } from 'node:fs';
@@ -66,15 +66,16 @@ expect(!r.threw && r.starShown, `a browser that throws on navigator.serviceWorke
 r = runSchedule(false, 'throws');
 expect(!r.threw && r.starShown && !r.read, `from the day after Event Day, /schedule.js still asks for navigator.serviceWorker: ${JSON.stringify(r)}`);
 
-// What /sw.js keeps: same-origin program pages, their CSS, fonts and images, the logos in /brand/, and /schedule.js.
+// What /sw.js keeps: same-origin program pages, their CSS, fonts and images, the logos in /brand/, /schedule.js and
+// /schedule.css.
 const keep = new Function(`${sw.match(/^var KEEP = [^\n]+$/m)?.[0] ?? 'var KEEP = /$^/;'} return KEEP;`)();
 for (const [path, want] of [
   ['/2027/schedule/', true], ['/2027/today/', true], ['/2027/sessions/a-talk/', true], ['/2027/speakers/', true],
   ['/2027/speakers/a-person/', true], ['/2027/speakers/a-person-small.webp', true], ['/_astro/index.a1b2.css', true],
-  ['/_astro/photo.a1b2.webp', true], ['/fonts/archivo/archivo-latin-wdth-normal.woff2', true], ['/schedule.js', true],
+  ['/_astro/photo.a1b2.webp', true], ['/fonts/archivo/archivo-latin-wdth-normal.woff2', true], ['/schedule.js', true], ['/schedule.css', true],
   ['/brand/kcd-logo-black.svg', true], ['/brand/kcd-logo-white.svg', true], ['/brand/badge-2027.png', true],
   ['/theme.js', false], ['/now.js', false], ['/sw.js', false], ['/2027/cfp/', false], ['/2027/schedule.ics', false],
-  ['/2027/sessions/a-talk.ics', false], ['/about/', false], ['/', false], ['/cards/default.png', false], ['/brand/notes.txt', false],
+  ['/2027/sessions/a-talk.ics', false], ['/about/', false], ['/', false], ['/cards/default.png', false], ['/brand/notes.txt', false], ['/other.css', false],
 ]) expect(keep.test(path) === want, `/sw.js ${want ? "doesn't keep" : 'keeps'} ${path}`);
 
 // The budgets check-dist holds them to: /sw.js at most 3 KB and /schedule.js at most 8 KB, as built.
