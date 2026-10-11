@@ -399,6 +399,7 @@ try {
       expect(b.status === 0, `the production build from Sessionize fails:\n${b.log.slice(-2500)}`);
       if (b.status === 0) {
         expect(!b.log.includes(ID) && !b.log.includes(marker), 'the production build log contains the endpoint ID or the marker');
+        expect(!/Warning: \w+ is set in a/.test(b.log), 'the production build warns about the platform\'s variables');
         expect(!walk('dist').some((f) => readFileSync(f).includes(ID)), 'a built file contains the endpoint ID');
         expect(state.requests.filter((u) => u.startsWith('/api/')).length === 1 && state.requests.filter((u) => u.startsWith('/photos/')).length === 3, `the build made ${state.requests.join(', ')} requests, not one All view and three photos`);
         const speakers = readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory()).sort();
@@ -462,6 +463,9 @@ try {
         expect(b.status === 0 && state.requests.length === 0, `the ${context} build fails or reads the platform (${state.requests.length} requests):\n${b.log.slice(-1500)}`);
         expect(b.status === 0 && /using the test program/.test(b.log) && /\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')) && !existsSync('dist/2027/speakers/fixture-person-a')
           && /KCD_PROGRAM_SAMPLE/.test(readFileSync('dist/.test-build', 'utf8')), `the ${context} build does not use the labeled test data`);
+        // It warns that each variable is set where it shouldn't be, naming it, never its value.
+        expect(['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL'].every((v) => b.log.includes(`Warning: ${v} is set in a ${context} build. Scope it to the Production deploy context only`))
+          && !b.log.includes(ID) && !b.log.includes(CSV_SECRET), `the ${context} build doesn't warn about the platform's variables, or prints a value:\n${b.log.slice(0, 1500)}`);
       }
 
       // Production with no variable, and with a failing platform: the build fails, with a redacted message.
