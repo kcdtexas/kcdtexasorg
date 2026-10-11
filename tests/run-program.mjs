@@ -170,7 +170,7 @@ try {
   expect([...schedule.matchAll(/<li class="sch-item[\s\S]*?<\/li>/g)].every((m) => /class="sch-time"/.test(m[0]) && /class="sch-room"/.test(m[0])), 'a Session in the Schedule has no time or room as text');
   // The fixture: its marks, and the Returning Speaker credit only where an earlier Edition matches.
   const speakers = read('2027/speakers/index.html');
-  const listed = (speakers.match(/<a class="spk-name" href="\/2027\/speakers\/[a-z0-9-]+\/">/g) ?? []).length;
+  const listed = (speakers.match(/<a class="spk-name" href="\/2027\/speakers\/[a-z0-9-]+\/" data-ugc>/g) ?? []).length;
   expect(listed === speakerPages.length, `the Speakers list links ${listed} Speakers, but ${speakerPages.length} Speaker pages were built`);
   expect(/Fixture Speaker 1/.test(speakers) && /Speaker since 2026/.test(speakers), 'the Speakers list lacks the fixture or the "Speaker since 2026" credit');
   const returning = read('2027/speakers/fixture-speaker-4/index.html');
@@ -179,7 +179,14 @@ try {
   expect(!/\bFixture\b/.test(read('2026/index.html')), 'the test history reaches the 2026 page');
   const credits = (speakers.match(/Speaker since/g) ?? []).length;
   expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only Fixture Speaker 4 should (2026 test data never credits itself)`);
-  expect(/<a href="https:\/\/example\.com\/">Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
+  expect(/<a href="https:\/\/example\.com\/" data-ugc>Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
+  // The program's text is marked for check-dist's draft-marker checks (data-ugc): the head's title, description and card
+  // text, and the title, the room, the abstract, the Speakers and their taglines; every "Sample" label has data-sample.
+  {
+    const fx = read('2027/sessions/fixture-session-how-we-run-kubernetes-for-our-own-business/index.html');
+    expect(['<title data-ugc>', '<meta name="description" content="Fixture Session: ', '<h1 class="page-title ses-title" data-ugc>', '<dd data-ugc>Fixture Room</dd>', '<p class="ses-abstract" data-ugc>', '<span class="spk-tag" data-ugc>', '<p class="page-soon" data-sample>Sample: ']
+      .every((m) => fx.includes(m)) && /<meta property="og:image:alt" content="Sample: [^"]*" data-ugc>/.test(fx), 'a Session page does not mark its program text with data-ugc, or its label with data-sample');
+  }
   // The End-User Story badge, the formats, and the share cards.
   expect(/badge--eu/.test(schedule) && /badge--workshop/.test(schedule) && /badge--panel/.test(schedule), 'the Schedule lacks the End-User Story, workshop or panel badge');
   for (const page of [`2027/sessions/${sessionPages[0]}/index.html`, '2027/speakers/fixture-speaker-4/index.html']) {
@@ -485,7 +492,7 @@ try {
     expect(!/data-schedule/.test(sched) && !/schedule\.js/.test(sched), 'the speakers-only Schedule page shows the Sessions by time or loads /schedule.js');
     const fx = 'fixture-session-how-we-run-kubernetes-for-our-own-business';
     const sessionHtml = read(`2027/sessions/${fx}/index.html`);
-    expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title">/.test(sessionHtml), `${fx}: no title or abstract`);
+    expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title" data-ugc>/.test(sessionHtml), `${fx}: no title or abstract`);
     expect(!/Time \(Central\)|<dt>Room<\/dt>|\.ics"/.test(sessionHtml), `${fx}: shows a time, a room or "Add to calendar"`);
     for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`]) {
       const html = read(page);
@@ -505,6 +512,9 @@ try {
     expect(timed.status !== 0 && /the calendar files \(dist\/2027\/schedule\.ics, dist\/2027\/sessions\/\*\.ics\): built, but the test program's gates \(KCD_PROGRAM_SAMPLE=speakers\) open only speakersPublic/.test(timed.log),
       'check-dist passes a calendar file with only speakersPublic open');
     expect(checkDist({ KCD_PROGRAM_SAMPLE: 'speakers' }).status === 0, 'check-dist fails the speakers-only build with its flag');
+    // Without its flag, check-dist refuses its labels.
+    const unflagged = checkDist({ KCD_PROGRAM_SAMPLE: undefined });
+    expect(unflagged.status !== 0 && /2027\/schedule\/index\.html: draft marker a "Sample" label/.test(unflagged.log), 'check-dist passes the speakers-only build without its flag');
   }
   await serve();
   for (const script of ['tests/smoke.mjs', 'tests/browser.mjs']) {
@@ -566,9 +576,24 @@ try {
   expect(!/^\/speakers\s/m.test(read('_redirects')), 'a closed gate still serves the /speakers Short Link');
   expect(!/My Schedule/.test(read('privacy/index.html')), 'the privacy page mentions My Schedule with the gates closed');
   expect(!/Fixture Organizer/.test(read('about/index.html')) && Object.keys(organizerCredits(read('about/index.html'))).length === 12, 'a normal build adds the made-up Organizer to About');
+  // check-dist fails a "Sample" label planted in a normal build, by its data-sample alone or by the word, but not the
+  // word in a Speaker's or an Organizer's own text (data-ugc).
+  {
+    const page = read('about/index.html');
+    for (const [what, planted, fails] of [
+      ['a label', '<p class="page-soon" data-sample>A test build.</p>', true],
+      ['the word', '<p>Sample day</p>', true],
+      ['the word in program text', '<p data-ugc>Sample code, a TODO list and {name} [TBD]</p>', false],
+    ]) {
+      writeFileSync('dist/about/index.html', page.replace('</main>', `${planted}</main>`));
+      const res = checkDist({});
+      expect((res.status !== 0) === fails && (!fails || /about\/index\.html: draft marker (?:a "Sample" label|Sample)/.test(res.log)), `check-dist ${fails ? 'passes' : 'fails'} a normal build with ${what} planted:\n${res.log.slice(-600)}`);
+    }
+    writeFileSync('dist/about/index.html', page);
+  }
   for (const f of served()) {
     const body = readFileSync(f, 'utf8');
-    expect(!body.includes(marker) && !/Fixture (?:Speaker|Session|Organizer)/.test(body), `${f}: the fixture reaches a normal build`);
+    expect(!body.includes(marker) && !/Fixture (?:Speaker|Session|Room|Organizer)/.test(body), `${f}: the fixture reaches a normal build`);
     if (!existsSync('src/data/history/2025.ts')) expect(!/class="credit"/.test(body), `${f}: a normal build shows a credit with no 2025 record`);
   }
 } finally {

@@ -95,12 +95,15 @@ function run(cmd, args, env) {
   });
 }
 
-// The gates, opened in the Edition file for one step and always restored.
+// The gates, opened in the Edition file for one step and always restored, and the announcements file likewise.
 const EDITION = 'src/data/edition-2027.ts';
 const editionText = readFileSync(EDITION, 'utf8');
+const EVENT_DAY = editionText.match(/eventDay: '(\d{4}-\d{2}-\d{2})'/)[1];
+const ANNOUNCEMENTS = 'src/data/announcements-2027.yaml';
+const announcementsText = readFileSync(ANNOUNCEMENTS, 'utf8');
 const CLOSED = 'program: { speakersPublic: false, schedulePublic: false }';
 if (!editionText.includes(CLOSED)) throw new Error(`${EDITION}: the gates aren't closed as "${CLOSED}"; these tests open them for a run`);
-const restore = () => writeFileSync(EDITION, editionText);
+const restore = () => { writeFileSync(EDITION, editionText); writeFileSync(ANNOUNCEMENTS, announcementsText); };
 process.on('exit', restore);
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { restore(); process.exit(130); });
 async function withGates(gates, fn) {
@@ -454,6 +457,46 @@ try {
           `past the budget a page does not keep the title card: ${cardOf(`sessions/fixture-load-session-${budget + 1}`)}, ${cardOf('speakers/fixture-person-a')}`);
         expect(!/Download the Share Card/.test(readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8')), 'a Speaker past the budget offers a Share Card to download');
       }
+
+      // The Speakers' and the Organizers' own words may hold what check-dist's draft-marker checks look for: an
+      // abstract, a bio, a tagline, a title and a room that say "Sample", "TODO", "[TBD", "${HOME}" and "{name}", or
+      // give an image's address as text. A production build passes with them (data-ugc marks them for check-dist).
+      const said = 'Sample code for every demo, a TODO list, [TBD], ${HOME}, {name} and https://example.com/slides/diagram.png';
+      const words = fixture();
+      words.sessions[0].description = `${said}.`;
+      words.sessions[1].title = 'Sample Apps and a TODO List [TBD] for {name}';
+      words.speakers[0].bio = `Slides with the diagram: https://example.com/slides/diagram.png. ${said}.`;
+      words.speakers[1].tagLine = 'Sample TODO [TBD] ${HOME} {name}';
+      words.rooms[1].name = 'TODO Room [TBD] {name}';
+      state.fixture = JSON.stringify(words);
+      b = await build(prodSessionize);
+      expect(b.status === 0, `the production build fails on the Speakers' and Organizers' own words:\n${b.log.slice(-2500)}`);
+      if (b.status === 0) {
+        const page = (path) => readFileSync(`dist/2027/${path}/index.html`, 'utf8');
+        expect(page('sessions/fixture-keynote-opening-the-made-up-day').includes(`<p class="ses-abstract" data-ugc>${said}.</p>`)
+          && page('speakers/fixture-person-a').includes('<p data-ugc>Slides with the diagram: https://example.com/slides/diagram.png.')
+          && page('speakers/fixture-person-b').includes('Sample TODO [TBD] ${HOME} {name}')
+          && /Sample Apps and a TODO List \[TBD\] for \{name\}/.test(page('schedule')) && /TODO Room \[TBD\] \{name\}/.test(page('schedule')),
+        'the production build does not show the Speakers\' and Organizers\' own words as they wrote them');
+      }
+      // On Event Day, with an announcement in the same words. scripts/build.sh refuses --now and --clock in production,
+      // so this runs its build steps itself, with the day and the time those flags would set.
+      writeFileSync(ANNOUNCEMENTS, `${announcementsText}- at: "${EVENT_DAY} 09:00"\n  text: "${said}."\n`);
+      let steps = '';
+      let stepsOk = true;
+      for (const [cmd, args, env] of [
+        ['npx', ['astro', 'build'], { ...prodSessionize, KCD_BUILD_DAY: EVENT_DAY, KCD_BUILD_CLOCK: '12:00', ASTRO_TELEMETRY_DISABLED: '1' }],
+        [process.execPath, ['scripts/write-host-files.mjs'], {}],
+        [process.execPath, ['scripts/check-dist.mjs'], { CONTEXT: 'production' }],
+      ]) {
+        const r = await run(cmd, args, env);
+        steps += r.log;
+        if (r.status !== 0) { stepsOk = false; break; }
+      }
+      writeFileSync(ANNOUNCEMENTS, announcementsText);
+      state.fixture = fixtureText;
+      expect(stepsOk && readFileSync('dist/2027/today/index.html', 'utf8').includes(`<li data-ugc><time datetime="${EVENT_DAY}T09:00">9:00 a.m.</time> ${said}.</li>`),
+        `production on Event Day fails on the Speakers' and Organizers' own words, or lacks the announcement:\n${steps.slice(-2500)}`);
 
       // A deploy preview and a branch deploy with the gates open and both variables set to this server: the test
       // data, labeled "Sample" and marked as a test build, and no request to the platform.
