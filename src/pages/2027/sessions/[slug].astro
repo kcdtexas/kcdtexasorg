@@ -1,6 +1,6 @@
 ---
-// /2027/sessions/<slug>/: one Session, once a program gate is open (src/lib/program.ts). The time, the room and
-// "Add to calendar" come with the Schedule's gate.
+// /2027/sessions/<slug>/: one Session, once a program gate is open (src/lib/program.ts). The time, the room, the
+// My Schedule star and "Add to calendar" come with the Schedule's gate.
 import Base from '../../../layouts/Base.astro';
 import Badges from '../../../components/program/Badges.astro';
 import Star from '../../../components/program/Star.astro';
@@ -33,10 +33,12 @@ const card = programCard('session', s.slug);
           <div><dt>{w.day}</dt><dd>{programPages.dayLine}</dd></div>
         </dl>
       )}
-      <div class="actions ses-actions">
-        <Star session={s} words />
-        {program!.schedulePublic && <a class="btn btn--sm btn--line" href={`${paths.sessions}${s.slug}.ics`} download>{w.calendar}</a>}
-      </div>
+      {program!.schedulePublic && (
+        <div class="actions ses-actions">
+          <Star session={s} words />
+          <a class="btn btn--sm btn--line" href={`${paths.sessions}${s.slug}.ics`} download>{w.calendar}</a>
+        </div>
+      )}
     </header>
 
     <section class="page-sec" aria-labelledby="about-session">

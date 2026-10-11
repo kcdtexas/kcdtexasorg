@@ -157,14 +157,22 @@ export function programPublic(): boolean {
   return programSample || (programDataSample ? programSampleGates.schedulePublic : edition2027.program.schedulePublic);
 }
 
-/** Where the program stands, by its gate, never by the date alone: 'out' once public; 'dated' before its day;
- *  'soon' if the day passes without the release. */
-export function programState(day = asOfDay): 'out' | 'dated' | 'soon' {
+/** The Speakers are public, with or without the Schedule: a program gate is open (or a --program-sample test build
+ *  opens one), so the Speakers' and the Sessions' pages exist (src/lib/program.ts). */
+export function speakersOut(): boolean {
+  const gates = programDataSample ? programSampleGates : edition2027.program;
+  return gates.speakersPublic || gates.schedulePublic;
+}
+
+/** Where the program stands, by its gates, never by the date alone: 'out' once the Schedule is public; 'speakers'
+ *  while only the Speakers are; 'dated' before its day; 'soon' if the day passes without the release. */
+export function programState(day = asOfDay): 'out' | 'speakers' | 'dated' | 'soon' {
   if (programPublic()) return 'out';
+  if (speakersOut()) return 'speakers';
   return day < edition2027.schedule ? 'dated' : 'soon';
 }
 
-/** "Mar 1", "coming soon" or "out now": the program's status, by programState(). */
+/** "Mar 1", "coming soon" or "out now": the Schedule's status, by programState(). */
 export function programStatus(day = asOfDay): string {
   const s = programState(day);
   return s === 'out' ? 'out now' : s === 'dated' ? shortDate(edition2027.schedule) : 'coming soon';

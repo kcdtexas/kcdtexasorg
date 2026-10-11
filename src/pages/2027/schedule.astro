@@ -1,5 +1,6 @@
 ---
-// /2027/schedule/: when the Schedule and the Speakers come out (Session Committee).
+// /2027/schedule/: when the Schedule and the Speakers come out (Session Committee), then the Schedule. While only the
+// Speakers are public, it says the Schedule comes later and links to them.
 import Base from '../../layouts/Base.astro';
 import PageHead from '../../components/PageHead.astro';
 import { schedule as s } from '../../data/schedule';
@@ -17,6 +18,11 @@ import { program } from '../../lib/program';
         {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
       </dl>
       {s.sample && <p class="page-soon" data-sample>{s.sample}</p>}
+      {program && !program.schedulePublic && (
+        <div class="actions">
+          <a class="btn" href={paths.speakers}>{s.meetSpeakers}</a>
+        </div>
+      )}
     </PageHead>
 
     {program?.schedulePublic && (
