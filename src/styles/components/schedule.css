@@ -38,7 +38,7 @@
 
   /* The filters, shown by /schedule.js. */
   .sch-links { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 20px; font-weight: 700; }
-  .sch-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 32px; margin-bottom: 28px; padding: 16px 0; border-top: 3px solid var(--fg); border-bottom: 1px solid var(--line); }
+  .sch-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 32px; margin-bottom: 12px; padding: 16px 0; border-top: 3px solid var(--fg); }
   .sch-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
   .sch-group legend { float: left; width: 100%; margin-bottom: 6px; font-weight: 700; font-size: 14px; color: var(--muted); }
   .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--fg); font-weight: 700; font-size: 15px; cursor: pointer; }
