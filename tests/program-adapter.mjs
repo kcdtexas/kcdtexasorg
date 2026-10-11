@@ -539,7 +539,7 @@ try {
     // kept, and the offline copy, through Event Day and from the day after, when the offline worker deletes it.
     await withGates(both, async () => {
       for (const [day, offline, gone] of [
-        ['2027-04-23', 'When you open a program page, such as the Schedule or a Session, your browser keeps a copy so it opens without a connection. The copy stays in your browser. After Event Day, your browser deletes it the next time you open a 2027 page.', 'Until Event Day'],
+        ['2027-04-23', 'When you open a program page, such as a Session or a Speaker’s page, your browser keeps a copy so it opens without a connection. The copy stays in your browser. After Event Day, your browser deletes it the next time you open a 2027 page.', 'Until Event Day'],
         ['2027-04-24', 'Until Event Day, your browser kept a copy of the program pages you opened. It deletes the copy the next time you open a 2027 page.', 'without a connection'],
       ]) {
         const b = await build({}, ['--now', day]);

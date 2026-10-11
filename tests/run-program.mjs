@@ -538,7 +538,7 @@ try {
       expect(text(html).includes('Sample: this test build shows the 2026 Speakers and Sessions, without times or rooms, plus made-up Sessions, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
       expect(!/data-star=/.test(html), `${page}: offers the My Schedule star while only the Speakers are public`);
     }
-    expect(text(sched).includes('The Schedule comes out soon. Meet the Speakers now.') && !/together with the Speakers/.test(text(sched))
+    expect(text(sched).includes('The Speakers are out. The Schedule comes out soon.') && !/together with the Speakers|Session Committee/.test(text(sched))
       && /<a class="btn" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(sched), 'the speakers-only Schedule page does not say the Schedule comes later, or does not link to the Speakers');
     expect(/<a href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(read('index.html')), 'the speakers-only home page does not link to the Speakers');
     expect(!/If you star a Session/.test(read('privacy/index.html')) && /without a connection/.test(read('privacy/index.html')), 'the speakers-only privacy page mentions My Schedule, or lacks the offline copy');

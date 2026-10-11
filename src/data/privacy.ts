@@ -33,7 +33,7 @@ export const privacy = {
         'The choice stays in your browser. It isn’t sent to us.',
         ...(program?.schedulePublic ? ['If you star a Session, your browser keeps My Schedule in its local storage, on this device only. It isn’t sent to us.'] : []),
         ...(offlineCopy
-          ? ['When you open a program page, such as the Schedule or a Session, your browser keeps a copy so it opens without a connection. The copy stays in your browser. After Event Day, your browser deletes it the next time you open a 2027 page.']
+          ? ['When you open a program page, such as a Session or a Speaker’s page, your browser keeps a copy so it opens without a connection. The copy stays in your browser. After Event Day, your browser deletes it the next time you open a 2027 page.']
           : program
             ? ['Until Event Day, your browser kept a copy of the program pages you opened. It deletes the copy the next time you open a 2027 page.']
             : []),
