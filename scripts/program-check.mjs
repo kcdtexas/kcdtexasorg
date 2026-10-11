@@ -9,9 +9,7 @@
 //       same file. scripts/build.sh uses it to pick the test program for a non-production build.
 //   node scripts/program-check.mjs
 //       Prints exactly "changed" or "unchanged" on stdout, and nothing else: no program data, no hash. When
-//       GITHUB_OUTPUT is set, it also appends "changed=true" or "changed=false" to that file, and "version=" with
-//       the program version it computed (empty while the gates are closed). The workflow's rebuild job waits until
-//       the live site publishes that version, so the next run doesn't deploy the same change again.
+//       GITHUB_OUTPUT is set, it also appends "changed=true" or "changed=false" to that file, and nothing else.
 //       - Both gates closed: "unchanged", and no platform call.
 //       - A gate open: reads the platform as a production build does (src/lib/program-source/platform.mjs):
 //         Sessionize when SESSIONIZE_ENDPOINT_ID is set, else the CSV at PROGRAM_CSV_URL. It computes the program
@@ -30,18 +28,18 @@ import { fetchBytes, localTestUrl, redact } from '../src/lib/program-source/remo
 const { edition2027 } = await importTs(new URL('../src/data/edition-2027.ts', import.meta.url));
 const gates = edition2027.program;
 
-/** Whether the platform's program differs from the live one, and the platform's program version. */
+/** Whether the platform's program differs from the live one. */
 async function check(env) {
-  if (!gatesOpen(gates)) return { changed: false, version: '' };
+  if (!gatesOpen(gates)) return false;
   // The check stands in for the production build, so it reads the platform as one.
   const prod = { ...env, CONTEXT: 'production' };
   const { version } = publicModel(await readPlatform(chooseSource(gates, prod), prod), gates, prod);
   const live = localTestUrl('KCD_PROGRAM_LIVE_URL', env) ?? liveVersionUrl;
   try {
     const { body } = await fetchBytes(live, { env, what: 'The live program version', maxBytes: 4096, accept: 'text/plain' });
-    return { changed: body.toString('utf8').trim() !== version, version };
+    return body.toString('utf8').trim() !== version;
   } catch {
-    return { changed: true, version };
+    return true;
   }
 }
 
@@ -51,8 +49,8 @@ if (process.argv.includes('--gates')) {
   console.log(gates.schedulePublic ? 'schedule' : gates.speakersPublic ? 'speakers' : 'closed');
 } else {
   try {
-    const { changed, version } = await check(process.env);
-    if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\nversion=${version}\n`);
+    const changed = await check(process.env);
+    if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`);
     console.log(changed ? 'changed' : 'unchanged');
   } catch (e) {
     console.error(redact(e instanceof Error ? e.message : String(e), process.env));

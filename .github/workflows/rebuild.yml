@@ -79,8 +79,7 @@ jobs:
           echo "rebuild=$r" >> "$GITHUB_OUTPUT"
 
   # Has the public program changed on the platform since the live site was built? It runs only when the check job
-  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches. It
-  # passes on the program version it computed, a hash of the public program, for the rebuild job's wait.
+  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches.
   program:
     needs: check
     if: needs.check.outputs.program == 'true'
@@ -92,7 +91,6 @@ jobs:
       contents: read # check out the repo
     outputs:
       changed: ${{ steps.compare.outputs.changed }}
-      version: ${{ steps.compare.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -120,6 +118,16 @@ jobs:
     environment: production
     permissions: {}
     steps:
+      # After a program change, the run waits until the live site has the new program (the last step). Just before
+      # the build starts, it notes the live program version, a hash of the public program that the site publishes,
+      # in a file on the runner: no version passes between the jobs, and no command prints one.
+      - name: Note the live program version
+        if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
+        env:
+          LIVE: https://kcdtexas.org/2027/program-version.txt
+        run: |
+          live="$(curl -fsS --retry 3 --retry-all-errors --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
+          printf '%s' "$live" > "$RUNNER_TEMP/live-version"
       - name: Start a Netlify production build
         env:
           HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
@@ -130,21 +138,20 @@ jobs:
           if [ -z "$HOOK" ]; then echo "::error::NETLIFY_BUILD_HOOK isn't set in the production environment."; exit 1; fi
           curl -fsS --retry 3 --retry-all-errors -o /dev/null -X POST -d '{}' "$HOOK?trigger_title=$TITLE+$DAY"
           echo "Netlify accepted the build hook for $DAY. The deploy shows in Netlify's Deploys list."
-      # After a program change, wait until the live site publishes the new program version, checking every 20
-      # seconds for up to 10 minutes. The next run waits for this one (concurrency, above), so it compares with the
-      # new live site and doesn't deploy the same change again. Rebuild days and forced runs don't wait. The version
-      # is a hash of the public program, which the live site publishes too; no command prints it.
+      # Then it checks the live version every 20 seconds, for up to 10 minutes, until it differs from the noted one
+      # (or appears, if there was none). The next run waits for this one (concurrency, above), so it compares with
+      # the new live site and doesn't deploy the same change again. Rebuild days and forced runs don't wait.
       - name: Wait until the live site has the new program
         if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
         env:
-          VERSION: ${{ needs.program.outputs.version }}
           LIVE: https://kcdtexas.org/2027/program-version.txt
         run: |
+          before="$(cat "$RUNNER_TEMP/live-version")"
           end=$((SECONDS + 600))
           while [ "$SECONDS" -lt "$end" ]; do
             sleep 20
             got="$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
-            if [ -n "$VERSION" ] && [ "$got" = "$VERSION" ]; then echo "The live site has the new program."; exit 0; fi
+            if [ -n "$got" ] && [ "$got" != "$before" ]; then echo "The live site has the new program."; exit 0; fi
           done
           echo "::error::The live site still doesn't have the new program after 10 minutes. Open the newest deploy in Netlify's Deploys list: its deploy log says whether it failed or is still building."
           exit 1
