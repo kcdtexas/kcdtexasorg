@@ -168,6 +168,7 @@ async function check() {
     // /schedule.js only where the program is: the Schedule with its gate open, Session pages, Speaker pages, Event Day.
     const programPage = /[\\/]2027[\\/](?:sessions|speakers|today)[\\/]/.test(file) || /data-schedule/.test(html);
     if (scripts.some((m) => /schedule\.js/.test(m[0])) && !programPage) failures.push(`${file}: loads /schedule.js outside the program pages`);
+    if (/<link rel="stylesheet" href="\/schedule\.css">/.test(html) && !programPage) failures.push(`${file}: loads /schedule.css outside the program pages`);
     if (/\sstyle="/i.test(html)) failures.push(`${file}: contains an inline style attribute`);
     // Plain <a href> links to other sites are fine; loading anything from them is not.
     for (const m of html.matchAll(/\s(?:src|srcset)="(https?:\/\/[^"]+)"/gi)) {
@@ -187,9 +188,13 @@ async function check() {
     } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
   }
 
-  // /schedule.js and its cache rule ship only in a build where a page loads it.
+  // /schedule.js with its cache rule, and the program pages' styles, /schedule.css, ship only in a build where a page
+  // loads them.
   const loaded = pages.some(({ html }) => html.includes('<script src="/schedule.js" defer></script>'));
   if (existsSync(join(DIST, 'schedule.js')) !== loaded) failures.push(loaded ? 'a page loads /schedule.js, but dist/schedule.js is missing' : 'dist/schedule.js ships, but no page loads it');
+  const styled = pages.some(({ html }) => html.includes('<link rel="stylesheet" href="/schedule.css">'));
+  if (existsSync(join(DIST, 'schedule.css')) !== styled) failures.push(styled ? 'a page loads /schedule.css, but dist/schedule.css is missing' : 'dist/schedule.css ships, but no page loads it');
+  if (existsSync(join(DIST, 'schedule.css')) !== existsSync(join(DIST, 'schedule.js'))) failures.push('dist/schedule.css and dist/schedule.js must ship together');
   const hostHeaders = readFileSync(join(DIST, '_headers'), 'utf8');
   if (/^\/schedule\.js$/m.test(hostHeaders) !== existsSync(join(DIST, 'schedule.js'))) failures.push('_headers has a /schedule.js rule without the file, or the file without its rule');
   // The offline worker (/sw.js) comes with the program script: its no-cache rule, and worker-src in the CSP.

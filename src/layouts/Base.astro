@@ -14,7 +14,8 @@ interface Props {
   /** The page's link-preview card (src/pages/cards): a site card, or a program page's own card with its alt text;
    *  the title card when the page has none of its own. */
   card?: CardId | { id: string; alt: string };
-  /** The program pages' script (/schedule.js): My Schedule, the filters, Event Day's now and next, and offline use. */
+  /** A program page: its script (/schedule.js: My Schedule, the filters, Event Day's now and next, and offline use)
+   *  and its styles (/schedule.css). */
   schedule?: boolean;
   /** Structured data for search engines, as a JSON-LD object (src/lib/structured-data.ts). */
   jsonLd?: object;
@@ -46,6 +47,7 @@ const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || A
     <!-- Applies a remembered theme before the first paint. Same-origin, so the CSP needs no inline code. -->
     <script is:inline src="/theme.js"></script>
     {schedule && <script is:inline src="/schedule.js" defer></script>}
+    {schedule && <link rel="stylesheet" href="/schedule.css" />}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KCD Texas" />
     <meta property="og:title" content={title} />
