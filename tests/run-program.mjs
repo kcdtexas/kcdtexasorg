@@ -11,12 +11,12 @@
 // time show), Event Day's now and next at 10:30 a.m. and 3:00 p.m. (with axe in both themes), and offline use (the
 // Event Day page and a Session page reload offline; from the day after Event Day the worker removes itself). It
 // builds the gate matrix's middle case, only `speakersPublic` open (--program-sample=speakers), and checks it has no
-// times, rooms, calendar files, stars or Event Day page, and that the home page and the Schedule page link to the
-// Speakers. It adds a history file to src/data/history/ (a good one, then a bad one) and removes it again. It builds
-// a preview's og:image (CARD_ORIGIN), which check-dist passes, unlike an image a page loads from another host. Last
-// it builds with the gates closed and checks that no program page, card, calendar file, script, style or credit is
-// built, that check-dist fails a planted "Sample" label, and that the planted marker reaches no served file and no
-// build log in any build.
+// times, rooms, calendar files, stars or Event Day page, and that the home page, the Schedule page and the Session
+// pages' kicker and closing link go to the Speakers. It adds a history file to src/data/history/ (a good one, then a
+// bad one) and removes it again. It builds a preview's og:image (CARD_ORIGIN), which check-dist passes, unlike an
+// image a page loads from another host. Last it builds with the gates closed and checks that no program page, card,
+// calendar file, script, style or credit is built, that check-dist fails a planted "Sample" label, and that the
+// planted marker reaches no served file and no build log in any build.
 // dist/ ends as a normal build, also when a step fails, unless --keep-dist.
 // Usage: node tests/run-program.mjs [--keep-dist]
 import { spawn, spawnSync } from 'node:child_process';
@@ -190,6 +190,7 @@ try {
     const fx = read('2027/sessions/fixture-session-how-we-run-kubernetes-for-our-own-business/index.html');
     expect(['<title data-ugc>', '<meta name="description" content="Fixture Session: ', '<h1 class="page-title ses-title" data-ugc>', '<dd data-ugc>Fixture Room</dd>', '<p class="ses-abstract" data-ugc>', '<span class="spk-tag" data-ugc>', '<p class="page-soon" data-sample>Sample: ']
       .every((m) => fx.includes(m)) && /<meta property="og:image:alt" content="Sample: [^"]*" data-ugc>/.test(fx), 'a Session page does not mark its program text with data-ugc, or its label with data-sample');
+    expect(fx.includes('<p class="kicker"><a href="/2027/schedule/">KCD Texas 2027 Schedule</a></p>') && fx.includes('<p class="more"><a href="/2027/schedule/">See the whole Schedule</a></p>'), 'a Session page’s kicker or closing link does not go to the Schedule');
   }
   // The End-User Story badge, the formats, and the share cards.
   expect(/badge--eu/.test(schedule) && /badge--workshop/.test(schedule) && /badge--panel/.test(schedule), 'the Schedule lacks the End-User Story, workshop or panel badge');
@@ -483,8 +484,8 @@ try {
 
   // 7. The gate matrix: only `speakersPublic` open (--program-sample=speakers). The Speakers, the titles and the
   // abstracts, with no times, rooms, calendar files or Event Day page; the program version is still published. The
-  // home page and the Schedule page link to the Speakers, the Schedule page says the Schedule comes later, and no
-  // page offers the My Schedule star, which the privacy page then leaves out.
+  // home page, the Schedule page and the Session pages' kicker and closing link go to the Speakers, the Schedule page
+  // says the Schedule comes later, and no page offers the My Schedule star, which the privacy page then leaves out.
   const speakersOnly = build(['--program-sample=speakers']);
   if (speakersOnly.status !== 0) throw new Error(`the speakers-only sample build failed:\n${speakersOnly.log.slice(-3000)}`);
   expect(!speakersOnly.log.includes(marker), 'the speakers-only build log contains the planted marker');
@@ -500,6 +501,9 @@ try {
     const sessionHtml = read(`2027/sessions/${fx}/index.html`);
     expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title" data-ugc>/.test(sessionHtml), `${fx}: no title or abstract`);
     expect(!/Time \(Central\)|<dt>Room<\/dt>|\.ics"/.test(sessionHtml), `${fx}: shows a time, a room or "Add to calendar"`);
+    // The Schedule page only says the Schedule comes out soon, so the kicker and the closing link go to the Speakers.
+    expect(sessionHtml.includes('<p class="kicker"><a href="/2027/speakers/">KCD Texas 2027 Speakers</a></p>') && sessionHtml.includes('<p class="more"><a href="/2027/speakers/">See all the Speakers</a></p>')
+      && !/<p class="(?:kicker|more)"><a href="\/2027\/schedule\/">/.test(sessionHtml), `${fx}: the kicker or the closing link goes to the Schedule while only the Speakers are public`);
     for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`, '2027/schedule/index.html']) {
       const html = read(page);
       expect(!/class="sch-(?:time|room|meta)"|data-start="\d/.test(html), `${page}: shows a time or a room`);

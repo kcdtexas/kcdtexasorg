@@ -1,6 +1,7 @@
 ---
 // /2027/sessions/<slug>/: one Session, once a program gate is open (src/lib/program.ts). The time, the room, the
-// My Schedule star and "Add to calendar" come with the Schedule's gate.
+// My Schedule star and "Add to calendar" come with the Schedule's gate; until then, the kicker and the closing link
+// go to the Speakers.
 import Base from '../../../layouts/Base.astro';
 import Badges from '../../../components/program/Badges.astro';
 import Star from '../../../components/program/Star.astro';
@@ -17,12 +18,13 @@ const { session: s } = Astro.props as { session: Session };
 const w = programPages.session;
 const who = speakersOf(s);
 const card = programCard('session', s.slug);
+const up = program!.schedulePublic ? { href: paths.schedule, kicker: w.kicker, back: w.back } : { href: paths.speakers, kicker: w.kickerSpeakers, back: w.backSpeakers };
 ---
 
 <Base title={`${s.title} · KCD Texas ${programPages.year}`} description={w.description(s)} card={card ?? undefined} schedule programText>
   <article class="page wrap ses-page">
     <header class="page-head">
-      <p class="kicker"><a href={paths.schedule}>{w.kicker}</a></p>
+      <p class="kicker"><a href={up.href}>{up.kicker}</a></p>
       <Badges session={s} />
       <h1 class="page-title ses-title" data-ugc>{s.title}</h1>
       {program!.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
@@ -62,6 +64,6 @@ const card = programCard('session', s.slug);
       </ul>
     </section>
 
-    <p class="more"><a href={paths.schedule}>{w.back}</a></p>
+    <p class="more"><a href={up.href}>{up.back}</a></p>
   </article>
 </Base>

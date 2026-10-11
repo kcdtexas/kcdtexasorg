@@ -16,7 +16,9 @@ export const programPages = {
   dayLine: `${longDate(e.eventDay)}, ${e.city}`,
   sample: programSampleLabel,
   session: {
+    // The kicker and the closing link go to the Schedule, or to the Speakers while only they are public.
     kicker: `KCD Texas ${e.year} Schedule`,
+    kickerSpeakers: `KCD Texas ${e.year} Speakers`,
     description: (s: Session) => `${s.title}: a Session at KCD Texas ${e.year} in ${e.city} on ${longDate(e.eventDay)}.`,
     time: 'Time (Central)',
     room: 'Room',
@@ -27,6 +29,7 @@ export const programPages = {
     speaker: 'Speaker',
     speakers: 'Speakers',
     back: 'See the whole Schedule',
+    backSpeakers: 'See all the Speakers',
   },
   speakers: {
     title: `The KCD Texas ${e.year} Speakers`,
