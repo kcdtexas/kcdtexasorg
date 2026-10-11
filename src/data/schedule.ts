@@ -12,7 +12,7 @@ const when = {
   dated: { desc: `${all} are announced together on ${shortDateYear(e.schedule)}. Until then, see the call for proposals and the 2026 program.`, lead: `The Schedule comes out ${shortDateYear(e.schedule)}, together with the Speakers and the keynotes. ${selects}`, facts: [{ term: 'Schedule and Speakers', text: shortDate(e.schedule) }] },
   soon: { desc: `${all} are coming soon. Until then, see the 2026 program.`, lead: `The Schedule comes out soon, together with the Speakers and the keynotes. ${selects}`, facts: [{ term: 'Schedule and Speakers', text: 'Coming soon' }] },
   speakers: { desc: `The KCD Texas ${e.year} Speakers are out, and the Schedule comes out soon.`, lead: 'The Speakers are out. The Schedule comes out soon.', facts: [{ term: 'Speakers', text: 'Out now' }, { term: 'Schedule', text: 'Coming soon' }] },
-  out: { desc: `${all} are out.`, lead: `The Schedule is out, with the Speakers and the keynotes. ${selects}`, facts: [{ term: 'Schedule and Speakers', text: 'Out now' }] },
+  out: { desc: `${all} are out.`, lead: 'The Schedule is out, with the Speakers and the keynotes. The Session Committee selected the Sessions.', facts: [{ term: 'Schedule and Speakers', text: 'Out now' }] },
 }[prog];
 
 export const schedule = {

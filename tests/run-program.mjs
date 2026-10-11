@@ -167,6 +167,7 @@ try {
   expect(/data-schedule/.test(schedule) && items.length > 0, 'the Schedule page has no Sessions');
   expect(items.length === sessionPages.length, `the Schedule lists ${items.length} Sessions, but ${sessionPages.length} Session pages were built`);
   expect(/\bSample\b/.test(text(schedule)), 'the Schedule page does not say "Sample"');
+  expect(text(schedule).includes('The Session Committee selected the Sessions.') && !/selects the Sessions/.test(text(schedule)), 'the Schedule page, out, does not say the Session Committee selected the Sessions');
   expect(/<script src="\/schedule\.js" defer><\/script>/.test(schedule), 'the Schedule page does not load /schedule.js');
   // Accessible by design: every Session sits under a time heading and has its time and room as text.
   const slots = [...schedule.matchAll(/<section class="sch-slot" aria-labelledby="(t-\d{4})"[^>]*>\s*<h2 class="sch-time-h" id="\1">/g)];
