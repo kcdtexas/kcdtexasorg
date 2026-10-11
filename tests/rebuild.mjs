@@ -10,7 +10,8 @@
 // before it starts the build and waits until the live site publishes another one, and runs queue behind each other.
 // No version passes between the jobs or goes in the log. The note and the wait also run here, faster, against a
 // local stand-in for the live site.
-// Runs actionlint on the workflow when it's installed (or at $ACTIONLINT). No network beyond this machine, no build.
+// Runs actionlint on the workflow when it's installed (or at $ACTIONLINT), with shellcheck when that's installed too.
+// No network beyond this machine, no build.
 // Usage: node tests/rebuild.mjs
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -141,8 +142,8 @@ expect(/\[ -n "\$got" \] && \[ "\$got" != "\$before" \]/.test(loop), 'the wait c
 for (const [name, job] of Object.entries(wf.jobs)) {
   for (const step of job.steps ?? []) {
     for (const line of (step.run ?? '').split('\n')) {
-      const prints = /\b(?:echo|printf|cat)\b[^\n]*\$\{?(?:live|before|got|VERSION)\b/.test(line) && !/> "\$RUNNER_TEMP\/live-version"\s*$/.test(line);
-      expect(!/set -x/.test(line) && !prints && !(/GITHUB_(?:ENV|OUTPUT)/.test(line) && /\$\{?(?:live|before|got)\b/.test(line)), `job "${name}": "${line.trim()}" could print a program version`);
+      const prints = /\b(?:echo|printf|cat)\b[^\n]*\$\{?(?:live|noted|before|got|VERSION)\b/.test(line) && !/> "\$RUNNER_TEMP\/live-version"\s*$/.test(line);
+      expect(!/set -x/.test(line) && !prints && !(/GITHUB_(?:ENV|OUTPUT)/.test(line) && /\$\{?(?:live|noted|before|got)\b/.test(line)), `job "${name}": "${line.trim()}" could print a program version`);
     }
   }
 }
@@ -331,13 +332,16 @@ if (noteRun && loop) {
   }
 }
 
-// actionlint, when it's installed (or named by $ACTIONLINT).
+// actionlint, when it's installed (or named by $ACTIONLINT). It checks the run steps with shellcheck when that's on
+// the PATH, as it is on GitHub's runners; the summary says which.
 const actionlint = process.env.ACTIONLINT || 'actionlint';
 const lint = spawnSync(actionlint, ['-no-color', '.github/workflows/rebuild.yml'], { encoding: 'utf8' });
 let linted = 'actionlint not installed: skipped';
 if (!lint.error) {
   expect(lint.status === 0, `actionlint: ${lint.stdout}${lint.stderr}`);
-  linted = `actionlint ${spawnSync(actionlint, ['-version'], { encoding: 'utf8' }).stdout.split('\n')[0]} passed`;
+  const sc = spawnSync('shellcheck', ['--version'], { encoding: 'utf8' });
+  const scVersion = sc.error ? null : sc.stdout.match(/^version: (\S+)/m)?.[1];
+  linted = `actionlint ${spawnSync(actionlint, ['-version'], { encoding: 'utf8' }).stdout.split('\n')[0]} passed, ${scVersion ? `with shellcheck ${scVersion}` : 'without shellcheck (not installed)'}`;
 }
 
 // The script as the workflow runs it: one line, and rebuild=, day= and why= in $GITHUB_OUTPUT.

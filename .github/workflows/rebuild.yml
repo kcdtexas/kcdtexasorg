@@ -126,8 +126,8 @@ jobs:
         env:
           LIVE: https://kcdtexas.org/2027/program-version.txt
         run: |
-          live="$(curl -fsS --retry 3 --retry-all-errors --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
-          printf '%s' "$live" > "$RUNNER_TEMP/live-version"
+          noted="$(curl -fsS --retry 3 --retry-all-errors --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
+          printf '%s' "$noted" > "$RUNNER_TEMP/live-version"
       - name: Start a Netlify production build
         env:
           HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
