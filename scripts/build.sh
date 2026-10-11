@@ -115,6 +115,12 @@ step "Choosing the program data"
 # gate open (deploy previews, branch deploys, local builds) uses the test program and never sees the platform's
 # variables.
 if [ "${CONTEXT:-}" != production ]; then
+  # The platform's variables belong in the Production deploy context alone. The warning names one, never its value.
+  for v in SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL; do
+    if [ -n "${!v:-}" ]; then
+      echo "Warning: $v is set in a ${CONTEXT:-local} build. Scope it to the Production deploy context only: deploy previews run code from pull requests. This build ignores it." >&2
+    fi
+  done
   unset SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL
   gates="$(node scripts/program-check.mjs --which-gates)"
   if [ -z "${KCD_PROGRAM_SAMPLE:-}" ] && [ "$gates" != closed ]; then
