@@ -495,7 +495,7 @@ try {
       }
       writeFileSync(ANNOUNCEMENTS, announcementsText);
       state.fixture = fixtureText;
-      expect(stepsOk && readFileSync('dist/2027/today/index.html', 'utf8').includes(`<li data-ugc><time datetime="${EVENT_DAY}T09:00">9:00 a.m.</time> ${said}.</li>`),
+      expect(stepsOk && readFileSync('dist/2027/today/index.html', 'utf8').includes(`<li><time datetime="${EVENT_DAY}T09:00">9:00 a.m.</time> <span data-ugc>${said}.</span></li>`),
         `production on Event Day fails on the Speakers' and Organizers' own words, or lacks the announcement:\n${steps.slice(-2500)}`);
 
       // A deploy preview and a branch deploy with the gates open and both variables set to this server: the test

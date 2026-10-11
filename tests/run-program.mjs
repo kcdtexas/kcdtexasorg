@@ -183,7 +183,7 @@ try {
   expect(!/\bFixture\b/.test(read('2026/index.html')), 'the test history reaches the 2026 page');
   const credits = (speakers.match(/Speaker since/g) ?? []).length;
   expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only Fixture Speaker 4 should (2026 test data never credits itself)`);
-  expect(/<a href="https:\/\/example\.com\/" data-ugc>Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
+  expect(/<a href="https:\/\/example\.com\/" data-ugc-attrs>Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
   // The program's text is marked for check-dist's draft-marker checks (data-ugc): the head's title, description and card
   // text, and the title, the room, the abstract, the Speakers and their taglines; every "Sample" label has data-sample.
   {
@@ -278,6 +278,22 @@ try {
   const styled = checkDist(flags);
   writeFileSync('dist/about/index.html', aboutHtml);
   expect(styled.status !== 0 && /about\/index\.html: loads \/schedule\.css outside the program pages/.test(styled.log), 'check-dist passes /schedule.css on a page outside the program');
+  // check-dist reads our own words beside the program's text: a draft marker in the Star's label, its words for
+  // screen readers, a badge or a Session's time fails the build. Only the program's text (data-ugc) and the
+  // attributes that hold its ids and rooms (data-ugc-attrs) are left out.
+  for (const [page, what, from, to, name] of [
+    ['2027/sessions/fixture-session-how-we-run-kubernetes-for-our-own-business/index.html', 'the Star’s label', '<span class="star-words">Add to My Schedule</span>', '<span class="star-words">Add to My Schedule TODO</span>', 'TODO'],
+    ['2027/schedule/index.html', 'the Star’s words for screen readers', '<span class="sr-only">Add to My Schedule: ', '<span class="sr-only">Add to My Schedule TODO: ', 'TODO'],
+    ['2027/schedule/index.html', 'a badge', '<span class="badge badge--talk">Talk</span>', '<span class="badge badge--talk">[TBD</span>', '[TBD'],
+    ['2027/speakers/fixture-speaker-4/index.html', 'a Session’s time', '<span class="sch-time">', '<span class="sch-time">{time} ', '{placeholder}'],
+  ]) {
+    const html = read(page);
+    expect(html.includes(from), `${page}: no ${what} to plant a draft marker in`);
+    writeFileSync(join('dist', page), html.replace(from, to));
+    const res = checkDist(flags);
+    writeFileSync(join('dist', page), html);
+    expect(res.status !== 0 && res.log.includes(`dist/${page}: draft marker ${name} (`), `check-dist passes a draft marker in ${what} on ${page}:\n${res.log.slice(-600)}`);
+  }
 
   // 3. The smoke and browser tests on the sample build: axe on every page, both themes, desktop and phone.
   await serve();
@@ -408,7 +424,19 @@ try {
   expect(/<li class="td-ses is-now"/.test(today), 'the Event Day page shows nothing on now at 10:30 without JavaScript');
   // Only the announcements posted by the build's time: the 9:05 one, not the 12:40 one.
   expect(/keynote room is full/.test(today) && !/lunch runs 15 minutes late/.test(today), 'the Event Day page at 10:30 shows an announcement posted later, or misses an earlier one');
-  expect(/<time datetime="2027-04-23T10:15">10:15 a\.m\.<\/time> Test announcement posted at 10:15\. <a href="https:\/\/example\.com\/today">Details<\/a>/.test(today) && !/posted at 11:00/.test(today), 'the Event Day page at 10:30 does not show the file\'s 10:15 announcement with its link, or shows the 11:00 one');
+  expect(/<time datetime="2027-04-23T10:15">10:15 a\.m\.<\/time> <span data-ugc>Test announcement posted at 10:15\.<\/span> <a href="https:\/\/example\.com\/today" data-ugc-attrs>Details<\/a>/.test(today) && !/posted at 11:00/.test(today), 'the Event Day page at 10:30 does not show the file\'s 10:15 announcement with its link, or shows the 11:00 one');
+  // check-dist reads our own words on the Event Day page: "Now:" on a break, an announcement's time and its "Details".
+  for (const [what, from, to] of [
+    ['"Now:" on a break', '<b>Now:</b>', '<b>Now TODO:</b>'],
+    ['an announcement’s time', '10:15 a.m.</time>', '10:15 a.m. TODO</time>'],
+    ['"Details"', '>Details</a>', '>Details TODO</a>'],
+  ]) {
+    expect(today.includes(from), `the Event Day page has no ${what} to plant a draft marker in`);
+    writeFileSync('dist/2027/today/index.html', today.replace(from, to));
+    const res = checkDist({ KCD_PROGRAM_SAMPLE: '1' });
+    writeFileSync('dist/2027/today/index.html', today);
+    expect(res.status !== 0 && res.log.includes('dist/2027/today/index.html: draft marker TODO ('), `check-dist passes a draft marker in ${what} on the Event Day page:\n${res.log.slice(-600)}`);
+  }
   // Offline use: /sw.js and its rules ship, and the privacy page says so.
   expect(/OFF = false/.test(read('sw.js')) && /OFFLINE = true/.test(read('schedule.js')), 'the Event Day build does not turn offline use on');
   expect(/your browser keeps a copy so it opens without a connection/.test(text(read('privacy/index.html'))), 'the privacy page lacks the offline copy line');
@@ -592,13 +620,16 @@ try {
   expect(!/My Schedule/.test(read('privacy/index.html')), 'the privacy page mentions My Schedule with the gates closed');
   expect(!/Fixture Organizer/.test(read('about/index.html')) && Object.keys(organizerCredits(read('about/index.html'))).length === 12, 'a normal build adds the made-up Organizer to About');
   // check-dist fails a "Sample" label planted in a normal build, by its data-sample alone or by the word, but not the
-  // word in a Speaker's or an Organizer's own text (data-ugc).
+  // word in a Speaker's or an Organizer's own text (data-ugc), or in an attribute that holds such text
+  // (data-ugc-attrs), whose element's own words it still reads.
   {
     const page = read('about/index.html');
     for (const [what, planted, fails] of [
       ['a label', '<p class="page-soon" data-sample>A test build.</p>', true],
       ['the word', '<p>Sample day</p>', true],
       ['the word in program text', '<p data-ugc>Sample code, a TODO list and {name} [TBD]</p>', false],
+      ['the word in an attribute with program text', '<p data-room="Sample Room, TODO {name} [TBD" data-ugc-attrs>Room</p>', false],
+      ['the word beside an attribute with program text', '<p data-room="Room 1" data-ugc-attrs>Sample room</p>', true],
     ]) {
       writeFileSync('dist/about/index.html', page.replace('</main>', `${planted}</main>`));
       const res = checkDist({});

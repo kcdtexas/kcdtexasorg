@@ -41,7 +41,9 @@ const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input'
  * The page without the text that Speakers and Organizers write: the program platform's (src/lib/program.ts: names,
  * taglines, bios, titles, abstracts, rooms, links, ids) and the Event Day announcements'. A bio may well say "TODO"
  * or "Sample". The templates mark each element that holds such text with data-ugc, and this leaves out what the
- * element holds and its attributes' values.
+ * element holds and its attributes' values. An element that holds our own words but has such text in an attribute
+ * (a Session's id and room, a link's address) has data-ugc-attrs instead, and this leaves out only its attributes'
+ * values: the words it holds are checked.
  */
 export function withoutProgramText(html) {
   let out = '';
@@ -56,10 +58,12 @@ export function withoutProgramText(html) {
       if (open.depth === 0) { open = null; from = m.index; }
       continue;
     }
-    if (end || !attributesOf(text).has('data-ugc')) continue;
+    if (end) continue;
+    const a = attributesOf(text);
+    if (!a.has('data-ugc') && !a.has('data-ugc-attrs')) continue;
     out += `${html.slice(from, m.index)}<${name}${text.replace(/=\s*(?:"[^"]*"|'[^']*')/g, '=""')}>`;
     from = m.index + tag.length;
-    if (!VOID.has(lower) && !/\/\s*$/.test(text)) open = { name: lower, depth: 1 };
+    if (a.has('data-ugc') && !VOID.has(lower) && !/\/\s*$/.test(text)) open = { name: lower, depth: 1 };
   }
   return out + html.slice(from);
 }

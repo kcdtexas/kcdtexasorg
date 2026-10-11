@@ -71,7 +71,7 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
         {p.bio ? <p data-ugc>{p.bio}</p> : <p class="pg-none">{w.noBio}</p>}
         {p.links.length > 0 && (
           <ul class="spk-links" aria-label={w.links}>
-            {p.links.map((l) => <li><a href={l.url} data-ugc>{linkName[l.kind]}</a></li>)}
+            {p.links.map((l) => <li><a href={l.url} data-ugc-attrs>{linkName[l.kind]}</a></li>)}
           </ul>
         )}
       </section>

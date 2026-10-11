@@ -40,7 +40,7 @@ const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
         <h2 id="now-next" class="page-h2">{t.nowNext}</h2>
         <p class="td-break" data-breaks>
           {p.breaks.map((b) => (
-            <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow} data-ugc><b>{t.now}:</b> {b.title}, {timeRange(b.start, b.end)}</span>
+            <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow}><b>{t.now}:</b> <span data-ugc>{b.title}</span>, {timeRange(b.start, b.end)}</span>
           ))}
         </p>
         <ul class="td-rooms">
@@ -69,8 +69,9 @@ const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
       <h2 id="announcements" class="page-h2">{t.announcementsTitle}</h2>
       {t.announcements.length ? (
         <ol class="td-news">
-          {/* One posted on an earlier day shows its date too, so it doesn't read as today's. */}
-          {[...t.announcements].reverse().map((a) => <li data-ugc><time datetime={a.at}>{postedAt(a.at, builtAt.slice(0, 10))}</time> {a.text}{a.link && <> <a href={a.link}>{t.link}</a></>}</li>)}
+          {/* One posted on an earlier day shows its date too, so it doesn't read as today's. The text and the link are
+              the Organizers' (data-ugc, data-ugc-attrs); the time and "Details" are ours. */}
+          {[...t.announcements].reverse().map((a) => <li><time datetime={a.at}>{postedAt(a.at, builtAt.slice(0, 10))}</time> <span data-ugc>{a.text}</span>{a.link && <> <a href={a.link} data-ugc-attrs>{t.link}</a></>}</li>)}
         </ol>
       ) : <p class="pg-none">{t.noAnnouncements}</p>}
     </section>
