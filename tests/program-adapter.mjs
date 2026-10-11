@@ -414,10 +414,10 @@ try {
         // check-dist refuses an image from another host, in a page or in a stylesheet.
         const css = walk('dist').find((f) => f.endsWith('.css'));
         const [pageBefore, cssBefore] = [page, readFileSync(css, 'utf8')];
-        writeFileSync('dist/2027/speakers/fixture-person-a/index.html', page.replace('</body>', '<p data-photo="https://cdn.sessionize.example/fx.jpg"></p></body>'));
+        writeFileSync('dist/2027/speakers/fixture-person-a/index.html', page.replace('</body>', '<img src="https://cdn.sessionize.example/fx.jpg" alt=""></body>'));
         writeFileSync(css, `${cssBefore}\n.fx{background:url("https://cdn.sessionize.example/fx.png")}`);
         const guard = await run(process.execPath, ['scripts/check-dist.mjs'], {});
-        expect(guard.status === 1 && /an image from another host: https:\/\/cdn\.sessionize\.example\/fx\.jpg/.test(guard.log) && /loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.png/.test(guard.log), `check-dist passes an external image:\n${guard.log.slice(-800)}`);
+        expect(guard.status === 1 && /fixture-person-a\/index\.html: loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.jpg/.test(guard.log) && /\.css: loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.png/.test(guard.log), `check-dist passes an external image:\n${guard.log.slice(-800)}`);
         writeFileSync('dist/2027/speakers/fixture-person-a/index.html', pageBefore);
         writeFileSync(css, cssBefore);
         // The published program version is the one scripts/program-check.mjs computes from the platform.

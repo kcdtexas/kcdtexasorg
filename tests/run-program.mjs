@@ -534,7 +534,19 @@ try {
     if (keptFile) renameSync(keptFile, historyFile);
   }
 
-  // 9. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
+  // 9. A preview build: CARD_ORIGIN (src/layouts/Base.astro) puts the preview's own address in every og:image, and
+  // check-dist passes it, as a <meta> loads nothing. An image that a page loads from another host still fails.
+  const preview = build([], { CARD_ORIGIN: 'https://example.workers.dev' });
+  expect(preview.status === 0 && read('index.html').includes('<meta property="og:image" content="https://example.workers.dev/cards/default.png">'), `the build with CARD_ORIGIN fails, or its og:image is not the preview's:\n${preview.log.slice(-1500)}`);
+  if (preview.status === 0) {
+    const page = read('about/index.html');
+    writeFileSync('dist/about/index.html', page.replace('</main>', '<img src="https://elsewhere.example/x.png" alt=""></main>'));
+    const planted = checkDist({});
+    writeFileSync('dist/about/index.html', page);
+    expect(planted.status !== 0 && /about\/index\.html: loads from another host: https:\/\/elsewhere\.example\/x\.png/.test(planted.log), 'check-dist passes an image a page loads from another host');
+  }
+
+  // 10. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
   const closed = build([]);
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   normal = true;
