@@ -344,18 +344,18 @@ try {
   }
   state.requests.length = 0;
   res = await check(checkEnv);
-  expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\nversion=\n' && state.requests.length === 0, `closed gates: ${JSON.stringify(res.out)}, ${state.requests.length} requests`);
+  expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\n' && state.requests.length === 0, `closed gates: ${JSON.stringify(res.out)}, ${state.requests.length} requests`);
   await withGates(both, async () => {
     res = await run(process.execPath, ['scripts/program-check.mjs', '--gates'], {});
     expect(res.out === 'open\n', `--gates with a gate open prints ${JSON.stringify(res.out)}`);
-    // The version goes to GITHUB_OUTPUT only, for the rebuild job's wait: never to the log.
+    // Only changed= goes to GITHUB_OUTPUT, and the program version goes nowhere: not to the log, not to the output.
     state.live = null;
     res = await check(checkEnv);
-    expect(res.status === 0 && res.out === 'changed\n' && readFileSync(out, 'utf8') === `changed=true\nversion=${viaServer.version}\n`, `no live file: ${JSON.stringify(res.out)} ${res.err}, output ${JSON.stringify(readFileSync(out, 'utf8'))}`);
+    expect(res.status === 0 && res.out === 'changed\n' && readFileSync(out, 'utf8') === 'changed=true\n', `no live file: ${JSON.stringify(res.out)} ${res.err}, output ${JSON.stringify(readFileSync(out, 'utf8'))}`);
     expect(!res.log.includes(viaServer.version), 'program-check prints the program version');
     state.live = `${viaServer.version}\n`;
     res = await check(checkEnv);
-    expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === `changed=false\nversion=${viaServer.version}\n`, `the same program: ${JSON.stringify(res.out)} ${res.err}`);
+    expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\n', `the same program: ${JSON.stringify(res.out)} ${res.err}`);
     expect(!res.log.includes(viaServer.version), 'program-check prints the program version');
     state.fixture = fixtureText.replaceAll(marker, 'another-dropped-value');
     res = await check(checkEnv);
