@@ -33,6 +33,13 @@
   .skip:focus { top: 12px; color: var(--bg); }
   .wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: var(--pad); }
 
+  /* Tap targets: links that stand alone are at least 44 px tall (tests/targets.mjs). The padding grows the box
+     people can tap; on a box that isn't inline, an equal negative margin gives the space back, so nothing moves.
+     Links inside running text keep the line's height, as WCAG allows. */
+  :root { --tap: max(0px, 22.5px - 0.5em); }
+  :is(.more, .ab-link, .info-mail, .ed-link, .pg-more li, .facts dd, .coc-ways dd) > a,
+  .eyebrow a { padding-block: var(--tap); }
+
   /* Type */
   .h2 { font-stretch: 68%; font-weight: 800; font-size: clamp(38px, 4.2vw, 60px); line-height: 1.02; letter-spacing: -0.005em; text-wrap: balance; max-width: 16em; }
   .h3 { font-weight: 700; font-size: 18px; line-height: 1.3; }
@@ -44,7 +51,7 @@
   .photo img { width: 100%; }
   .photo figcaption { margin-top: 10px; font-size: 15px; line-height: 1.4; color: var(--muted); }
   .photo figcaption b { margin-right: 4px; color: var(--fg); font-stretch: 75%; font-weight: 800; }
-  .watch { display: inline-flex; align-items: baseline; gap: 8px; margin-top: 8px; padding: 4px 0; font-size: 15px; font-weight: 700; }
+  .watch { display: inline-flex; align-items: baseline; gap: 8px; margin-top: calc(12px - var(--tap)); margin-bottom: calc(4px - var(--tap)); padding-block: var(--tap); font-size: 15px; font-weight: 700; }
   .watch::before { content: ""; flex: none; width: 0; height: 0; border-style: solid; border-width: 0.36em 0 0.36em 0.6em; border-color: transparent transparent transparent currentColor; }
 
   /* Buttons ("doors"): one shape (square), one action color */

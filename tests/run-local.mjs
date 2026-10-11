@@ -1,4 +1,4 @@
-// Runs the smoke and browser tests against a fresh local server on dist/.
+// Runs the smoke and browser tests against a fresh local server on dist/, and the rebuild tests (tests/rebuild.mjs).
 // Build first with scripts/build.sh.
 // Usage: node tests/run-local.mjs [--shots <dir>]
 import { spawn } from 'node:child_process';
@@ -51,7 +51,8 @@ try {
   await ready();
   const smoke = await run('tests/smoke.mjs');
   const browser = await run('tests/browser.mjs', process.argv.slice(2));
-  code = smoke || browser ? 1 : 0;
+  const rebuild = await new Promise((resolve) => spawn(process.execPath, ['tests/rebuild.mjs'], { stdio: 'inherit' }).on('exit', resolve));
+  code = smoke || browser || rebuild ? 1 : 0;
 } finally {
   server.kill();
 }

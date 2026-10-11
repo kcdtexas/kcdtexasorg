@@ -4,6 +4,8 @@ status: accepted
 
 # Hosting stays on Netlify in rare-updates mode, and any move needs the Organizers' approval
 
+> The production branch part is superseded by [ADR 0011](0011-main-is-the-production-branch.md): `main` is the production branch. The rest stands.
+
 The Website stays on the existing Netlify site. To fit Netlify's free plans, a production deploy happens only when:
 
 - the Phase changes,

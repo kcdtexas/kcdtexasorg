@@ -2,7 +2,7 @@
 @layer components {
   .site-header { position: sticky; top: 0; z-index: 30; background: var(--bg); border-bottom: 1px solid var(--fg); }
   .head { display: flex; align-items: center; gap: 28px; min-height: var(--head-h); }
-  .lockup { display: flex; flex: none; align-items: center; gap: 16px; margin-right: auto; color: var(--fg); text-decoration: none; }
+  .lockup { display: flex; flex: none; align-items: center; gap: 16px; min-height: 44px; margin-right: auto; color: var(--fg); text-decoration: none; }
   .lockup-kcd { height: 54px; width: auto; flex: none; }
   .lockup-rule { display: block; width: 1px; height: 48px; background: currentColor; }
   .lockup-badge { height: 62px; width: auto; flex: none; }

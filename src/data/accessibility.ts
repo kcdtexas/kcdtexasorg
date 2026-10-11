@@ -9,9 +9,11 @@ export const accessibility = {
 
   website: {
     title: 'This website',
-    // Off until the Oct 26 rehearsal check passes. While false, the claim never shows.
-    wcagClaim: false,
+    // On since the keyboard and screen-reader check (tests/a11y.mjs) passed on every page. While false, the claim never shows.
+    wcagClaim: true,
     claim: 'This website meets the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA.',
+    // When the claim was last checked. Update it with each full check.
+    claimChecked: 'We last checked every page on October 10, 2026: with a keyboard, in the accessibility tree that screen readers use, and with axe in both themes at 320 px wide and at 200% zoom.',
     checks: [
       'We check every change with axe, an automated accessibility checker, in the light and dark themes, at desktop and phone widths.',
       'Every build also checks the site’s color pairs against the WCAG AA contrast ratios, in both themes.',

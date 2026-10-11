@@ -4,7 +4,7 @@
   .page { padding-block: 56px var(--sec); }
   .page > .page-head, .page > .page-sec, .page > .page-col { max-width: 980px; }
   .page > .page-sec.page-wide { max-width: none; }
-  .page-title { font-stretch: 62%; font-weight: 900; font-size: clamp(56px, 8vw, 112px); line-height: 0.9; text-transform: uppercase; text-wrap: balance; }
+  .page-title { font-stretch: 62%; font-weight: 900; font-size: clamp(min(56px, 15.5vw), 8vw, 112px); line-height: 0.9; text-transform: uppercase; text-wrap: balance; }
   .page-lead { margin-top: 24px; }
   .page-sec { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--fg); }
   .page-sec > p, .page-sec > ul, .page-sec > ol { max-width: 40em; }

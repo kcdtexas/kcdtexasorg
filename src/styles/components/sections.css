@@ -48,7 +48,7 @@
   .eu-talks li span { display: block; margin-top: 2px; font-size: 14px; color: var(--band-muted); }
   .speak .photo figcaption { color: var(--band-muted); }
   .speak .photo figcaption b { color: var(--band-fg); }
-  .speak .photo .watch { margin: 0 0 0 4px; padding: 2px 0; font-size: 15px; }
+  .speak .photo .watch { margin: calc(2px - var(--tap)) 0 calc(2px - var(--tap)) 4px; font-size: 15px; }
 
   /* The photo band: a day at KCD Texas 2026 */
   .day { padding-top: var(--sec); }

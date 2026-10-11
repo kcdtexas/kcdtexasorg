@@ -83,7 +83,7 @@
     .kn-name { margin-top: 4px; font-size: 28px; }
     .kn-aff { margin-top: 4px; font-size: 14px; line-height: 1.35; }
     .kn-talk { margin-top: 6px; font-size: 15px; line-height: 1.35; }
-    .kn .watch { margin-top: 2px; font-size: 14px; }
+    .kn .watch { margin-top: calc(6px - var(--tap)); font-size: 14px; }
     .bill26 { margin-top: 36px; padding-top: 16px; }
     .bill26-title { margin-bottom: 12px; }
     /* Phones: the keynotes, one fitted row each, then the full bill behind a disclosure. */
@@ -97,7 +97,7 @@
     .bl-more[open] summary::after { content: "−"; }
     .bl-more .bl-n { margin-top: 18px; }
     .bl-more .bl-hosts li { font-size: calc(99.5cqi / var(--em)); }
-    .slot--end { margin-top: 20px; padding: 12px 10px; font-size: calc((100vw - 2 * var(--pad) - 28px) / 14); }
+    .slot--end { margin-top: 20px; padding: 12px 10px; font-size: max(18.7px, calc((100vw - 2 * var(--pad) - 28px) / 14)); }
     .as-printed { margin-top: 16px; }
   }
 }

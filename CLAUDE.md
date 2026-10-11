@@ -27,7 +27,7 @@ The official website of KCD Texas at kcdtexas.org: one permanent site that prese
 
 - **Build:** Astro 7 + TypeScript, built as a static site (ADR 0005). Node ≥22.12. Tailwind v4 through `@tailwindcss/vite`, and Preact for the interactive pieces.
 - **Scripts:** one build script, `scripts/build.sh`, used both locally and in CI.
-- **Hosting:** Netlify in rare-updates mode (ADR 0010). Production deploys come only from the `release` branch or the build hook.
+- **Hosting:** Netlify in rare-updates mode (ADR 0010). `main` is the production branch: each merged pull request goes live, and a build hook rebuilds `main` on the days the pages change (ADR 0011, `docs/rebuilds.md`).
 
 ## Git
 

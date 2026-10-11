@@ -23,7 +23,7 @@ npm test                    # HTTP smoke tests + browser tests (zero data, CSP, 
 
 The built site goes to `dist/`. It's plain static files that any static host can serve. Netlify builds it with the settings in `netlify.toml`.
 
-To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. To run the tests against any running copy, use `node tests/smoke.mjs <url>` and `node tests/browser.mjs <url>`. The browser tests use Playwright's Chromium if it's installed, otherwise the system snap Chromium.
+To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. To run the tests against any running copy, use `node tests/smoke.mjs <url>` and `node tests/browser.mjs <url>`. `node tests/a11y.mjs <url>` runs the keyboard and screen-reader check on every page. The browser tests use Playwright's Chromium if it's installed, otherwise the system snap Chromium.
 
 ## Where things live
 
@@ -34,6 +34,7 @@ To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. T
 | Short Links (`kcdtexas.org/cfp` and friends) | `src/data/short-links.yaml` |
 | Shared design foundation, reusable by sister sites | `src/foundation/` |
 | Build and checks | `scripts/` |
+| Scheduled rebuilds on the days the pages change | `.github/workflows/rebuild.yml`, [docs/rebuilds.md](docs/rebuilds.md) |
 
 ## Ground rules
 

@@ -3,7 +3,7 @@
   .page-head .actions { margin-top: 28px; }
   .info-note { margin-top: 12px; max-width: 40em; font-size: 16px; color: var(--muted); }
   .info-past { font-size: 16px; color: var(--muted); }
-  .info-link { font-weight: 700; }
+  .info-link { padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); font-weight: 700; }
 
   /* The airports: the code large, as on a departures board, then the airport's name. */
   .info-airports { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--gutter); margin-top: 8px; border-top: 3px solid var(--fg); }
@@ -20,7 +20,7 @@
   .info-nav { max-width: 980px; margin-top: 48px; }
   .info-links { border-top: 3px solid var(--fg); }
   .info-links li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 24px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-  .info-links a { display: inline-flex; align-items: baseline; gap: 0.3em; font-stretch: 62%; font-weight: 900; font-size: clamp(32px, 3.4vw, 44px); line-height: 1; text-transform: uppercase; text-decoration: none; color: var(--fg); }
+  .info-links a { display: inline-flex; align-items: baseline; gap: 0.3em; font-stretch: 62%; font-weight: 900; font-size: clamp(32px, 3.4vw, 44px); line-height: 1; text-transform: uppercase; text-decoration: none; color: var(--fg); padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); }
   .info-links a:hover { color: var(--action); }
   .info-links span:not(.arrow) { font-size: 16px; color: var(--muted); }
   .info-mail { margin-top: 24px; font-weight: 700; }
