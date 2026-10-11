@@ -18,7 +18,7 @@ const { tierPrefix, edition = 2026 } = Astro.props;
 
 // `credit`: "Since 2026" for a 2027 sponsor that backed an earlier Edition (src/lib/loyalty.ts), shown under its
 // tile.
-type Entry = { id: string | null; name: string; link?: string; credit?: CreditData | null };
+type Entry = { id: string | null; name: string; link?: string; credit?: CreditData | null; sample?: boolean };
 const names: Record<Tier2027, string> = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver' };
 const tiers: { key: string; name: string; sponsors: readonly Entry[] }[] = edition === 2026
   ? [
@@ -27,7 +27,7 @@ const tiers: { key: string; name: string; sponsors: readonly Entry[] }[] = editi
     { key: 'silver', name: 'Silver', sponsors: edition2026.sponsors.silver },
   ]
   : (Object.keys(names) as Tier2027[])
-    .map((key) => ({ key, name: names[key], sponsors: sponsors2027.filter((s) => s.tier === key).map((s) => ({ id: s.logo, name: s.alt || s.name, link: s.link, credit: sponsorCredit(s.id) })) }))
+    .map((key) => ({ key, name: names[key], sponsors: sponsors2027.filter((s) => s.tier === key).map((s) => ({ id: s.logo, name: s.alt || s.name, link: s.link, credit: sponsorCredit(s.id), sample: s.sample })) }))
     .filter((t) => t.sponsors.length > 0);
 ---
 
@@ -37,7 +37,7 @@ const tiers: { key: string; name: string; sponsors: readonly Entry[] }[] = editi
       <h3 class="tier-name">{tierPrefix ? `${tierPrefix} ${t.name}` : t.name}</h3>
       <ul class="logos">
         {t.sponsors.map((s) => {
-          const mark = s.id ? <Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /> : <span class="sp-name">{s.name}</span>;
+          const mark = s.id ? <Image class="sp-logo" data-logo={s.id} src={logos[s.id]} alt={s.name} /> : <span class="sp-name" data-sample={s.sample ? '' : undefined}>{s.name}</span>;
           const tile = s.link ? <a class="sp-link" href={s.link}>{mark}</a> : mark;
           // A credit goes under the tile, in the normal flow, so it never covers a logo or a name.
           return s.credit

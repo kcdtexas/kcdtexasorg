@@ -34,7 +34,7 @@ const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
         </fieldset>
         <fieldset class="sch-group">
           <legend>Room</legend>
-          {p.rooms.map((r) => <label class="chip"><input type="checkbox" data-filter="room" value={r} /> {r}</label>)}
+          {p.rooms.map((r) => <label class="chip" data-ugc><input type="checkbox" data-filter="room" value={r} /> {r}</label>)}
         </fieldset>
       </div>
     </details>
@@ -51,8 +51,8 @@ const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
       <ul class="sch-items">
         {slot.breaks.map((b) => (
           <li class="sch-break" data-break>
-            <span class="sch-break-title">{b.title}</span>
-            <span class="sch-meta"><span class="sch-time">{timeRange(b.start, b.end)}</span>{b.room && <span class="sch-room">{b.room}</span>}</span>
+            <span class="sch-break-title" data-ugc>{b.title}</span>
+            <span class="sch-meta"><span class="sch-time">{timeRange(b.start, b.end)}</span>{b.room && <span class="sch-room" data-ugc>{b.room}</span>}</span>
           </li>
         ))}
         {slot.sessions.map((s) => <SessionItem session={s} />)}

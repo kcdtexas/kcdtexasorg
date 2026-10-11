@@ -30,25 +30,71 @@ export const REQUIRED_PAGES = [
   '/accessibility/',
 ];
 
-// Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template
-// placeholder left unfilled such as "{cfpOpens}". Checked against the whole HTML, comments and
-// attributes included (no page has inline scripts or styles that could hold braces).
+// A page's tags, as [the tag, "/" for an end tag, its name, its attributes as written]; a quoted value may hold a ">".
+const TAG = /<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+/** A tag's attributes, as a Map of lower-case names to values ('' for a bare attribute). */
+const attributesOf = (text) => new Map([...text.matchAll(/([^\s"'=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)]
+  .map((m) => [m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? '']));
+const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+
+/**
+ * The page without the text that Speakers and Organizers write: the program platform's (src/lib/program.ts: names,
+ * taglines, bios, titles, abstracts, rooms, links, ids) and the Event Day announcements'. A bio may well say "TODO"
+ * or "Sample". The templates mark each element that holds such text with data-ugc, and this leaves out what the
+ * element holds and its attributes' values.
+ */
+export function withoutProgramText(html) {
+  let out = '';
+  let from = 0;
+  // The data-ugc element being left out: its name, and how deep its own tag nests in it.
+  let open = null;
+  for (const m of html.matchAll(TAG)) {
+    const [tag, end, name, text] = m;
+    const lower = name.toLowerCase();
+    if (open) {
+      if (lower === open.name && !/\/\s*$/.test(text)) open.depth += end ? -1 : 1;
+      if (open.depth === 0) { open = null; from = m.index; }
+      continue;
+    }
+    if (end || !attributesOf(text).has('data-ugc')) continue;
+    out += `${html.slice(from, m.index)}<${name}${text.replace(/=\s*(?:"[^"]*"|'[^']*')/g, '=""')}>`;
+    from = m.index + tag.length;
+    if (!VOID.has(lower) && !/\/\s*$/.test(text)) open = { name: lower, depth: 1 };
+  }
+  return out + html.slice(from);
+}
+
+/** The start tags that carry data-sample: the labels a test build puts on its samples. */
+const sampleLabels = (html) => [...html.matchAll(TAG)].filter(([, end, , text]) => !end && attributesOf(text).has('data-sample')).map(([tag]) => tag);
+// A test build (scripts/build.sh --tickets-day, --program-public, --sponsors-sample, --program-sample) labels every
+// sample "Sample"; no other build may show one.
+const sampleBuild = Boolean(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE);
+/** The made-up names of the test program (src/data/program-fixture.ts) and the test history's Organizer
+ *  (src/data/history-test.ts). Only --program-sample builds show them. */
+export const FIXTURE_NAMES = /\bFixture (?:Speaker|Session|Room|Company|Organizer)\b/;
+
+// Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template placeholder left unfilled
+// such as "{cfpOpens}"; and outside the test builds that show them, "Sample" and the fixture's names. Checked against
+// the whole HTML, comments and attributes included, without the text Speakers and Organizers write
+// (withoutProgramText). No page has inline scripts or styles that could hold braces.
 export const DRAFT_MARKERS = [
   { name: '[TBD', pattern: /\[TBD/ },
   { name: 'TODO', pattern: /\bTODO\b/ },
   { name: '{placeholder}', pattern: /\{[A-Za-z_][\w.]*\}/ },
-  // A sample (build.sh --tickets-day, --program-public, --sponsors-sample, --program-sample) must never reach a
-  // real deploy: the pages label every sample "Sample".
-  ...(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
-  // The test program's made-up names, and the test history's made-up Organizer, never reach a build without the
-  // program sample (src/data/program-fixture.ts, src/data/history-test.ts).
-  ...(process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Fixture', pattern: /\bFixture (?:Speaker|Session|Organizer)\b/ }]),
+  ...(sampleBuild ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
+  ...(process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'a fixture name', pattern: FIXTURE_NAMES }]),
 ];
-export const findDraftMarkers = (html) =>
-  DRAFT_MARKERS.flatMap(({ name, pattern }) => {
-    const m = html.match(pattern);
-    return m ? [`${name} (${JSON.stringify(html.slice(Math.max(0, m.index - 30), m.index + m[0].length + 30).replace(/\s+/g, ' '))})`] : [];
-  });
+/** A page's draft markers, and outside a test build its "Sample" labels, wherever they are. */
+export const findDraftMarkers = (html) => {
+  const text = withoutProgramText(html);
+  return [
+    ...DRAFT_MARKERS.flatMap(({ name, pattern }) => {
+      const m = text.match(pattern);
+      return m ? [`${name} (${JSON.stringify(text.slice(Math.max(0, m.index - 30), m.index + m[0].length + 30).replace(/\s+/g, ' '))})`] : [];
+    }),
+    ...(sampleBuild ? [] : [...new Set(sampleLabels(html))].map((tag) => `a "Sample" label (${JSON.stringify(tag)})`)),
+  ];
+};
 
 // Phone first-load budgets. Fail at the budget or more.
 const KB = 1024;
@@ -61,12 +107,6 @@ const BUDGETS = {
 const DIST = 'dist';
 /** The file scripts/build.sh writes into dist/ for any build with a test flag. */
 export const TEST_BUILD_MARKER = '.test-build';
-
-// A page's start tags, as [the tag, its name, its attributes as written]; a quoted value may hold a ">".
-const START_TAG = /<([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
-/** A start tag's attributes, as a Map of lower-case names to values ('' for a bare attribute). */
-const attributesOf = (text) => new Map([...text.matchAll(/([^\s"'=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)]
-  .map((m) => [m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? '']));
 
 // A full address (http, https or "//"): the pages load every file by its path, from their own host.
 const FULL_ADDRESS = /^(?:https?:)?\/\//i;
@@ -83,7 +123,8 @@ const cssUrls = (css) => [...css.matchAll(/url\(\s*(['"]?)([^'")\s]+)\1\s*\)/gi)
 export function loadedUrls(html) {
   const page = html.replace(/<!--[\s\S]*?-->/g, '');
   const urls = [];
-  for (const [, name, text] of page.matchAll(START_TAG)) {
+  for (const [, end, name, text] of page.matchAll(TAG)) {
+    if (end) continue;
     const tag = name.toLowerCase();
     const a = attributesOf(text);
     for (const key of ['src', 'poster']) if (a.has(key)) urls.push(a.get(key));
@@ -137,7 +178,7 @@ function programGates({ edition2027 }, walk) {
     if (open) {
       if (!sample) failures.push('a program gate is open outside a production build, but the build has no test program (scripts/build.sh sets KCD_PROGRAM_SAMPLE)');
       if (!has(TEST_BUILD_MARKER)) failures.push(`a program gate is open outside a production build, but dist/${TEST_BUILD_MARKER} is missing`);
-      if (has('2027/speakers/index.html') && !/\bSample\b/.test(readFileSync(join(DIST, '2027/speakers/index.html'), 'utf8'))) failures.push('dist/2027/speakers/index.html: the test program is not labeled "Sample"');
+      if (has('2027/speakers/index.html') && !sampleLabels(readFileSync(join(DIST, '2027/speakers/index.html'), 'utf8')).length) failures.push('dist/2027/speakers/index.html: the test program is not labeled "Sample"');
       for (const photo of files('2027/speakers', (n) => n.endsWith('.webp'))) failures.push(`dist/2027/speakers/${photo}: a Speaker photo outside a production build, where the test program has none`);
     }
   }
@@ -244,7 +285,7 @@ async function check() {
 
   // The fixture's made-up names, its earlier-Edition entry included, never reach the 2026 page, in any build.
   for (const file of walk(join(DIST, '2026')).filter((f) => extname(f) === '.html')) {
-    if (/\bFixture\b/.test(readFileSync(file, 'utf8'))) failures.push(`${file}: contains a fixture name`);
+    if (FIXTURE_NAMES.test(readFileSync(file, 'utf8'))) failures.push(`${file}: contains a fixture name`);
   }
 
   failures.push(...programGates(await importTs(new URL('../src/data/edition-2027.ts', import.meta.url)), walk));

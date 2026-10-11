@@ -21,9 +21,13 @@ interface Props {
   jsonLd?: object;
   /** The 404 page: no canonical address of its own (hosts serve it at many), and kept out of search results. */
   notFound?: boolean;
+  /** The title, the description or the card's alt text holds text from the program platform, such as a Session's
+   *  title (src/lib/program.ts): data-ugc marks them, and scripts/check-dist.mjs's draft-marker checks skip them. */
+  programText?: boolean;
 }
 
-const { title, description, mainClass, card = 'default', jsonLd, notFound = false, schedule = false } = Astro.props;
+const { title, description, mainClass, card = 'default', jsonLd, notFound = false, schedule = false, programText = false } = Astro.props;
+const ugc = programText ? '' : undefined;
 const cardId = typeof card === 'string' ? card : card.id;
 const cardAlt = typeof card === 'string' ? cards[card].alt : card.alt;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -36,8 +40,8 @@ const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || A
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    <title data-ugc={ugc}>{title}</title>
+    <meta name="description" content={description} data-ugc={ugc} />
     {notFound ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/archivo/archivo-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
@@ -50,14 +54,14 @@ const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || A
     {schedule && <link rel="stylesheet" href="/schedule.css" />}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KCD Texas" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={title} data-ugc={ugc} />
+    <meta property="og:description" content={description} data-ugc={ugc} />
     <meta property="og:url" content={notFound ? new URL('/', Astro.site) : canonical} />
     <meta property="og:image" content={cardUrl} />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content={String(CARD.width)} />
     <meta property="og:image:height" content={String(CARD.height)} />
-    <meta property="og:image:alt" content={cardAlt} />
+    <meta property="og:image:alt" content={cardAlt} data-ugc={ugc} />
     <meta name="twitter:card" content="summary_large_image" />
     {jsonLd && <script is:inline type="application/ld+json" set:html={jsonLdText(jsonLd)} />}
   </head>

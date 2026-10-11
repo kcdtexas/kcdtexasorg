@@ -20,7 +20,7 @@ const late = !out && (phase === 'event-day' || phase === 'recap');
       <p class="kicker">{late ? p.lateKicker : p.kicker}</p>
       <h2 id="program-title" class="h2">{late ? p.lateTitle : p.title}</h2>
       {!late && <p class="lead">{p.lead}</p>}
-      {p.sample && <p class="employer">{p.sample}</p>}
+      {p.sample && <p class="employer" data-sample>{p.sample}</p>}
       <div class="actions">
         {out ? (
           <>

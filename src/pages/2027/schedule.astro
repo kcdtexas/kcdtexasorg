@@ -16,7 +16,7 @@ import { program } from '../../lib/program';
       <dl class="page-facts">
         {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
       </dl>
-      {s.sample && <p class="page-soon">{s.sample}</p>}
+      {s.sample && <p class="page-soon" data-sample>{s.sample}</p>}
     </PageHead>
 
     {program?.schedulePublic && (

@@ -26,7 +26,7 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
   <Base title={`${L.title} · KCD Texas`} description={L.description} schedule>
     <article class="page wrap">
       <PageHead kicker={L.kicker} title={L.title} lead={L.lead(program!.speakers.length)}>
-        {program!.sample && <p class="page-soon">{programPages.sample}</p>}
+        {program!.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
       </PageHead>
       <section class="page-sec page-wide" aria-label={L.kicker}>
         <ul class="spk-list">
@@ -34,10 +34,10 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
             <li class="spk-card">
               <SpeakerPhoto speaker={s} />
               <div class="spk-text">
-                <a class="spk-name" href={`${paths.speakers}${s.slug}/`}>{s.name}</a>
-                {s.tagline && <span class="spk-tag">{s.tagline}</span>}
+                <a class="spk-name" href={`${paths.speakers}${s.slug}/`} data-ugc>{s.name}</a>
+                {s.tagline && <span class="spk-tag" data-ugc>{s.tagline}</span>}
                 <Credit credit={s.credit} role="Speaker" />
-                <span class="spk-ses">{sessionsOf(s).map((x) => x.title).join(' · ')}</span>
+                <span class="spk-ses" data-ugc>{sessionsOf(s).map((x) => x.title).join(' · ')}</span>
               </div>
             </li>
           ))}
@@ -46,18 +46,18 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
     </article>
   </Base>
 ) : (
-  <Base title={`${p.name} · KCD Texas ${programPages.year}`} description={w.description(p)} card={card ?? undefined} schedule>
+  <Base title={`${p.name} · KCD Texas ${programPages.year}`} description={w.description(p)} card={card ?? undefined} schedule programText>
     <article class="page wrap spk-page">
       <header class="page-head spk-head">
         <SpeakerPhoto speaker={p} size="lg" />
         <div>
           <p class="kicker"><a href={paths.speakers}>{w.kicker}</a></p>
-          <h1 class="page-title">{p.name}</h1>
-          {p.tagline && <p class="lead spk-tagline">{p.tagline}</p>}
+          <h1 class="page-title" data-ugc>{p.name}</h1>
+          {p.tagline && <p class="lead spk-tagline" data-ugc>{p.tagline}</p>}
           <Credit credit={p.credit} role="Speaker" />
         </div>
       </header>
-      {program!.sample && <p class="page-soon">{programPages.sample}</p>}
+      {program!.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
 
       <section class="page-sec" aria-labelledby="sessions">
         <h2 id="sessions" class="page-h2">{w.sessions}</h2>
@@ -68,10 +68,10 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
 
       <section class="page-sec" aria-labelledby="about-speaker">
         <h2 id="about-speaker" class="page-h2">{w.about}</h2>
-        {p.bio ? <p>{p.bio}</p> : <p class="pg-none">{w.noBio}</p>}
+        {p.bio ? <p data-ugc>{p.bio}</p> : <p class="pg-none">{w.noBio}</p>}
         {p.links.length > 0 && (
           <ul class="spk-links" aria-label={w.links}>
-            {p.links.map((l) => <li><a href={l.url}>{linkName[l.kind]}</a></li>)}
+            {p.links.map((l) => <li><a href={l.url} data-ugc>{linkName[l.kind]}</a></li>)}
           </ul>
         )}
       </section>

@@ -1,6 +1,7 @@
 ---
 // One Session in a list: the badges, the title linking to its page, the Speakers, the time and room as text, and
-// the My Schedule star. The data attributes feed the filters and My Schedule (/schedule.js).
+// the My Schedule star. The data attributes feed the filters and My Schedule (/schedule.js). Its title, Speakers,
+// room and id come from the program platform, so data-ugc marks it for scripts/check-dist.mjs.
 import Badges from './Badges.astro';
 import Star from './Star.astro';
 import { paths } from '../../data/nav';
@@ -18,7 +19,7 @@ const who = speakersOf(s);
 const url = `${paths.sessions}${s.slug}/`;
 ---
 
-<li class="sch-item" data-id={s.id} data-format={s.format} data-room={s.room ?? ''} data-eu={s.endUser ? '1' : '0'} data-start={s.start ?? ''} data-end={s.end ?? ''} data-url={url}>
+<li class="sch-item" data-id={s.id} data-format={s.format} data-room={s.room ?? ''} data-eu={s.endUser ? '1' : '0'} data-start={s.start ?? ''} data-end={s.end ?? ''} data-url={url} data-ugc>
   <Badges session={s} />
   <H class="sch-title"><a href={url}>{s.title}</a></H>
   {!noSpeakers && <p class="sch-who">{who.map((p, i) => <>{i > 0 && ', '}<a href={`${paths.speakers}${p.slug}/`}>{p.name}</a></>)}</p>}

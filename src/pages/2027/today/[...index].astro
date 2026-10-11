@@ -32,7 +32,7 @@ const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
   <article class="page wrap td-page td-page--gd" data-today data-now={t.now} data-next={t.next}>
     <PageHead kicker={t.kicker} title={t.title}>
       <p class="td-updated"><b>{t.updated} {clock(builtAt)} {t.zone}</b> <span>{t.live}</span></p>
-      {p.sample && <p class="page-soon">{programPages.sample}</p>}
+      {p.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
     </PageHead>
 
     <section class="page-sec page-wide" aria-labelledby="now-next">
@@ -40,20 +40,20 @@ const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
         <h2 id="now-next" class="page-h2">{t.nowNext}</h2>
         <p class="td-break" data-breaks>
           {p.breaks.map((b) => (
-            <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow}><b>{t.now}:</b> {b.title}, {timeRange(b.start, b.end)}</span>
+            <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow} data-ugc><b>{t.now}:</b> {b.title}, {timeRange(b.start, b.end)}</span>
           ))}
         </p>
         <ul class="td-rooms">
           {rooms.map((r) => (
             <li class="td-room" data-room-block>
-              <h3 class="td-room-name">{r.room}</h3>
+              <h3 class="td-room-name" data-ugc>{r.room}</h3>
               <p class="td-none" data-none-now hidden={Boolean(r.now)}>{t.nothingNow}</p>
               <ol class="td-list">
                 {r.list.map((s) => (
                   <li class:list={['td-ses', { 'is-now': s === r.now }]} data-start={s.start} data-end={s.end} hidden={s !== r.now && s !== r.next}>
                     <p class="td-when"><span class="td-label" data-label>{s === r.now ? t.now : t.next}</span> <span class="td-time">{timeRange(s.start!, s.end!)}</span></p>
-                    <a class="td-title" href={`${paths.sessions}${s.slug}/`}>{s.title}</a>
-                    <p class="td-who">{speakersOf(s).map((x) => x.name).join(', ')}</p>
+                    <a class="td-title" href={`${paths.sessions}${s.slug}/`} data-ugc>{s.title}</a>
+                    <p class="td-who" data-ugc>{speakersOf(s).map((x) => x.name).join(', ')}</p>
                   </li>
                 ))}
               </ol>
@@ -70,7 +70,7 @@ const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
       {t.announcements.length ? (
         <ol class="td-news">
           {/* One posted on an earlier day shows its date too, so it doesn't read as today's. */}
-          {[...t.announcements].reverse().map((a) => <li><time datetime={a.at}>{postedAt(a.at, builtAt.slice(0, 10))}</time> {a.text}{a.link && <> <a href={a.link}>{t.link}</a></>}</li>)}
+          {[...t.announcements].reverse().map((a) => <li data-ugc><time datetime={a.at}>{postedAt(a.at, builtAt.slice(0, 10))}</time> {a.text}{a.link && <> <a href={a.link}>{t.link}</a></>}</li>)}
         </ol>
       ) : <p class="pg-none">{t.noAnnouncements}</p>}
     </section>

@@ -16,6 +16,8 @@ export interface Sponsor2027 {
   link: string;
   /** The logo's alt text: the sponsor's name as it writes it. */
   alt: string;
+  /** A sample tile (--sponsors-sample): its name is its "Sample" label. */
+  sample?: boolean;
 }
 
 /** The announced 2027 Sponsorships: the real ones only, never the sample tiles. */
@@ -25,7 +27,7 @@ export const announcedSponsors2027: Sponsor2027[] = [];
 // No logos and no company names, real or made up; check-dist blocks "Sample" in any other build. The first tile of
 // each tier returns from 2026 (it takes a 2026 sponsor's id, never its name or logo), to show the "since" credit.
 const sample = (tier: Tier2027, name: string, n: number, returning: string): Sponsor2027[] =>
-  Array.from({ length: n }, (_, i) => ({ id: i === 0 ? returning : `sample-${tier}-${i + 1}`, name: `Sample ${name} sponsor`, tier, logo: null, link: '', alt: '' }));
+  Array.from({ length: n }, (_, i) => ({ id: i === 0 ? returning : `sample-${tier}-${i + 1}`, name: `Sample ${name} sponsor`, tier, logo: null, link: '', alt: '', sample: true }));
 
 /** The sample tiles, which only --sponsors-sample builds show (and src/data/history-test.ts credits). */
 export const sampleSponsors2027: Sponsor2027[] = [...sample('platinum', 'Platinum', 2, 'solo'), ...sample('gold', 'Gold', 4, 'grafana'), ...sample('silver', 'Silver', 3, 'akamai')];

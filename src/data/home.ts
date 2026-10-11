@@ -87,7 +87,7 @@ export const home = {
       ...(phase === 'event-day' && !tixOn ? [] : [{ key: 'tix', name: 'Tickets', status: tixNow, big: e.tickets.onSale ? shortDate(e.tickets.onSale) : tixNow, echo: Boolean(e.tickets.onSale) && tixNow !== 'On sale now',
         // NOW treats the sale day as one day; `ends` keeps tickets current (not faded as past) until the event.
         undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale, ends: e.eventDay } : {}),
-        detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } }]),
+        detail: ticketsSample ? { text: 'Sample day, not a real date', sample: true } : { text: 'Get ticket news', href: 'chapter' } }]),
       // The Schedule follows the program's gate (programState), like every program word: its date until then,
       // "Coming soon" with no date and no bar if the day passes without the release, "Out now" once public.
       ...(phase === 'event-day' && prog === 'soon' ? [] : [prog === 'soon'

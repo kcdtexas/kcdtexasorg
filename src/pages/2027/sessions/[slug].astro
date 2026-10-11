@@ -19,17 +19,17 @@ const who = speakersOf(s);
 const card = programCard('session', s.slug);
 ---
 
-<Base title={`${s.title} · KCD Texas ${programPages.year}`} description={w.description(s)} card={card ?? undefined} schedule>
+<Base title={`${s.title} · KCD Texas ${programPages.year}`} description={w.description(s)} card={card ?? undefined} schedule programText>
   <article class="page wrap ses-page">
     <header class="page-head">
       <p class="kicker"><a href={paths.schedule}>{w.kicker}</a></p>
       <Badges session={s} />
-      <h1 class="page-title ses-title">{s.title}</h1>
-      {program!.sample && <p class="page-soon">{programPages.sample}</p>}
+      <h1 class="page-title ses-title" data-ugc>{s.title}</h1>
+      {program!.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
       {program!.schedulePublic && s.start && s.end && (
         <dl class="page-facts">
           <div><dt>{w.time}</dt><dd>{timeRange(s.start, s.end)}</dd></div>
-          <div><dt>{w.room}</dt><dd>{s.room}</dd></div>
+          <div><dt>{w.room}</dt><dd data-ugc>{s.room}</dd></div>
           <div><dt>{w.day}</dt><dd>{programPages.dayLine}</dd></div>
         </dl>
       )}
@@ -41,7 +41,7 @@ const card = programCard('session', s.slug);
 
     <section class="page-sec" aria-labelledby="about-session">
       <h2 id="about-session" class="page-h2">{w.about}</h2>
-      {s.abstract ? <p class="ses-abstract">{s.abstract}</p> : <p class="pg-none">{w.noAbstract}</p>}
+      {s.abstract ? <p class="ses-abstract" data-ugc>{s.abstract}</p> : <p class="pg-none">{w.noAbstract}</p>}
     </section>
 
     <section class="page-sec" aria-labelledby="speakers">
@@ -51,8 +51,8 @@ const card = programCard('session', s.slug);
           <li class="spk-card">
             <SpeakerPhoto speaker={p} size="sm" />
             <div class="spk-text">
-              <a class="spk-name" href={`${paths.speakers}${p.slug}/`}>{p.name}</a>
-              {p.tagline && <span class="spk-tag">{p.tagline}</span>}
+              <a class="spk-name" href={`${paths.speakers}${p.slug}/`} data-ugc>{p.name}</a>
+              {p.tagline && <span class="spk-tag" data-ugc>{p.tagline}</span>}
               <Credit credit={p.credit} role="Speaker" />
             </div>
           </li>
