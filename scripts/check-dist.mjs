@@ -40,8 +40,9 @@ export const DRAFT_MARKERS = [
   // A sample (build.sh --tickets-day, --program-public, --sponsors-sample, --program-sample) must never reach a
   // real deploy: the pages label every sample "Sample".
   ...(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
-  // The test program's made-up names never reach a build without the program sample (src/data/program-fixture.ts).
-  ...(process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Fixture', pattern: /\bFixture (?:Speaker|Session)\b/ }]),
+  // The test program's made-up names, and the test history's made-up Organizer, never reach a build without the
+  // program sample (src/data/program-fixture.ts, src/data/history-test.ts).
+  ...(process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'Fixture', pattern: /\bFixture (?:Speaker|Session|Organizer)\b/ }]),
 ];
 export const findDraftMarkers = (html) =>
   DRAFT_MARKERS.flatMap(({ name, pattern }) => {

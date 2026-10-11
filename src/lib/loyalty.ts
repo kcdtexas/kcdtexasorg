@@ -6,13 +6,14 @@
 // A kind's credits print only when every earlier Edition from where its history starts has a complete record of
 // that kind (src/lib/credits.ts), so a missing year can never print a wrong "since". A person listed on any earlier
 // record, complete or not, gets a credit only when every record from that first year on is complete. Test builds
-// add the test history (src/data/history-test.ts) and start every kind's history there.
+// add the test history (src/data/history-test.ts) and start every kind's history there; their Organizer credits
+// come from the test history alone, so only its made-up Organizer shows one.
 import { editions } from '../data/editions';
 import { edition2027, programDataSample, sponsorsSample } from '../data/edition-2027';
 import { testHistory, testHistoryFrom } from '../data/history-test';
 import { heldOrganizers, returningOrganizers } from '../data/returning-organizers';
 import { returningSpeakers } from '../data/returning-speakers';
-import { creditFor, mergeHistory, norm, validateHistory, type Credit, type EditionHistory, type Kind } from './credits';
+import { creditFor, KINDS, norm, recordsFor, validateHistory, type Credit, type EditionHistory, type Kind } from './credits';
 
 export { norm, type Credit };
 
@@ -36,8 +37,7 @@ export const historyFrom: Record<Kind, number | null> = { organizers: 2025, spea
 
 // Test builds: the test history, from testHistoryFrom, for the kinds their flag covers.
 const tested: Record<Kind, boolean> = { organizers: programDataSample, speakers: programDataSample, sponsors: sponsorsSample };
-const withTests = mergeHistory(history, testHistory);
-const recordsFor = (kind: Kind) => (tested[kind] ? withTests : history);
+const records = Object.fromEntries(KINDS.map((kind) => [kind, recordsFor(kind, history, tested[kind] ? testHistory : null)])) as Record<Kind, readonly EditionHistory[]>;
 const ruleFor = (kind: Kind, current: number) => ({
   editions: editionYears,
   current,
@@ -47,20 +47,21 @@ const ruleFor = (kind: Kind, current: number) => ({
 /** "Speaker since": a Speaker in `edition` who also spoke in an earlier Edition. */
 export function speakerCredit(name: string, edition: number = edition2027.year): Credit | null {
   const names = [name, ...(returningSpeakers.find((r) => norm(r.name) === norm(name))?.earlier ?? [])];
-  return creditFor(recordsFor('speakers'), 'speakers', names, ruleFor('speakers', edition));
+  return creditFor(records.speakers, 'speakers', names, ruleFor('speakers', edition));
 }
 
 /** "Sponsor since": a sponsor of this Edition that also backed an earlier one. */
 export function sponsorCredit(id: string): Credit | null {
-  return creditFor(recordsFor('sponsors'), 'sponsors', [id], ruleFor('sponsors', edition2027.year));
+  return creditFor(records.sponsors, 'sponsors', [id], ruleFor('sponsors', edition2027.year));
 }
 
 /** "Organizer since": a 2027 Organizer who also organized an earlier Edition, unless their credit is held. */
 export function organizerCredit(name: string): Credit | null {
   if (heldOrganizers.some((h) => norm(h.name) === norm(name))) return null;
   const names = [name, ...(returningOrganizers.find((r) => norm(r.name) === norm(name))?.earlier ?? [])];
-  return creditFor(recordsFor('organizers'), 'organizers', names, ruleFor('organizers', edition2027.year));
+  return creditFor(records.organizers, 'organizers', names, ruleFor('organizers', edition2027.year));
 }
 
-/** True when this build's Organizer credits come from the test history: the About page then says "Sample". */
+/** True when this build's Organizer credits come from the test history: the About page then adds its made-up
+ *  Organizer (src/data/history-test.ts) and says "Sample". */
 export const organizerCreditsSample = tested.organizers;

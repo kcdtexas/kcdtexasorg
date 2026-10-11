@@ -81,6 +81,16 @@ export function mergeHistory(base: readonly EditionHistory[], extra: readonly Ed
   return [...byYear.values()].sort((a, b) => a.year - b.year);
 }
 
+/**
+ * The records a kind's credits read: the Editions' own, or in a test build (`test`, the test history) the two joined.
+ * The Organizers' credits in a test build read the test history alone: it starts in 2026, so a real Organizer who
+ * also organized an earlier Edition would show a wrong "since".
+ */
+export function recordsFor(kind: Kind, history: readonly EditionHistory[], test: readonly EditionHistory[] | null): readonly EditionHistory[] {
+  if (!test) return history;
+  return kind === 'organizers' ? test : mergeHistory(history, test);
+}
+
 export interface CreditRule {
   /** Every Edition's year, in any order. */
   editions: readonly number[];
