@@ -23,6 +23,8 @@ export const REQUIRED_PAGES = [
   '/2027/travel/',
   '/2027/schedule/',
   '/2026/',
+  '/2025/',
+  '/2024/',
   '/editions/',
   '/about/',
   '/code-of-conduct/',
