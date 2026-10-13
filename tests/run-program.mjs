@@ -1,4 +1,4 @@
-// The program's tests (ADR 0009, plan-release-6), in tests/run-local.mjs. First the platform's own tests
+// The program's tests (ADR 0009), in tests/run-local.mjs. First the platform's own tests
 // (tests/program-adapter.mjs). Then it builds the site with the program sample and the sample sponsors
 // (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: the Share Cards' "Sample" stamp
 // and their time budget, the test-build marker, the calendar files (RFC 5545, with the America/Chicago zone), the
