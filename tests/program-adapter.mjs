@@ -487,7 +487,7 @@ try {
       for (const [cmd, args, env] of [
         ['npx', ['astro', 'build'], { ...prodSessionize, KCD_BUILD_DAY: EVENT_DAY, KCD_BUILD_CLOCK: '12:00', ASTRO_TELEMETRY_DISABLED: '1' }],
         [process.execPath, ['scripts/write-host-files.mjs'], {}],
-        [process.execPath, ['scripts/check-dist.mjs'], { CONTEXT: 'production' }],
+        [process.execPath, ['scripts/check-dist.mjs'], { CONTEXT: 'production', KCD_BUILD_DAY: EVENT_DAY }],
       ]) {
         const r = await run(cmd, args, env);
         steps += r.log;

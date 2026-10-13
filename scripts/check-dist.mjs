@@ -198,6 +198,16 @@ async function check() {
   for (const path of REQUIRED_PAGES) {
     if (!existsSync(join(DIST, pageFile(path)))) failures.push(`missing page ${path} (dist/${pageFile(path)})`);
   }
+
+  // The build's day, which the rebuild workflow reads from the live site (docs/rebuilds.md, "Catch-up"): one line,
+  // the --now day in a test build, or else today in Central time (or yesterday, for a build that ran past midnight).
+  if (!existsSync(join(DIST, 'build.txt'))) failures.push('missing dist/build.txt, the day the build was made for');
+  else {
+    const built = readFileSync(join(DIST, 'build.txt'), 'utf8');
+    const central = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
+    const want = process.env.KCD_BUILD_DAY ? [process.env.KCD_BUILD_DAY] : [central(new Date()), central(new Date(Date.now() - 86_400_000))];
+    if (!/^\d{4}-\d{2}-\d{2}\n$/.test(built) || !want.includes(built.trim())) failures.push(`dist/build.txt is ${JSON.stringify(built)}, not one line with ${want.join(' or ')}`);
+  }
   for (const f of ['_redirects', '_headers', 'robots.txt', 'sitemap.xml', 'favicon.svg', 'theme.js', 'now.js']) {
     if (!existsSync(join(DIST, f))) failures.push(`missing dist/${f}`);
   }
