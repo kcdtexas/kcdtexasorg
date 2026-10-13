@@ -69,7 +69,7 @@ The caps on program deploys, set in `DEPLOY_BUDGET` in `scripts/refresh-policy.m
 - Event Day, 7 a.m. to 7 p.m. Central: at most one every 2 hours. At most 6.
 - A forced run always deploys, and counts as the last program deploy.
 
-With a program change every day, the schedule alone makes 9 production deploys in March (135 credits) and 14 in April (210 credits). That leaves 90 credits in April for merges, announcements and traffic.
+With a program change every day, the program deploys and the rebuild days make 9 production deploys in March (135 credits) and 14 in April (210 credits). That leaves 90 credits in April for merges, announcements and traffic.
 
 Check Netlify's usage page on the 1st and the 15th of March and April, and on Apr 20.
 
