@@ -6,6 +6,7 @@ import { splitProgram, type PastPage } from './past-page';
 const { recorded, others } = splitProgram(sessions2024);
 
 export const page2024: PastPage = {
+  year: e.year,
   title: `KCD Texas ${e.year} · ${e.city} · ${e.date}`,
   description: `KCD Texas ${e.year} in ${e.city} on ${e.date}, co-located with ${e.coLocated.name}: ${e.speakers} Speakers on ${e.tracks} tracks. The full KCD Texas program.`,
   kicker: 'Past Edition',

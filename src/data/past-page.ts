@@ -6,6 +6,7 @@ import type { PastSession, PastSpeaker } from './past-program';
 export interface Link { text: string; href: string }
 
 export interface PastPage {
+  year: 2024 | 2025;
   title: string;
   description: string;
   kicker: string;

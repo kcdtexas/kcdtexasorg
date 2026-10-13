@@ -4,7 +4,7 @@
 // A section the Edition has nothing for is left out.
 import Base from '../layouts/Base.astro';
 import PageHead from './PageHead.astro';
-import PastSponsorTiers from './PastSponsorTiers.astro';
+import SponsorTiers from './SponsorTiers.astro';
 import { youtube } from '../data/edition-2026';
 import { printedLine, type PastSession } from '../data/past-program';
 import type { PastPage } from '../data/past-page';
@@ -86,7 +86,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
 
     <section class="page-sec page-wide" aria-labelledby="sponsors">
       <h2 id="sponsors" class="page-h2">{p.sponsors.title}</h2>
-      <PastSponsorTiers tiers={p.sponsors.tiers} />
+      <SponsorTiers edition={p.year} tiers={p.sponsors.tiers} />
       <p class="pg-src">{p.sponsors.note} Source: <a href={p.sponsors.source.href}>{p.sponsors.source.text}</a>.</p>
       <h3 class="page-h3">{p.sponsors.partnersTitle}</h3>
       <dl class="pg-partners">

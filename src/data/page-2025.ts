@@ -7,6 +7,7 @@ const { recorded, others } = splitProgram(sessions2025);
 const rooms = [...new Set(sessions2025.map((s) => s.room))];
 
 export const page2025: PastPage = {
+  year: e.year,
   title: `KCD Texas ${e.year} · ${e.city} · ${e.date}`,
   description: `KCD Texas ${e.year} at the ${e.venue} on ${e.date}: ${e.speakers} Speakers on ${e.stages} stages. The full program with links to ${e.recordings} recordings.`,
   kicker: 'Past Edition',
