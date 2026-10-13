@@ -4,6 +4,7 @@ import type { PastTier } from './edition-2025';
 import type { PastSession, PastSpeaker } from './past-program';
 
 export interface Link { text: string; href: string }
+export interface LogoCredit { title: string; author: string; source: Link; license: Link }
 
 export interface PastPage {
   year: 2024 | 2025;
@@ -30,7 +31,16 @@ export interface PastPage {
     watch: string;
     more: readonly Link[];
   };
-  sponsors: { title: string; tiers: readonly PastTier[]; note: string; source: Link; partnersTitle: string; partnerGroups: readonly { type: string; names: readonly string[] }[] };
+  sponsors: {
+    title: string;
+    tiers: readonly PastTier[];
+    note: string;
+    source: Link;
+    /** The attribution a logo's license asks for, shown under the wall: title, author, source and license. */
+    logoCredits?: readonly LogoCredit[];
+    partnersTitle: string;
+    partnerGroups: readonly { type: string; names: readonly string[] }[];
+  };
   organizers: { title: string; names: readonly string[]; note: string; source: Link };
   lookBack: { title: string; links: readonly (Link & { note: string })[] };
 }

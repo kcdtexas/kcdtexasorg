@@ -88,6 +88,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
       <h2 id="sponsors" class="page-h2">{p.sponsors.title}</h2>
       <SponsorTiers edition={p.year} tiers={p.sponsors.tiers} />
       <p class="pg-src">{p.sponsors.note} Source: <a href={p.sponsors.source.href}>{p.sponsors.source.text}</a>.</p>
+      {p.sponsors.logoCredits?.map((c) => <p class="pg-src">{c.title} by {c.author}, from <a href={c.source.href}>{c.source.text}</a>, under <a href={c.license.href}>{c.license.text}</a>.</p>)}
       <h3 class="page-h3">{p.sponsors.partnersTitle}</h3>
       <dl class="pg-partners">
         {p.sponsors.partnerGroups.map((g) => <div><dt>{g.type}</dt><dd>{g.names.join(', ')}</dd></div>)}

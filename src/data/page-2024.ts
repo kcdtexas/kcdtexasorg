@@ -57,6 +57,14 @@ export const page2024: PastPage = {
     tiers: e.tiers,
     note: `A sponsor shown by name had no logo file we could use. ${e.coLocated.name}’s own sponsor page lists more companies whose packages included KCD Texas.`,
     source: { text: 'The 2024 Event Page', href: e.sponsorsSource },
+    logoCredits: [
+      {
+        title: 'Rocky Linux logo',
+        author: 'the Rocky Linux project',
+        source: { text: 'rocky-linux/branding on GitHub', href: 'https://github.com/rocky-linux/branding/blob/main/logo/src/logo-primary_black.svg' },
+        license: { text: 'CC BY-SA 4.0', href: 'https://creativecommons.org/licenses/by-sa/4.0/' },
+      },
+    ],
     partnersTitle: 'Partners',
     partnerGroups: e.partnerGroups,
   },
