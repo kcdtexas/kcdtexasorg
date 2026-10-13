@@ -45,7 +45,7 @@ export const privacy = {
       text: [
         'The pages, fonts, images and logos all come from kcdtexas.org. Opening a page here loads nothing from other companies’ servers.',
         // The video player (public/watch.js): the one thing from another company's servers, and only on a click.
-        'When you play a recording here, YouTube’s player loads from youtube-nocookie.com, and YouTube’s privacy policy applies to it. Nothing from YouTube loads before you click Watch.',
+        'When you play a recording here, YouTube’s player loads from youtube-nocookie.com, and YouTube’s privacy policy applies to it. Nothing from YouTube loads before you choose a recording.',
       ],
     },
     {
