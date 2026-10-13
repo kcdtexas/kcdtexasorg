@@ -1,9 +1,10 @@
-// When the last program deploy started, from this workflow's own runs on GitHub (.github/workflows/rebuild.yml).
-// A program deploy is a run whose rebuild job is named PROGRAM_DEPLOY_JOB (after a program change, or a forced
-// run) and whose HOOK_STEP succeeded, so Netlify accepted the build. A run that failed later, while it waited for
-// the live site, still counts. The time is the run's start, as the refresh policy compares run starts.
-// scripts/rebuild-today.mjs calls this only when the refresh policy needs it (scripts/refresh-policy.mjs). It needs
-// GH_TOKEN with `actions: read`, and reads GITHUB_REPOSITORY and GITHUB_RUN_ID (this run, which it skips).
+// When the last program deploy, or the last use of the build hook, started, from this workflow's own runs on
+// GitHub (.github/workflows/rebuild.yml). A program deploy is a run whose rebuild job is named PROGRAM_DEPLOY_JOB
+// (after a program change, or a forced run) and whose HOOK_STEP succeeded, so Netlify accepted the build. A use of
+// the hook is any run whose HOOK_STEP succeeded. A run that failed later, while it waited for the live site, still
+// counts. The time is the run's start, as the refresh policy compares run starts.
+// scripts/rebuild-today.mjs calls these only when the refresh policy needs them (scripts/refresh-policy.mjs). They
+// need GH_TOKEN with `actions: read`, and read GITHUB_REPOSITORY and GITHUB_RUN_ID (this run, which they skip).
 
 /** The rebuild job's name when it deploys a program change or a forced run, and its build hook step. */
 export const PROGRAM_DEPLOY_JOB = 'Program deploy';
@@ -14,12 +15,22 @@ export function deployedIn(jobs) {
   return (jobs ?? []).some((j) => j.name === PROGRAM_DEPLOY_JOB && (j.steps ?? []).some((s) => s.name === HOOK_STEP && s.conclusion === 'success'));
 }
 
+/** Whether one run's jobs include any job whose build hook step succeeded. */
+export function hookedIn(jobs) {
+  return (jobs ?? []).some((j) => (j.steps ?? []).some((s) => s.name === HOOK_STEP && s.conclusion === 'success'));
+}
+
 /**
  * The start of the newest run since `since` that made a program deploy, or null if none did.
  * Throws with a reason, never with the token, when GitHub's API can't be read.
  * @param {{ since: Date, repo?: string, token?: string, runId?: string, fetch?: typeof fetch }} input
  */
-export async function lastProgramDeploy({ since, repo = process.env.GITHUB_REPOSITORY, token = process.env.GH_TOKEN, runId = process.env.GITHUB_RUN_ID, fetch = globalThis.fetch }) {
+export const lastProgramDeploy = (input) => newestRun({ ...input, match: deployedIn });
+
+/** The start of the newest run since `since` that got past the build hook, or null if none did. Throws as above. */
+export const lastBuildHook = (input) => newestRun({ ...input, match: hookedIn });
+
+async function newestRun({ since, match, repo = process.env.GITHUB_REPOSITORY, token = process.env.GH_TOKEN, runId = process.env.GITHUB_RUN_ID, fetch = globalThis.fetch }) {
   if (!repo || !token) throw new Error('GH_TOKEN or GITHUB_REPOSITORY is not set');
   const api = async (path) => {
     let res;
@@ -47,7 +58,7 @@ export async function lastProgramDeploy({ since, repo = process.env.GITHUB_REPOS
   for (const run of done) {
     const { jobs } = await api(`actions/runs/${run.id}/jobs?filter=all&per_page=100`);
     if (!Array.isArray(jobs)) throw new Error("GitHub's API sent no list of jobs");
-    if (deployedIn(jobs)) return new Date(run.run_started_at);
+    if (match(jobs)) return new Date(run.run_started_at);
   }
   return null;
 }
