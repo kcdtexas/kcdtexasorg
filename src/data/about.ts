@@ -49,7 +49,8 @@ export const about = {
     title: 'Organizers',
     soon: `The ${e.year} Organizers, with their employers, are listed here soon.`,
     past: { text: 'Meet the 2026 Organizers', href: '/2026/#organizers' },
-    pastAfter: { before: 'The 2026 Organizers are on', text: 'the 2026 page', href: '/2026/#organizers' },
+    // Each earlier Edition's page lists its team with its source.
+    pastTeams: { before: 'Earlier teams:', years: [2026, 2025, 2024] },
     // build.sh --program-sample: a made-up Organizer with a made-up history shows the "Organizer since" credit
     // (src/data/history-test.ts), and the real Organizers show none.
     creditsSample: 'Sample: this test build adds a made-up Organizer to show the credit.',

@@ -65,7 +65,7 @@ const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2
               </li>
             ))}
           </ul>
-          <p>{a.organizers.pastAfter.before} <a href={a.organizers.pastAfter.href}>{a.organizers.pastAfter.text}</a>.</p>
+          <p>{a.organizers.pastTeams.before} {a.organizers.pastTeams.years.map((y, i, all) => <>{i === 0 ? '' : i === all.length - 1 ? ' and ' : ', '}<a href={`/${y}/#organizers`}>{y}</a></>)}.</p>
         </>
       )}
     </section>
