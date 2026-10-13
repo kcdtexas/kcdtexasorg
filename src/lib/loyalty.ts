@@ -1,4 +1,4 @@
-// The loyalty credits: "Sponsor since", "Organizer since" and "Speaker since" (plan-release-6). One registry holds
+// The loyalty credits: "Sponsor since", "Organizer since" and "Speaker since". One registry holds
 // every Edition's history, one file per Edition in src/data/history/, each checked when the build loads it. Every
 // year comes from those records, never typed by hand, and one Edition alone gets no credit. A name matches across
 // Editions exactly (ignoring case, accents and spacing) or through the confirmed lists in src/data/returning-*.ts.

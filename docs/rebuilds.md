@@ -17,7 +17,7 @@ The build hook's address is the secret `NETLIFY_BUILD_HOOK` in the GitHub enviro
 
 ## The program refresh
 
-Once the program is public, the Organizers can still change it on the platform: a Session moves, or a Speaker drops out. The site should follow. Every production deploy spends Netlify credits (below), so a refresh rebuilds only when the program changed, and no more often than the credit budget allows.
+Once the program is public, the Organizers can still change it on the platform: a Session moves, or a Speaker drops out. The site should follow. Once a gate is open, every Session marked Accepted on the platform goes live with the next refresh, with no pull request. So mark a Session Accepted only once its Speaker has confirmed and it can be announced. Every production deploy spends Netlify credits (below), so a refresh rebuilds only when the program changed, and no more often than the credit budget allows.
 
 `scripts/refresh-policy.mjs` decides what each run does:
 
