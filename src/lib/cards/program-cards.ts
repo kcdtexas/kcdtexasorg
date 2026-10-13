@@ -3,9 +3,16 @@
 // A build-time budget caps how many are drawn, so the daily and Event Day rebuilds stay fast; past the cap a page
 // keeps the title card.
 import { edition2027, shortDate } from '../../data/edition-2027';
-import { formatName, program, sessionsOf, speakersOf, timeRange, type Session, type Speaker } from '../program';
+import sharp from 'sharp';
+import { formatName, program, sessionsOf, speakerPhotos, speakersOf, timeRange, type Session, type Speaker } from '../program';
 import { CARD } from './cards';
 import { chip, color, h, img, photo, type, type Node } from './kit';
+import { STAND_IN_SPEAKER, standInPhoto } from './stand-in';
+
+/** What a Speaker's Share Card shows beside the name: 'photo' shows the Speaker's photo (the one the build downloads
+ *  and serves from our domain), and the initials only for a Speaker with no photo; 'initials' always shows the
+ *  initials. Change it to 'initials' to go back to initials on every card. */
+export const SPEAKER_CARD_FACE: 'photo' | 'initials' = 'photo';
 
 /** At most this many program cards per build. A Session's card takes about 0.1 s to draw and a Speaker's about 0.85 s,
  *  its photo band most of it; tests/run-program.mjs holds 150 of them to a time budget. */
@@ -55,30 +62,50 @@ function sessionCard(s: Session): Entry {
   };
 }
 
+const FACE = 220;
+const FACE_BORDER = 6;
+
+/** The Speaker's photo for the card as a JPEG data URI, or null for the initials. A test build has no Speaker
+ *  photos, so one fixture Speaker gets the drawn stand-in (./stand-in.ts) and the card is tested both ways. */
+async function cardPhoto(p: Speaker): Promise<string | null> {
+  if (SPEAKER_CARD_FACE !== 'photo') return null;
+  const webp = speakerPhotos.get(p.slug)?.large ?? (program?.sample && p.id === STAND_IN_SPEAKER ? await standInPhoto() : null);
+  if (!webp) return null;
+  const side = FACE - 2 * FACE_BORDER;
+  const jpeg = await sharp(webp).resize(side, side, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer();
+  return `data:image/jpeg;base64,${jpeg.toString('base64')}`;
+}
+
 function speakerCard(p: Speaker): Entry {
   const first = sessionsOf(p)[0];
   const initials = p.name.split(/\s+/).filter((w) => /^\p{L}/u.test(w)).map((w) => w[0]).slice(0, 2).join('');
   const bandH = 200;
+  const faceBox = { width: FACE, height: FACE, marginTop: -FACE / 2, border: `${FACE_BORDER}px solid ${color.bg}` };
   return {
     id: `speaker-${p.slug}`,
     alt: altOf(`${p.name} is speaking at KCD Texas ${edition2027.year} in ${edition2027.city}${first ? `: ${first.title}` : ''}.`),
-    draw: async () => h('div', { width: CARD.width, height: CARD.height, flexDirection: 'column', background: color.bg, color: color.fg },
-      img(await photo('src/assets/photos/band-043-171.jpg', CARD.width, bandH), CARD.width, bandH),
-      h('div', { height: 6, background: color.gold }),
-      h('div', { flex: 1, padding: `0 ${PAD}px`, gap: 36, alignItems: 'flex-start' },
-        // The photo's place, with the Speaker's initials: the card has no Speaker photo.
-        h('div', { width: 220, height: 220, marginTop: -110, alignItems: 'center', justifyContent: 'center', background: color.surface, border: `6px solid ${color.bg}`, fontSize: 96, color: color.fg, ...type.display }, initials),
-        h('div', { flex: 1, flexDirection: 'column', gap: 10, paddingTop: 30 },
-          h('div', { fontSize: 24, color: color.gold, ...type.label }, `I’m speaking at KCD Texas ${edition2027.year}`),
-          h('div', { fontSize: fit(p.name, [[18, 72], [28, 60], [Infinity, 50]]), ...type.head }, p.name),
-          p.tagline ? h('div', { fontSize: 24, color: color.muted, ...type.text }, p.tagline) : null,
-          first ? h('div', { marginTop: 8, fontSize: first.title.length > 70 ? 26 : 30, ...type.bold, maxHeight: 84, overflow: 'hidden' }, first.title) : null,
+    draw: async () => {
+      const face = await cardPhoto(p);
+      return h('div', { width: CARD.width, height: CARD.height, flexDirection: 'column', background: color.bg, color: color.fg },
+        img(await photo('src/assets/photos/band-043-171.jpg', CARD.width, bandH), CARD.width, bandH),
+        h('div', { height: 6, background: color.gold }),
+        h('div', { flex: 1, padding: `0 ${PAD}px`, gap: 36, alignItems: 'flex-start' },
+          // The Speaker's photo, or the initials in its place when there's none.
+          face
+            ? h('div', { ...faceBox, background: color.bg }, img(face, FACE - 2 * FACE_BORDER, FACE - 2 * FACE_BORDER))
+            : h('div', { ...faceBox, alignItems: 'center', justifyContent: 'center', background: color.surface, fontSize: 96, color: color.fg, ...type.display }, initials),
+          h('div', { flex: 1, flexDirection: 'column', gap: 10, paddingTop: 30 },
+            h('div', { fontSize: 24, color: color.gold, ...type.label }, `I’m speaking at KCD Texas ${edition2027.year}`),
+            h('div', { fontSize: fit(p.name, [[18, 72], [28, 60], [Infinity, 50]]), ...type.head }, p.name),
+            p.tagline ? h('div', { fontSize: 24, color: color.muted, ...type.text }, p.tagline) : null,
+            first ? h('div', { marginTop: 8, fontSize: first.title.length > 70 ? 26 : 30, ...type.bold, maxHeight: 84, overflow: 'hidden' }, first.title) : null,
+          ),
         ),
-      ),
-      h('div', { position: 'absolute', left: PAD, bottom: 26, fontSize: 24, color: color.muted, ...type.bold }, `${edition2027.city} · ${shortDate(edition2027.eventDay)}`),
-      h('div', { position: 'absolute', right: PAD, bottom: 26, fontSize: 24, color: color.muted, ...type.bold }, domain),
-      stamp(),
-    ),
+        h('div', { position: 'absolute', left: PAD, bottom: 26, fontSize: 24, color: color.muted, ...type.bold }, `${edition2027.city} · ${shortDate(edition2027.eventDay)}`),
+        h('div', { position: 'absolute', right: PAD, bottom: 26, fontSize: 24, color: color.muted, ...type.bold }, domain),
+        stamp(),
+      );
+    },
   };
 }
 
