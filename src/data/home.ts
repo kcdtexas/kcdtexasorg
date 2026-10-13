@@ -3,7 +3,8 @@ import { edition2026 } from './edition-2026';
 import { prospectus } from './site';
 import { cfpPath, paths } from './nav';
 import { sponsors2027 } from './sponsors-2027';
-import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, managerLetterLine, phase, programSample, programState, programStatus, shortDate, shortDateYear, sponsorAsk, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
+import { cfpSentence, cfpStatus, edition2027, eventStatus, longDate, managerLetterLine, phase, programDataSample, programSample, programState, programStatus, shortDate, shortDateYear, sponsorAsk, sponsorshipsStatus, ticketsOnSale, ticketsSample, ticketsSentence, ticketsStatus } from './edition-2027';
+import { programSampleLabel } from './program-pages';
 
 const e = edition2027;
 const lowerFirst = (s: string) => s[0].toLowerCase() + s.slice(1);
@@ -15,12 +16,13 @@ const tixOn = ticketsOnSale();
 const prog = programState();
 const has2027 = sponsors2027.length > 0;
 
-// The Countdown's bill and the program block say where the program stands, by its gate (programState).
-const progSentence = prog === 'out' ? 'are out' : prog === 'dated' ? `come out ${shortDate(e.schedule)}` : 'are coming soon';
+// The Countdown's bill and the program block say where the program stands, by its gates (programState).
+const progClause = prog === 'speakers' ? 'the Speakers are out, and the Schedule is coming soon'
+  : `the Speakers and the Schedule ${prog === 'out' ? 'are out' : prog === 'dated' ? `come out ${shortDate(e.schedule)}` : 'are coming soon'}`;
 const promise = 'One day of Kubernetes and cloud native talks and hands-on workshops';
 const descriptions = {
   cfp: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. The call for proposals ${cfpSentence()}.`,
-  countdown: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. Tickets ${ticketsSentence()}; the Speakers and the Schedule ${progSentence}.`,
+  countdown: `KCD Texas ${e.year}: ${lowerFirst(promise)} in ${e.city} on ${longDate(e.eventDay)}. Tickets ${ticketsSentence()}; ${progClause}.`,
   'event-day': `KCD Texas ${e.year} is today in ${e.city}: ${lowerFirst(promise)}.`,
   recap: `KCD Texas ${e.year} took place in ${e.city} on ${longDate(e.eventDay)}. Thank you to every Attendee, Speaker, sponsor and volunteer.`,
 };
@@ -87,12 +89,13 @@ export const home = {
       ...(phase === 'event-day' && !tixOn ? [] : [{ key: 'tix', name: 'Tickets', status: tixNow, big: e.tickets.onSale ? shortDate(e.tickets.onSale) : tixNow, echo: Boolean(e.tickets.onSale) && tixNow !== 'On sale now',
         // NOW treats the sale day as one day; `ends` keeps tickets current (not faded as past) until the event.
         undated: !e.tickets.onSale, ...(e.tickets.onSale ? { from: e.tickets.onSale, until: e.tickets.onSale, ends: e.eventDay } : {}),
-        detail: ticketsSample ? { text: 'Sample day, not a real date' } : { text: 'Get ticket news', href: 'chapter' } }]),
-      // The Schedule follows the program's gate (programState), like every program word: its date until then,
-      // "Coming soon" with no date and no bar if the day passes without the release, "Out now" once public.
-      ...(phase === 'event-day' && prog === 'soon' ? [] : [prog === 'soon'
+        detail: ticketsSample ? { text: 'Sample day, not a real date', sample: true } : { text: 'Get ticket news', href: 'chapter' } }]),
+      // The Schedule follows the program's gates (programState), like every program word: its date until then,
+      // "Coming soon" with no date and no bar if the day passes without the release or only the Speakers come out
+      // (then the row links to them), "Out now" once public.
+      ...(phase === 'event-day' && (prog === 'soon' || prog === 'speakers') ? [] : [prog === 'soon' || prog === 'speakers'
         ? { key: 'sched', name: 'Schedule', status: 'Coming soon', big: 'Coming soon', echo: true, late: true,
-          detail: { text: 'With the Speakers and keynotes' } }
+          detail: prog === 'speakers' ? { text: 'Meet the Speakers', href: 'speakers' } : { text: 'With the Speakers and keynotes' } }
         : { key: 'sched', name: 'Schedule', status: prog === 'out' ? 'Out now' : shortDate(e.schedule), big: shortDate(e.schedule), echo: prog !== 'out', from: e.schedule, until: e.schedule, ends: e.eventDay,
           detail: prog === 'out' ? { text: 'See the Schedule', href: 'schedule' } : { text: 'With the Speakers and keynotes' } }]),
       { key: 'event', name: `KCD Texas ${e.year}`, status: eventNow, big: shortDate(e.eventDay), echo: !eventNow.startsWith('Today'), from: e.eventDay, until: e.eventDay,
@@ -160,8 +163,10 @@ export const home = {
   program: {
     kicker: 'The program',
     title: prog === 'out' ? (phase === 'recap' ? `The KCD Texas ${e.year} program` : 'The Speakers and the Schedule are out.')
+      : prog === 'speakers' ? (phase === 'recap' ? `The KCD Texas ${e.year} Speakers` : 'The Speakers are out.')
       : `Speakers, keynotes and the Schedule: ${prog === 'dated' ? shortDate(e.schedule) : 'coming soon'}`,
     lead: prog === 'out' ? 'See who’s speaking, and plan your day.'
+      : prog === 'speakers' ? (phase === 'countdown' ? 'See who’s speaking. The Schedule comes out soon.' : 'See who’s speaking.')
       : `The Session Committee selects the Sessions. The Speakers, the keynotes and the Schedule ${prog === 'dated' ? `come out together on ${shortDateYear(e.schedule)}` : 'come out together soon'}. Until then, watch how teams ran Kubernetes in production at KCD Texas 2026.`,
     // Event Day and the Recap without the program (ProgramBlock.astro): only the 2026 talks.
     lateKicker: 'From 2026',
@@ -170,7 +175,7 @@ export const home = {
     speakers: 'Meet the Speakers',
     past: 'See the 2026 program',
     // build.sh --program-public: the gate is open but this build has no program data.
-    sample: programSample ? 'Sample: this test build has no program data.' : '',
+    sample: programDataSample ? programSampleLabel : programSample ? 'Sample: this test build has no program data.' : '',
     talksTitle: 'End-User talks from 2026',
   },
 
@@ -181,8 +186,9 @@ export const home = {
     asPrinted: 'Affiliations as printed on the 2026 Event Page.',
     // The talks list and the recap video live on /2026/ (release 4: the stage was 2,600 px tall).
     programLink: `See the full 2026 program and its ${edition2026.recordings} talk recordings`,
-    // The open slot that ends the stage: an End-User Story in the CFP Phase, then the 2027 keynotes by the gate.
-    slot2027: prog === 'out' ? 'See the keynotes' : `Keynotes: ${programStatus()}`,
+    // The open slot that ends the stage: an End-User Story in the CFP Phase, then the 2027 keynotes by the gates, or
+    // the Speakers while only they are public.
+    slot2027: prog === 'out' ? 'See the keynotes' : prog === 'speakers' ? 'Meet the Speakers' : `Keynotes: ${programStatus()}`,
   },
 
   day: {

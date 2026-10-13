@@ -1,0 +1,93 @@
+---
+// /2027/today/: Event Day mode, once the Schedule is public, in the broadcast look of the stage screens and the
+// social cards (the broadcast kit): now and next in each room on a scoreboard, the announcements, the venue map
+// and the day's info, with the time it was built. /schedule.js moves now and next with the clock
+// (Central time) and reloads the page every 5 minutes; without it, the page shows the build's now and next.
+import { Image } from 'astro:assets';
+import Base from '../../../layouts/Base.astro';
+import PageHead from '../../../components/PageHead.astro';
+import { paths } from '../../../data/nav';
+import { programPages } from '../../../data/program-pages';
+import { builtAt, today as t } from '../../../data/today';
+import { postedAt } from '../../../lib/announcements.mjs';
+import { clock, program, speakersOf, timeRange, type Session } from '../../../lib/program';
+
+export const getStaticPaths = () => (program?.schedulePublic ? [{ params: { index: undefined } }] : []);
+
+const p = program!;
+// The build's now and next per room; the script repeats this rule in the browser.
+const at = (list: Session[]) => {
+  const now = list.find((s) => s.start! <= builtAt && builtAt < s.end!) ?? null;
+  const next = list.find((s) => s.start! >= builtAt && s !== now) ?? null;
+  return { now, next };
+};
+const rooms = p.rooms.map((room) => {
+  const list = p.sessions.filter((s) => s.room === room);
+  return { room, list, ...at(list) };
+});
+const breakNow = p.breaks.find((b) => b.start <= builtAt && builtAt < b.end);
+---
+
+<Base title={`${t.title} · KCD Texas`} description={t.description} schedule>
+  <article class="page wrap td-page td-page--gd" data-today data-now={t.now} data-next={t.next}>
+    <PageHead kicker={t.kicker} title={t.title}>
+      <p class="td-updated"><b>{t.updated} {clock(builtAt)} {t.zone}</b> <span>{t.live}</span></p>
+      {p.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
+    </PageHead>
+
+    <section class="page-sec page-wide" aria-labelledby="now-next">
+      <div class="td-board">
+        <h2 id="now-next" class="page-h2">{t.nowNext}</h2>
+        <p class="td-break" data-breaks>
+          {p.breaks.map((b) => (
+            <span class="td-break-item" data-start={b.start} data-end={b.end} hidden={b !== breakNow}><b>{t.now}:</b> <span data-ugc>{b.title}</span>, {timeRange(b.start, b.end)}</span>
+          ))}
+        </p>
+        <ul class="td-rooms">
+          {rooms.map((r) => (
+            <li class="td-room" data-room-block>
+              <h3 class="td-room-name" data-ugc>{r.room}</h3>
+              <p class="td-none" data-none-now hidden={Boolean(r.now)}>{t.nothingNow}</p>
+              <ol class="td-list">
+                {r.list.map((s) => (
+                  <li class:list={['td-ses', { 'is-now': s === r.now }]} data-start={s.start} data-end={s.end} hidden={s !== r.now && s !== r.next}>
+                    <p class="td-when"><span class="td-label" data-label>{s === r.now ? t.now : t.next}</span> <span class="td-time">{timeRange(s.start!, s.end!)}</span></p>
+                    <a class="td-title" href={`${paths.sessions}${s.slug}/`} data-ugc>{s.title}</a>
+                    <p class="td-who" data-ugc>{speakersOf(s).map((x) => x.name).join(', ')}</p>
+                  </li>
+                ))}
+              </ol>
+              <p class="td-none" data-none-next hidden={Boolean(r.next)}>{t.nothingNext}</p>
+            </li>
+          ))}
+        </ul>
+        <p class="more"><a href={paths.schedule}>{t.schedule}</a></p>
+      </div>
+    </section>
+
+    <section class="page-sec page-wide" aria-labelledby="announcements">
+      <h2 id="announcements" class="page-h2">{t.announcementsTitle}</h2>
+      {t.announcements.length ? (
+        <ol class="td-news">
+          {/* One posted on an earlier day shows its date too, so it doesn't read as today's. The text and the link are
+              the Organizers' (data-ugc, data-ugc-attrs); the time and "Details" are ours. */}
+          {[...t.announcements].reverse().map((a) => <li><time datetime={a.at}>{postedAt(a.at, builtAt.slice(0, 10))}</time> <span data-ugc>{a.text}</span>{a.link && <> <a href={a.link} data-ugc-attrs>{t.link}</a></>}</li>)}
+        </ol>
+      ) : <p class="pg-none">{t.noAnnouncements}</p>}
+    </section>
+
+    <section class="page-sec page-wide td-info-sec" aria-labelledby="info">
+      <div>
+        <h2 id="info" class="page-h2">{t.infoTitle}</h2>
+        <dl class="td-info">
+          {t.info.map((i) => <div><dt>{i.term}</dt><dd>{i.text}</dd></div>)}
+          <div><dt>{t.conduct}</dt><dd><a href={paths.conduct}>{t.conductText}</a></dd></div>
+        </dl>
+      </div>
+      <div>
+        <h2 class="page-h2">{t.mapTitle}</h2>
+        {t.map ? <Image src={t.map.image} alt={t.map.alt} widths={[640, 1280]} sizes="(min-width: 900px) 50vw, 100vw" /> : <div class="td-map"><p>{t.mapSoon}</p></div>}
+      </div>
+    </section>
+  </article>
+</Base>

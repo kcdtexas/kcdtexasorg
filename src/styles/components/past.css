@@ -1,0 +1,30 @@
+/* The 2025 and 2024 pages (PastEdition.astro): what differs from the 2026 page's styles in program.css and
+   wall.css. Their keynotes have no photos, and their sponsor walls hold logos that 2026 doesn't. */
+@layer components {
+  /* Keynotes without photos keep one column on phones (program.css gives the photo the first). */
+  .pg-keynotes--text .pg-kn-name { margin-top: 0; }
+  @media (max-width: 599px) {
+    .pg-keynotes--text > li { display: block; }
+  }
+
+  /* The aspect ratio of each logo that only an earlier Edition shows (from the file's viewBox). */
+  .sp-logo[data-logo="nats"] { --ar: 3.665; }
+  .sp-logo[data-logo="dynatrace"] { --ar: 1.079; }
+  .sp-logo[data-logo="nirmata"] { --ar: 3.734; }
+  .sp-logo[data-logo="cockroachlabs"] { --ar: 7.000; }
+  .sp-logo[data-logo="tigera"] { --ar: 4.628; }
+  .sp-logo[data-logo="castai"] { --ar: 4.714; }
+  .sp-logo[data-logo="appscode"] { --ar: 4.660; }
+  /* ControlTheory's and StormForge's stacked logos read small next to wordmarks: a little larger, optically. */
+  .sp-logo[data-logo="controltheory"] { --ar: 1.000; --boost: 1.2; }
+  .sp-logo[data-logo="stormforge"] { --ar: 1.724; --boost: 1.2; }
+  .sp-logo[data-logo="kubecost"] { --ar: 7.407; }
+  .sp-logo[data-logo="redhat"] { --ar: 3.773; }
+  .sp-logo[data-logo="rockylinux"] { --ar: 5.409; }
+  .sp-logo[data-logo="civo"] { --ar: 2.560; }
+
+  /* Seven Silver logos run 4 + 3 rather than 3 + 3 + 1. */
+  @media (min-width: 600px) {
+    .tier--silver.tier--n7 .logos { --cols: 4; }
+  }
+}

@@ -25,6 +25,12 @@ const sampleTicketsUrl = 'https://community2.cncf.io/kcd-texas/';
 export const programSample = import.meta.env?.KCD_PROGRAM_PUBLIC === '1';
 /** True only in a test build with --sponsors-sample. */
 export const sponsorsSample = import.meta.env?.KCD_SPONSORS_SAMPLE === '1';
+/** True only in a test build with --program-sample: the program gates open on test data (src/lib/program.ts).
+ *  --program-sample=speakers (KCD_PROGRAM_SAMPLE=speakers) opens only `speakersPublic`: the Speakers, the titles
+ *  and the abstracts, with no times or rooms. */
+export const programDataSample = import.meta.env?.KCD_PROGRAM_SAMPLE === '1' || import.meta.env?.KCD_PROGRAM_SAMPLE === 'speakers';
+/** The gates a --program-sample test build opens. */
+export const programSampleGates = { speakersPublic: true, schedulePublic: import.meta.env?.KCD_PROGRAM_SAMPLE === '1' };
 
 // The last day sponsorships are open: through Event Day, Apr 23. With null, they also stay open through Event Day.
 // The day after is a rebuild day in scripts/rebuild-dates.mjs.
@@ -49,6 +55,10 @@ export const edition2027 = {
   schedule: '2027-03-01',
   eventDay: '2027-04-23',
   eventNote: 'One day, in person. Venue announced soon.',
+  // The program's two gates (ADR 0009), flipped together by the announcement pull request: `speakersPublic` builds
+  // the Speakers, the titles and the abstracts; `schedulePublic` adds the times and the rooms. src/lib/program.ts
+  // is the only reader of the program, and builds nothing while both are closed.
+  program: { speakersPublic: false, schedulePublic: false },
   managerLetter: 'November',
 } as const;
 
@@ -141,20 +151,28 @@ export const sponsorAsk = (day = asOfDay): boolean => sponsorshipsOpen(day) && d
 /** Tickets are on sale on `day`: the sale day has come and CNCF's ticket link is in. */
 export const ticketsOnSale = (day = asOfDay): boolean => ticketsStatus(day) === 'On sale now' && Boolean(edition2027.tickets.url);
 
-/** The Speakers, the keynotes and the Schedule are public. False until the program pipeline (src/lib/program.ts,
- *  a later project) opens its `schedulePublic` gate; that project switches this one function. */
+/** The Speakers, the keynotes and the Schedule are public: the `schedulePublic` gate is open, or a test build
+ *  says so (--program-public with no program data, --program-sample with test data). */
 export function programPublic(): boolean {
-  return programSample;
+  return programSample || (programDataSample ? programSampleGates.schedulePublic : edition2027.program.schedulePublic);
 }
 
-/** Where the program stands, by its gate, never by the date alone: 'out' once public; 'dated' before its day;
- *  'soon' if the day passes without the release. */
-export function programState(day = asOfDay): 'out' | 'dated' | 'soon' {
+/** The Speakers are public, with or without the Schedule: a program gate is open (or a --program-sample test build
+ *  opens one), so the Speakers' and the Sessions' pages exist (src/lib/program.ts). */
+export function speakersOut(): boolean {
+  const gates = programDataSample ? programSampleGates : edition2027.program;
+  return gates.speakersPublic || gates.schedulePublic;
+}
+
+/** Where the program stands, by its gates, never by the date alone: 'out' once the Schedule is public; 'speakers'
+ *  while only the Speakers are; 'dated' before its day; 'soon' if the day passes without the release. */
+export function programState(day = asOfDay): 'out' | 'speakers' | 'dated' | 'soon' {
   if (programPublic()) return 'out';
+  if (speakersOut()) return 'speakers';
   return day < edition2027.schedule ? 'dated' : 'soon';
 }
 
-/** "Mar 1", "coming soon" or "out now": the program's status, by programState(). */
+/** "Mar 1", "coming soon" or "out now": the Schedule's status, by programState(). */
 export function programStatus(day = asOfDay): string {
   const s = programState(day);
   return s === 'out' ? 'out now' : s === 'dated' ? shortDate(edition2027.schedule) : 'coming soon';

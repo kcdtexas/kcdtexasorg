@@ -7,10 +7,12 @@
 #   pinned            keeps pointing at a 2026 resource
 #   replaced-by-page  becomes a real page on this site at the same path
 #   evergreen         keeps its external target across Editions
+# while: a page on this site; the link is served only while the build has that page.
 # Never add a catch-all (/*): unknown paths must show the 404 page.
 
 - { from: /cfp,             to: "/2027/cfp/",                                        code: 302, mode: follows-current }
 - { from: /schedule,        to: "/2027/schedule/",                                   code: 302, mode: follows-current }
+- { from: /speakers,        to: "/2027/speakers/",                                   code: 302, mode: follows-current, while: /2027/speakers/ }
 - { from: /sponsors,        to: "/2027/sponsors/",                                   code: 302, mode: follows-current }
 - { from: /sponsor-guide,   to: "https://github.com/kcdtexas/sponsor-guide",         code: 302, mode: follows-current }
 - { from: /sponsor-faq,     to: "https://docs.google.com/presentation/d/1Vdvhhe7HbJgzsei4Zw_IEM-BudqrSnzS/edit?usp=sharing&ouid=111136301388613558226&rtpof=true&sd=true", code: 302, mode: follows-current }

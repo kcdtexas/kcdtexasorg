@@ -3,12 +3,13 @@
 // draft markers, and each page's weight.
 //
 // Usage: node scripts/check-dist.mjs
-// tests/smoke.mjs imports REQUIRED_PAGES and DRAFT_MARKERS from here, so the checks only run
+// tests/smoke.mjs imports REQUIRED_PAGES and findDraftMarkers from here, so the checks only run
 // when this file is the script being run.
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, extname, relative, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'yaml';
+import { importTs } from './lib/import-ts.mjs';
 
 // Pages that must be built, as URL paths: a path ending in "/" is that folder's index.html,
 // anything else is the file itself. tests/smoke.mjs treats a link to a v1 page that isn't
@@ -22,6 +23,8 @@ export const REQUIRED_PAGES = [
   '/2027/travel/',
   '/2027/schedule/',
   '/2026/',
+  '/2025/',
+  '/2024/',
   '/editions/',
   '/about/',
   '/code-of-conduct/',
@@ -29,22 +32,75 @@ export const REQUIRED_PAGES = [
   '/accessibility/',
 ];
 
-// Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template
-// placeholder left unfilled such as "{cfpOpens}". Checked against the whole HTML, comments and
-// attributes included (no page has inline scripts or styles that could hold braces).
-export const DRAFT_MARKERS = [
+// A page's tags, as [the tag, "/" for an end tag, its name, its attributes as written]; a quoted value may hold a ">".
+const TAG = /<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
+/** A tag's attributes, as a Map of lower-case names to values ('' for a bare attribute). */
+const attributesOf = (text) => new Map([...text.matchAll(/([^\s"'=/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)]
+  .map((m) => [m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? '']));
+const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+
+/**
+ * The page without the text that Speakers and Organizers write: the program platform's (src/lib/program.ts: names,
+ * taglines, bios, titles, abstracts, rooms, links, ids) and the Event Day announcements'. A bio may well say "TODO"
+ * or "Sample". The templates mark each element that holds such text with data-ugc, and this leaves out what the
+ * element holds and its attributes' values. An element that holds our own words but has such text in an attribute
+ * (a Session's id and room, a link's address) has data-ugc-attrs instead, and this leaves out only its attributes'
+ * values: the words it holds are checked.
+ */
+function withoutProgramText(html) {
+  let out = '';
+  let from = 0;
+  // The data-ugc element being left out: its name, and how deep its own tag nests in it.
+  let open = null;
+  for (const m of html.matchAll(TAG)) {
+    const [tag, end, name, text] = m;
+    const lower = name.toLowerCase();
+    if (open) {
+      if (lower === open.name && !/\/\s*$/.test(text)) open.depth += end ? -1 : 1;
+      if (open.depth === 0) { open = null; from = m.index; }
+      continue;
+    }
+    if (end) continue;
+    const a = attributesOf(text);
+    if (!a.has('data-ugc') && !a.has('data-ugc-attrs')) continue;
+    out += `${html.slice(from, m.index)}<${name}${text.replace(/=\s*(?:"[^"]*"|'[^']*')/g, '=""')}>`;
+    from = m.index + tag.length;
+    if (a.has('data-ugc') && !VOID.has(lower) && !/\/\s*$/.test(text)) open = { name: lower, depth: 1 };
+  }
+  return out + html.slice(from);
+}
+
+/** The start tags that carry data-sample: the labels a test build puts on its samples. */
+const sampleLabels = (html) => [...html.matchAll(TAG)].filter(([, end, , text]) => !end && attributesOf(text).has('data-sample')).map(([tag]) => tag);
+// A test build (scripts/build.sh --tickets-day, --program-public, --sponsors-sample, --program-sample) labels every
+// sample "Sample"; no other build may show one.
+const sampleBuild = Boolean(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE);
+/** The made-up names of the test program (src/data/program-fixture.ts) and the test history's Organizer
+ *  (src/data/history-test.ts). Only --program-sample builds show them. */
+const FIXTURE_NAMES = /\bFixture (?:Speaker|Session|Room|Company|Organizer)\b/;
+
+// Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template placeholder left unfilled
+// such as "{cfpOpens}"; and outside the test builds that show them, "Sample" and the fixture's names. Checked against
+// the whole HTML, comments and attributes included, without the text Speakers and Organizers write
+// (withoutProgramText). No page has inline scripts or styles that could hold braces.
+const DRAFT_MARKERS = [
   { name: '[TBD', pattern: /\[TBD/ },
   { name: 'TODO', pattern: /\bTODO\b/ },
   { name: '{placeholder}', pattern: /\{[A-Za-z_][\w.]*\}/ },
-  // A sample (build.sh --tickets-day, --program-public, --sponsors-sample) must never reach a real deploy:
-  // the pages label every sample "Sample".
-  ...(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
+  ...(sampleBuild ? [] : [{ name: 'Sample', pattern: /\bSample\b/ }]),
+  ...(process.env.KCD_PROGRAM_SAMPLE ? [] : [{ name: 'a fixture name', pattern: FIXTURE_NAMES }]),
 ];
-export const findDraftMarkers = (html) =>
-  DRAFT_MARKERS.flatMap(({ name, pattern }) => {
-    const m = html.match(pattern);
-    return m ? [`${name} (${JSON.stringify(html.slice(Math.max(0, m.index - 30), m.index + m[0].length + 30).replace(/\s+/g, ' '))})`] : [];
-  });
+/** A page's draft markers, and outside a test build its "Sample" labels, wherever they are. */
+export const findDraftMarkers = (html) => {
+  const text = withoutProgramText(html);
+  return [
+    ...DRAFT_MARKERS.flatMap(({ name, pattern }) => {
+      const m = text.match(pattern);
+      return m ? [`${name} (${JSON.stringify(text.slice(Math.max(0, m.index - 30), m.index + m[0].length + 30).replace(/\s+/g, ' '))})`] : [];
+    }),
+    ...(sampleBuild ? [] : [...new Set(sampleLabels(html))].map((tag) => `a "Sample" label (${JSON.stringify(tag)})`)),
+  ];
+};
 
 // Phone first-load budgets. Fail at the budget or more.
 const KB = 1024;
@@ -55,8 +111,87 @@ const BUDGETS = {
 };
 
 const DIST = 'dist';
+/** The file scripts/build.sh writes into dist/ for any build with a test flag. */
+const TEST_BUILD_MARKER = '.test-build';
 
-function check() {
+// A full address (http, https or "//"): the pages load every file by its path, from their own host.
+const FULL_ADDRESS = /^(?:https?:)?\/\//i;
+// The <link> types that make the browser fetch the address, or connect to its host.
+const LOADING_LINK = /^(?:icon|apple-touch-icon|mask-icon|manifest|stylesheet|preload|modulepreload|prefetch|preconnect|dns-prefetch)$/i;
+/** The addresses in a stylesheet's url(). */
+const cssUrls = (css) => [...css.matchAll(/url\(\s*(['"]?)([^'")\s]+)\1\s*\)/gi)].map((m) => m[2]);
+/**
+ * Every address a page makes the browser load: src, srcset and poster on any element, the href of a <link> that
+ * loads (an icon, a stylesheet, a preload; not the canonical address), the href of an SVG <image>, and CSS url() in
+ * a <style> or a style attribute. A <meta> (og:image gives other sites the card's address), an <a href> or an
+ * address in the text loads nothing.
+ */
+function loadedUrls(html) {
+  const page = html.replace(/<!--[\s\S]*?-->/g, '');
+  const urls = [];
+  for (const [, end, name, text] of page.matchAll(TAG)) {
+    if (end) continue;
+    const tag = name.toLowerCase();
+    const a = attributesOf(text);
+    for (const key of ['src', 'poster']) if (a.has(key)) urls.push(a.get(key));
+    if (a.has('srcset')) urls.push(...a.get('srcset').split(',').map((c) => c.trim().split(/\s+/)[0]).filter(Boolean));
+    if (tag === 'link' && a.has('href') && (a.get('rel') ?? '').split(/\s+/).some((r) => LOADING_LINK.test(r))) urls.push(a.get('href'));
+    if (tag === 'image' || tag === 'feimage') for (const key of ['href', 'xlink:href']) if (a.has(key)) urls.push(a.get(key));
+    if (a.has('style')) urls.push(...cssUrls(a.get('style')));
+  }
+  for (const [, css] of page.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) urls.push(...cssUrls(css));
+  return urls;
+}
+
+/**
+ * The program's gates (ADR 0009) against what's built, in every build: the gates in src/data/edition-2027.ts, or a
+ * --program-sample test build's. Closed, nothing of the program ships. A gate open builds the Speakers and the
+ * program version; `speakersPublic` alone shows no time, room, calendar file or Event Day page, and the Schedule's
+ * gate builds them. Outside a production build (deploy previews, branch deploys, local builds), an open gate shows
+ * the test program, labeled "Sample": scripts/build.sh keeps the platform's variables from the build, and the test
+ * program has no Speaker photos to download.
+ */
+function programGates({ edition2027 }, walk) {
+  const failures = [];
+  const sample = process.env.KCD_PROGRAM_SAMPLE;
+  const gates = sample === '1' ? { speakersPublic: true, schedulePublic: true } : sample === 'speakers' ? { speakersPublic: true, schedulePublic: false } : edition2027.program;
+  const open = Boolean(gates.speakersPublic || gates.schedulePublic);
+  const timed = Boolean(gates.schedulePublic);
+  const has = (p) => existsSync(join(DIST, p));
+  const files = (dir, test) => (has(dir) ? readdirSync(join(DIST, dir)).filter(test) : []);
+  const state = sample ? `the test program's gates (KCD_PROGRAM_SAMPLE=${sample})` : 'the gates in src/data/edition-2027.ts';
+  const pages = walk(DIST).filter((f) => /[\\/]2027[\\/](?:speakers|sessions)[\\/].*\.html$/.test(f));
+  const built = {
+    'the Speakers (dist/2027/speakers/)': [has('2027/speakers'), open],
+    'the Session pages (dist/2027/sessions/)': [has('2027/sessions'), open ? null : false],
+    'the program version (dist/2027/program-version.txt)': [has('2027/program-version.txt'), open],
+    "the program's Share Cards (dist/cards/session-*, speaker-*)": [files('cards', (n) => /^(?:session|speaker)-/.test(n)).length > 0, open ? null : false],
+    'the Event Day page (dist/2027/today/)': [has('2027/today'), timed],
+    'the Sessions by time on the Schedule page': [has('2027/schedule/index.html') && /data-schedule/.test(readFileSync(join(DIST, '2027/schedule/index.html'), 'utf8')), timed],
+    'the calendar files (dist/2027/schedule.ics, dist/2027/sessions/*.ics)': [has('2027/schedule.ics') || files('2027/sessions', (n) => n.endsWith('.ics')).length > 0, timed ? null : false],
+    'a time or a room on a Speaker or Session page': [pages.some((f) => /data-start="\d|class="(?:sch-time|sch-room|page-facts)"/.test(readFileSync(f, 'utf8'))), timed ? null : false],
+  };
+  for (const [what, [is, want]] of Object.entries(built)) {
+    if (want !== null && is !== want) failures.push(`${what}: ${is ? 'built' : 'missing'}, but ${state} ${open ? (timed ? 'are open' : 'open only speakersPublic') : 'are closed'}`);
+  }
+  if (has('2027/program-version.txt') && !/^[0-9a-f]{64}\n$/.test(readFileSync(join(DIST, '2027/program-version.txt'), 'utf8'))) failures.push('dist/2027/program-version.txt is not one SHA-256 line');
+
+  // The preview rule.
+  if (process.env.CONTEXT !== 'production') {
+    for (const v of ['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL']) {
+      if (process.env[v] !== undefined) failures.push(`${v} reaches a build that isn't a production build (CONTEXT=${process.env.CONTEXT ?? 'unset'}); scripts/build.sh unsets it there`);
+    }
+    if (open) {
+      if (!sample) failures.push('a program gate is open outside a production build, but the build has no test program (scripts/build.sh sets KCD_PROGRAM_SAMPLE)');
+      if (!has(TEST_BUILD_MARKER)) failures.push(`a program gate is open outside a production build, but dist/${TEST_BUILD_MARKER} is missing`);
+      if (has('2027/speakers/index.html') && !sampleLabels(readFileSync(join(DIST, '2027/speakers/index.html'), 'utf8')).length) failures.push('dist/2027/speakers/index.html: the test program is not labeled "Sample"');
+      for (const photo of files('2027/speakers', (n) => n.endsWith('.webp'))) failures.push(`dist/2027/speakers/${photo}: a Speaker photo outside a production build, where the test program has none`);
+    }
+  }
+  return failures;
+}
+
+async function check() {
   const failures = [];
 
   const pageFile = (path) => (path.endsWith('/') ? join(path, 'index.html') : path).replace(/^\//, '');
@@ -67,16 +202,28 @@ function check() {
     if (!existsSync(join(DIST, f))) failures.push(`missing dist/${f}`);
   }
 
+  // A test-flag build (scripts/build.sh writes the marker) never ships from a production build.
+  if (process.env.CONTEXT === 'production' && existsSync(join(DIST, TEST_BUILD_MARKER))) {
+    failures.push(`dist/${TEST_BUILD_MARKER}: this is a test build, and CONTEXT is production`);
+  }
+
   // Every Short Link from the data file is served, and there is no catch-all.
   const redirects = readFileSync(join(DIST, '_redirects'), 'utf8');
   if (/^\/\*/m.test(redirects)) failures.push('_redirects contains a catch-all (/*)');
-  for (const { from, mode } of parse(readFileSync('src/data/short-links.yaml', 'utf8'))) {
-    const served = new RegExp(`^${from}\\s`, 'm').test(redirects) || (mode === 'replaced-by-page' && existsSync(join(DIST, from, 'index.html')));
+  for (const { from, mode, while: page } of parse(readFileSync('src/data/short-links.yaml', 'utf8'))) {
+    const listed = new RegExp(`^${from}\\s`, 'm').test(redirects);
+    // A "while" link is served only while its page is built.
+    if (page !== undefined && !existsSync(join(DIST, page, 'index.html'))) {
+      if (listed) failures.push(`Short Link ${from} is served without its page ${page}`);
+      continue;
+    }
+    const served = listed || (mode === 'replaced-by-page' && existsSync(join(DIST, from, 'index.html')));
     if (!served) failures.push(`Short Link ${from} is not served`);
   }
 
-  // Zero data: no scripts except /theme.js (the remembered theme) and, on the key dates, /now.js (today's date),
-  // no inline styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
+  // Zero data: no scripts except /theme.js (the remembered theme), on the key dates /now.js (today's date), and on
+  // the program pages /schedule.js (My Schedule, the filters, Event Day's now and next, offline use), on pages with a
+  // "Watch" link /watch.js (the video player), no inline styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
   // (type="application/ld+json"): browsers never run it, it holds only JSON, and only the home page has one.
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -94,18 +241,21 @@ function check() {
       if (m[1].includes('<')) failures.push(`${file}: the JSON-LD block contains an unescaped "<"`);
     }
     if (data.length && file !== join(DIST, 'index.html')) failures.push(`${file}: a JSON-LD block outside the home page`);
-    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer)><\/script>$/;
-    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || scripts.filter((m) => /now\.js/.test(m[0])).length > 1) {
-      failures.push(`${file}: scripts other than /theme.js first and /now.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
+    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer|schedule\.js" defer|watch\.js" defer)><\/script>$/;
+    const once = (name) => scripts.filter((m) => m[0].includes(`/${name}"`)).length <= 1;
+    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || !once('now.js') || !once('schedule.js') || !once('watch.js')) {
+      failures.push(`${file}: scripts other than /theme.js first, /now.js once, /schedule.js once and /watch.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
     }
+    // /watch.js exactly where a "Watch" link (a.watch or a[data-watch]) is.
+    if (scripts.some((m) => /watch\.js/.test(m[0])) !== /<a (?:class="watch"|data-watch)/.test(html)) failures.push(`${file}: ${/<a (?:class="watch"|data-watch)/.test(html) ? 'has a "Watch" link without /watch.js' : 'loads /watch.js without a "Watch" link'}`);
+    // /schedule.js only where the program is: the Schedule with its gate open, Session pages, Speaker pages, Event Day.
+    const programPage = /[\\/]2027[\\/](?:sessions|speakers|today)[\\/]/.test(file) || /data-schedule/.test(html);
+    if (scripts.some((m) => /schedule\.js/.test(m[0])) && !programPage) failures.push(`${file}: loads /schedule.js outside the program pages`);
+    if (/<link rel="stylesheet" href="\/schedule\.css">/.test(html) && !programPage) failures.push(`${file}: loads /schedule.css outside the program pages`);
     if (/\sstyle="/i.test(html)) failures.push(`${file}: contains an inline style attribute`);
-    // Plain <a href> links to other sites are fine; loading anything from them is not.
-    for (const m of html.matchAll(/\s(?:src|srcset)="(https?:\/\/[^"]+)"/gi)) {
-      failures.push(`${file}: loads a third-party resource: ${m[1]}`);
-    }
-    for (const m of html.matchAll(/<link[^>]+href="(https?:\/\/[^"]+)"[^>]*>/gi)) {
-      if (!/rel="canonical"/.test(m[0])) failures.push(`${file}: <link> to another host: ${m[1]}`);
-    }
+    // Nothing loads from another host: Speaker photos are downloaded at build time (src/lib/program-source/photos.mjs).
+    // A plain link to another site, a preview build's og:image (CARD_ORIGIN) or an address in a bio loads nothing.
+    for (const url of loadedUrls(html)) if (FULL_ADDRESS.test(url)) failures.push(`${file}: loads from another host: ${url}`);
     for (const marker of findDraftMarkers(html)) failures.push(`${file}: draft marker ${marker}`);
     if (/(^|\/)404\.html$/.test(file)) {
       // The 404 page is served at any unknown address: no canonical address, and noindex.
@@ -113,6 +263,48 @@ function check() {
       if (!/<meta name="robots" content="noindex">/.test(html)) failures.push(`${file}: the 404 page lacks noindex`);
     } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
   }
+
+  // /schedule.js with its cache rule, and the program pages' styles, /schedule.css, ship only in a build where a page
+  // loads them.
+  const loaded = pages.some(({ html }) => html.includes('<script src="/schedule.js" defer></script>'));
+  if (existsSync(join(DIST, 'schedule.js')) !== loaded) failures.push(loaded ? 'a page loads /schedule.js, but dist/schedule.js is missing' : 'dist/schedule.js ships, but no page loads it');
+  const styled = pages.some(({ html }) => html.includes('<link rel="stylesheet" href="/schedule.css">'));
+  if (existsSync(join(DIST, 'schedule.css')) !== styled) failures.push(styled ? 'a page loads /schedule.css, but dist/schedule.css is missing' : 'dist/schedule.css ships, but no page loads it');
+  if (existsSync(join(DIST, 'schedule.css')) !== existsSync(join(DIST, 'schedule.js'))) failures.push('dist/schedule.css and dist/schedule.js must ship together');
+  const hostHeaders = readFileSync(join(DIST, '_headers'), 'utf8');
+  if (/^\/schedule\.js$/m.test(hostHeaders) !== existsSync(join(DIST, 'schedule.js'))) failures.push('_headers has a /schedule.js rule without the file, or the file without its rule');
+  // The offline worker (/sw.js) comes with the program script: its no-cache rule, and worker-src in the CSP.
+  const worker = existsSync(join(DIST, 'sw.js'));
+  if (worker !== existsSync(join(DIST, 'schedule.js'))) failures.push('dist/sw.js and dist/schedule.js must ship together');
+  if (/^\/sw\.js\n  Cache-Control: no-cache$/m.test(hostHeaders) !== worker) failures.push('_headers has a /sw.js no-cache rule without the file, or the file without its rule');
+  if (/worker-src 'self'/.test(hostHeaders) !== worker) failures.push('the CSP has worker-src without /sw.js, or /sw.js without worker-src');
+  // The video player (/watch.js) ships only where a page loads it, with its cache rule and frame-src for YouTube's
+  // player (youtube-nocookie.com only) in the CSP.
+  const player = existsSync(join(DIST, 'watch.js'));
+  if (player !== pages.some(({ html }) => html.includes('<script src="/watch.js" defer></script>'))) failures.push(player ? 'dist/watch.js ships, but no page loads it' : 'a page loads /watch.js, but dist/watch.js is missing');
+  if (/^\/watch\.js$/m.test(hostHeaders) !== player) failures.push('_headers has a /watch.js rule without the file, or the file without its rule');
+  const frames = hostHeaders.match(/frame-src[^;\n]*/g) ?? [];
+  if (frames.join() !== (player ? 'frame-src https://www.youtube-nocookie.com' : '')) failures.push(`the CSP's frame-src is "${frames.join(' | ')}": it must be exactly youtube-nocookie.com with /watch.js, and absent without it`);
+  if (worker && !/register\('\/sw\.js', \{ scope: '\/2027\/' \}\)/.test(readFileSync(join(DIST, 'schedule.js'), 'utf8'))) failures.push('schedule.js does not register /sw.js with the scope /2027/');
+
+  for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {
+    for (const url of cssUrls(readFileSync(file, 'utf8'))) if (FULL_ADDRESS.test(url)) failures.push(`${file}: loads from another host: ${url}`);
+  }
+
+  // The planted marker (src/data/program-fixture.ts) sits in a field the program allowlist drops (ADR 0009): it
+  // must never reach any file the site serves, in any build, sample or not.
+  const marker = readFileSync('src/data/program-fixture.ts', 'utf8').match(/plantedMarker = '([^']+)'/)?.[1];
+  if (!marker) failures.push('src/data/program-fixture.ts has no plantedMarker');
+  else for (const file of walk(DIST)) {
+    if (/\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(file) && readFileSync(file, 'utf8').includes(marker)) failures.push(`${file}: contains the planted marker`);
+  }
+
+  // The fixture's made-up names, its earlier-Edition entry included, never reach the 2026 page, in any build.
+  for (const file of walk(join(DIST, '2026')).filter((f) => extname(f) === '.html')) {
+    if (FIXTURE_NAMES.test(readFileSync(file, 'utf8'))) failures.push(`${file}: contains a fixture name`);
+  }
+
+  failures.push(...programGates(await importTs(new URL('../src/data/edition-2027.ts', import.meta.url)), walk));
 
   // The sitemap lists every page except the 404 page, at absolute kcdtexas.org addresses, and robots.txt names it.
   if (existsSync(join(DIST, 'sitemap.xml'))) {
@@ -138,12 +330,18 @@ function check() {
   for (const { file, html } of pages) {
     const image = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
     if (!image) failures.push(`${file}: no og:image`);
-    else if (!/^https:\/\/[^/]+\/cards\/[a-z-]+\.png$/.test(image)) failures.push(`${file}: og:image is not an absolute card URL: ${image}`);
+    else if (!/^https:\/\/[^/]+\/cards\/[a-z0-9-]+\.png$/.test(image)) failures.push(`${file}: og:image is not an absolute card URL: ${image}`);
   }
 
   // The theme script runs before the first paint, so it stays tiny.
   if (existsSync(join(DIST, 'theme.js')) && statSync(join(DIST, 'theme.js')).size >= 1024) failures.push('theme.js is 1 KB or larger');
   if (existsSync(join(DIST, 'now.js')) && statSync(join(DIST, 'now.js')).size >= 1024) failures.push('now.js is 1 KB or larger');
+  // The program pages' one script stays small: at most 8 KB as written, about 3 KB gzipped.
+  if (existsSync(join(DIST, 'schedule.js')) && statSync(join(DIST, 'schedule.js')).size > 8 * 1024) failures.push('schedule.js is larger than 8 KB');
+  // The video player: at most 2 KB.
+  if (existsSync(join(DIST, 'watch.js')) && statSync(join(DIST, 'watch.js')).size > 2 * 1024) failures.push('watch.js is larger than 2 KB');
+  // The offline worker too: at most 3 KB.
+  if (existsSync(join(DIST, 'sw.js')) && statSync(join(DIST, 'sw.js')).size > 3 * 1024) failures.push('sw.js is larger than 3 KB');
 
   // Each page's weight as a phone first loads it, in bytes over the wire: the HTML, the CSS,
   // fonts and script it references, and the smallest candidate of every image (photos are lazy
@@ -153,7 +351,8 @@ function check() {
   //
   // A page "has photos" when an <img> or <source> on it references a raster image (.webp, .avif,
   // .jpg, .jpeg, .png) under /_astro/, other than the KCD Texas badge in the header and footer
-  // (/_astro/badge-*), or a sponsor logo (img.sp-logo): a logo wall is image content, like photos.
+  // (/_astro/badge-*), a Speaker photo (/2027/speakers/*.webp), or a sponsor logo (img.sp-logo): a logo wall is
+  // image content, like photos.
   // Budgets: the home page under 1 MB (v1 has photos on every screen), other pages with photos
   // under 500 KB, pages without photos under 150 KB.
   const weights = new Map();
@@ -176,7 +375,7 @@ function check() {
       const candidates = (srcset ? srcset.split(',').map((c) => c.trim().split(/\s+/)[0]) : [tag.match(/\ssrc="([^"]+)"/)?.[1]])
         .filter((c) => c?.startsWith('/'));
       if (!candidates.length) continue;
-      if (candidates.some((c) => /^\/_astro\/(?!badge-)[^/]+\.(?:webp|avif|jpe?g|png)$/i.test(c))) photos = true;
+      if (candidates.some((c) => /^\/(?:_astro\/(?!badge-)|2027\/speakers\/)[^/]+\.(?:webp|avif|jpe?g|png)$/i.test(c))) photos = true;
       if (/\bclass="sp-logo"/.test(tag)) photos = true;
       // A <picture>'s <img> fallback is only fetched where no <source> matches; count every candidate set once.
       files.add(candidates.reduce((a, b) => (wire(b) < wire(a) ? b : a)));
@@ -202,4 +401,4 @@ function check() {
   console.log(`Build check passed: ${htmlFiles.length} pages.`);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) check();
+if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) await check();

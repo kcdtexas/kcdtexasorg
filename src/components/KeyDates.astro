@@ -16,7 +16,7 @@ type Item = (typeof home.dates.items)[number] & { bigTo?: string; from?: string;
 const e = edition2027;
 const d = home.dates;
 const items = d.items as Item[];
-const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl, sponsors: paths.sponsors, cfp: paths.cfp, schedule: paths.schedule };
+const hrefs: Record<string, string> = { prospectus: prospectus.href, chapter: contact.chapterUrl, sponsors: paths.sponsors, cfp: paths.cfp, schedule: paths.schedule, speakers: paths.speakers };
 const link = (detail: Item['detail']) => ('href' in detail ? hrefs[detail.href as string] : undefined);
 const next = (day: string) => { const t = new Date(`${day}T12:00:00Z`); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
 const pct = (day: string) => timelinePercent(day);
@@ -77,7 +77,7 @@ const months = [['Oct', '2026-10-01'], ['Nov', '2026-11-01'], ['Dec', '2026-12-0
                 <p class="it-name">{it.name}</p>
                 <p class="pr-when">{from}{to && <><span class="pr-dash" aria-hidden="true">–</span><span class="sr-only"> to </span>{to}</>}</p>
                 <p class="it-st" aria-hidden={it.echo && repeats(it) ? 'true' : undefined}>{it.status}</p>
-                <p class="it-dt">{link(it.detail) ? <a href={link(it.detail)}>{it.detail.text}</a> : it.detail.text}</p>
+                <p class="it-dt" data-sample={'sample' in it.detail ? '' : undefined}>{link(it.detail) ? <a href={link(it.detail)}>{it.detail.text}</a> : it.detail.text}</p>
               </div>
               <svg class="pr-bar" aria-hidden="true" focusable="false">
                 <line class="pr-track" x1="0" x2="100%" y1="9" y2="9" />
@@ -101,7 +101,7 @@ const months = [['Oct', '2026-10-01'], ['Nov', '2026-11-01'], ['Dec', '2026-12-0
         <div class:list={['pr-tix-line', { 'pr-lane--live': stateOf(tix) === 'live' }]}>
           <p class="it-name">{tix.name}</p>
           <p class="it-st">{tix.status}</p>
-          <p class="it-dt">{link(tix.detail) ? <a href={link(tix.detail)}>{tix.detail.text}</a> : tix.detail.text}</p>
+          <p class="it-dt" data-sample={'sample' in tix.detail ? '' : undefined}>{link(tix.detail) ? <a href={link(tix.detail)}>{tix.detail.text}</a> : tix.detail.text}</p>
         </div>
       )}
       <div class="pr-over" aria-hidden="true">

@@ -1,4 +1,7 @@
-// Runs the smoke and browser tests against a fresh local server on dist/, and the rebuild tests (tests/rebuild.mjs).
+// Runs the smoke and browser tests against a fresh local server on dist/, the rebuild tests (tests/rebuild.mjs), the
+// loyalty credits' rules (tests/credits.mjs), the Event Day announcements file's rules (tests/announcements.mjs), the
+// program pages' browser scripts (tests/program-scripts.mjs), and then the program's tests (tests/run-program.mjs),
+// which build the test program in each of its states and leave dist/ as a normal build.
 // Build first with scripts/build.sh.
 // Usage: node tests/run-local.mjs [--shots <dir>]
 import { spawn } from 'node:child_process';
@@ -52,7 +55,13 @@ try {
   const smoke = await run('tests/smoke.mjs');
   const browser = await run('tests/browser.mjs', process.argv.slice(2));
   const rebuild = await new Promise((resolve) => spawn(process.execPath, ['tests/rebuild.mjs'], { stdio: 'inherit' }).on('exit', resolve));
-  code = smoke || browser || rebuild ? 1 : 0;
+  const credits = await new Promise((resolve) => spawn(process.execPath, ['--experimental-strip-types', '--no-warnings', 'tests/credits.mjs'], { stdio: 'inherit' }).on('exit', resolve));
+  const announcements = await new Promise((resolve) => spawn(process.execPath, ['tests/announcements.mjs'], { stdio: 'inherit' }).on('exit', resolve));
+  const scripts = await new Promise((resolve) => spawn(process.execPath, ['tests/program-scripts.mjs'], { stdio: 'inherit' }).on('exit', resolve));
+  server.kill();
+  // The program's tests rebuild dist/, so they come last.
+  const program = await new Promise((resolve) => spawn(process.execPath, ['tests/run-program.mjs'], { stdio: 'inherit' }).on('exit', resolve));
+  code = smoke || browser || rebuild || credits || announcements || scripts || program ? 1 : 0;
 } finally {
   server.kill();
 }

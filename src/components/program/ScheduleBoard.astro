@@ -1,0 +1,62 @@
+---
+// The Schedule: the Sessions under time headings, with each Session's time and room as text, so it reads in order
+// with or without styles. Every width shows it as a list; on wide screens each time slot is a row, with each
+// room's Session on a line of its own. The filters and My Schedule need /schedule.js: without it, every Session
+// shows and the filters stay hidden.
+import SessionItem from './SessionItem.astro';
+import { clock, FORMATS, formatName, hhmm, program, timeRange, type Break, type Session } from '../../lib/program';
+
+const p = program!;
+type Slot = { start: string; sessions: Session[]; breaks: Break[] };
+const slots = new Map<string, Slot>();
+const slotAt = (start: string) => slots.get(start) ?? slots.set(start, { start, sessions: [], breaks: [] }).get(start)!;
+for (const s of p.sessions) if (s.start) slotAt(s.start).sessions.push(s);
+for (const b of p.breaks) slotAt(b.start).breaks.push(b);
+const ordered = [...slots.values()].sort((a, b) => a.start.localeCompare(b.start));
+const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
+---
+
+<div class="sch" data-schedule>
+  <div class="sch-tools" data-filters hidden>
+    <h2 class="sr-only">Filter the Schedule</h2>
+    <fieldset class="sch-group">
+      <legend>Show</legend>
+      <label class="chip chip--my"><input type="checkbox" data-filter="my" value="1" /> My Schedule</label>
+      <label class="chip"><input type="checkbox" data-filter="eu" value="1" /> End-User Stories</label>
+    </fieldset>
+    {/* Folded on phones, so the Schedule starts near the top; /schedule.js opens it on wide screens. */}
+    <details class="sch-more" data-more>
+      <summary>Format and room</summary>
+      <div class="sch-more-body">
+        <fieldset class="sch-group">
+          <legend>Format</legend>
+          {formats.map((f) => <label class="chip"><input type="checkbox" data-filter="format" value={f} /> {formatName[f]}</label>)}
+        </fieldset>
+        <fieldset class="sch-group">
+          <legend>Room</legend>
+          {p.rooms.map((r) => <label class="chip" data-ugc><input type="checkbox" data-filter="room" value={r} /> {r}</label>)}
+        </fieldset>
+      </div>
+    </details>
+    <p class="sch-count" data-count aria-live="polite"></p>
+    <p class="sch-my" data-my-tools hidden>
+      <span data-my-empty hidden>My Schedule is empty. Use the star on a Session to add it.</span>
+      <button type="button" class="btn btn--sm btn--line" data-my-ics hidden>Download My Schedule (.ics)</button>
+    </p>
+  </div>
+
+  {ordered.map((slot) => (
+    <section class="sch-slot" aria-labelledby={`t-${hhmm(slot.start)}`} data-slot>
+      <h2 class="sch-time-h" id={`t-${hhmm(slot.start)}`}><time datetime={slot.start}>{clock(slot.start)}</time></h2>
+      <ul class="sch-items">
+        {slot.breaks.map((b) => (
+          <li class="sch-break" data-break>
+            <span class="sch-break-title" data-ugc>{b.title}</span>
+            <span class="sch-meta"><span class="sch-time">{timeRange(b.start, b.end)}</span>{b.room && <span class="sch-room" data-ugc>{b.room}</span>}</span>
+          </li>
+        ))}
+        {slot.sessions.map((s) => <SessionItem session={s} />)}
+      </ul>
+    </section>
+  ))}
+</div>

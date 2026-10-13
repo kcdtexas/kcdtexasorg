@@ -27,7 +27,7 @@ import { editions as ed } from '../data/editions';
             <p class="ed-place">{e.place}</p>
             {e.facts.length > 0 && <ul class="ed-facts">{e.facts.map((f) => <li>{f}</li>)}</ul>}
             {e.link && <p class="ed-link"><a href={e.link.href}>{e.link.text}<span class="arrow" aria-hidden="true"> →</span></a></p>}
-            <p class="ed-src">Source: <a href={e.source.href}>{e.source.text}</a>.</p>
+            <p class="ed-src">{e.sources.length > 1 ? 'Sources' : 'Source'}: {e.sources.map((src, i) => <>{i > 0 && (i === e.sources.length - 1 ? ' and ' : ', ')}<a href={src.href}>{src.text}</a></>)}.</p>
           </div>
         </li>
       ))}

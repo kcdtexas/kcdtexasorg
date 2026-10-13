@@ -48,6 +48,12 @@
 
   /* A 2027 sponsor without its logo yet (and the --sponsors-sample tiles): the name, centered in its cell. */
   .sp-name { display: block; font-weight: 700; font-size: 15px; line-height: 1.2; text-align: center; color: var(--tile-fg); text-wrap: balance; }
+  /* A returning sponsor's credit, "Since 2026", in the normal flow under its tile (src/lib/loyalty.ts). The tile
+     keeps the tier's size, so the logos and names in a tier stay in line; the credit never covers them. Half a cell
+     of space under the credit keeps the next row (or tier) farther from it than its own logo or name is. */
+  .logos > li.has-credit { flex-direction: column; justify-content: flex-start; gap: 6px; height: auto; margin-bottom: calc(var(--cell-h) / 2); padding: 0; background: none; }
+  .sp-tile { display: flex; align-items: center; justify-content: center; width: 100%; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
+  .logos .credit { justify-content: center; margin: 0; font-size: 13px; color: var(--fg); }
   .sp-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--tile-fg); text-decoration: none; }
   /* The CFP Phase's double wall: the 2026 sponsors under the 2027 ones, as thanks and proof. */
   .wall-past { margin-top: 44px; }
@@ -60,7 +66,7 @@
 
   /* Forced colors would drop the light plate behind the logos, and dark logos would vanish on a dark Canvas. */
   @media (forced-colors: active) {
-    .logos > li { forced-color-adjust: none; }
+    .logos > li:not(.has-credit), .sp-tile { forced-color-adjust: none; }
   }
   @media (max-width: 1099px) {
     .tiers { --gold-cols: 4; }
@@ -77,7 +83,7 @@
       --silver-cols: 3;
       --silver-cell: calc((100cqi - 2 * var(--gap)) / 3);
     }
-    .logos > li { padding: 0 8px; }
+    .logos > li:not(.has-credit), .sp-tile { padding: 0 8px; }
     .tier--platinum .logos { --logo-size: min(calc(1.5 * var(--gold-size)), calc((var(--plat-cell) - 16px) / 2.16)); --cell-h: calc(1.5 * var(--gold-size) + 24px); }
     .tier--silver .logos { --logo-size: min(calc(0.75 * var(--gold-size)), calc((var(--silver-cell) - 16px) / 2.8)); }
     .slot--logo { width: 100%; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; font-size: 27px; white-space: normal; }

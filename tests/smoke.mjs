@@ -35,7 +35,7 @@ const REQUIRED_HEADERS = {
 // scripts/check-dist.mjs; from then on a broken link to it fails.
 const V1_PAGES = [
   '/', '/2027/cfp/', '/2027/sponsors/', '/2027/tickets/', '/2027/travel/', '/2027/schedule/',
-  '/2026/', '/editions/', '/about/', '/code-of-conduct/', '/privacy/', '/accessibility/',
+  '/2026/', '/2025/', '/2024/', '/editions/', '/about/', '/code-of-conduct/', '/privacy/', '/accessibility/',
 ];
 const pending = (path) => V1_PAGES.includes(path) && !REQUIRED_PAGES.includes(path);
 const shortLinks = parse(readFileSync('src/data/short-links.yaml', 'utf8'));
@@ -125,8 +125,13 @@ pageHtml[MISSING] = missingHtml;
 linksFrom[MISSING] = internalLinks(missingHtml, MISSING);
 
 // 3. Every Short Link redirects with the right code and target.
-for (const { from, to, code, mode } of shortLinks) {
+for (const { from, to, code, mode, while: page } of shortLinks) {
   const res = await get(from);
+  // A "while" link is served only while its page is built (write-host-files.mjs); without the page it's a 404.
+  if (page !== undefined && (await fetchOnce(page)).status !== 200) {
+    expect(res.status === 404, `${from} returned ${res.status} without its page ${page}, expected 404`);
+    continue;
+  }
   // A replaced-by-page link stops redirecting once its page exists (write-host-files.mjs).
   if (mode === 'replaced-by-page' && (res.status === 200 || (await fetchOnce(`${from}/`)).status === 200)) {
     checks += 1;

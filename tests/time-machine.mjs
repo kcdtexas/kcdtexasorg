@@ -228,6 +228,36 @@ export const RUNS = [
     'wall: "Thank you to our 2027 sponsors", second': /Thank you to our 2027 sponsors/.test(home) && sections(home).split(',')[1] === 'wall',
     'no sponsor call to action': !sponsorAsks(home).length,
   }) },
+  // The test program (--program-sample, src/lib/program.ts): both gates open in the Countdown, on Event Day at
+  // 10:30 a.m. and the day after, and only `speakersPublic` open.
+  { name: 'the program sample in the Countdown', flags: ['--now', '2027-03-10', '--program-sample'], checks: ({ home, schedule, speakers, today, sw, js }) => ({
+    'key dates: Schedule "Out now"': keyDates(home).Schedule === 'Out now',
+    'program block: "Meet the Speakers", to the Speakers page': /<a class="btn btn--line" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(home),
+    'the Schedule: the Sessions by time, labeled "Sample"': /data-schedule/.test(schedule) && /\bSample\b/.test(text(schedule)),
+    'the Speakers page and the Event Day page, labeled "Sample"': /\bSample\b/.test(text(speakers)) && /\bSample\b/.test(text(today)),
+    'offline use on: /sw.js keeps copies, /schedule.js registers it': /OFF = false/.test(sw) && /OFFLINE = true/.test(js),
+  }) },
+  { name: 'the program sample on Event Day at 10:30', flags: ['--now', '2027-04-23', '--clock', '10:30', '--program-sample'], checks: ({ home, today, sw }) => ({
+    'hero: one filled button, "See what’s on now", to the Event Day page': doorsAre(home, 'filled See what’s on now') && heroDoors(home)[0].href === '/2027/today/',
+    'header: "Schedule", to the Schedule': headCta(home).join() === '/2027/schedule/,Schedule',
+    'Event Day page: "Updated 10:30 a.m. CT", with what is on now': /Updated 10:30 a\.m\. CT/.test(today) && /<li class="td-ses is-now"/.test(today),
+    'no sponsor call to action': !sponsorAsks(home).length,
+    'offline use on, through Event Day': /OFF = false/.test(sw),
+  }) },
+  { name: 'the program sample the day after Event Day', flags: ['--now', '2027-04-24', '--program-sample'], checks: ({ home, privacy, sw, js }) => ({
+    'still the Recap, with the Schedule': headCta(home).join() === '/2027/schedule/,Schedule' && !/class="dates"/.test(home),
+    'offline use off: /sw.js clears its copies and removes itself, /schedule.js registers none': /OFF = true/.test(sw) && /OFFLINE = false/.test(js),
+    'the privacy page no longer offers the offline copy': !/without a connection/.test(privacy),
+    'the privacy page says the old offline copy is deleted': /Until Event Day, your browser kept a copy/.test(privacy),
+  }) },
+  { name: 'only the Speakers public (speakersPublic)', flags: ['--now', '2027-03-10', '--program-sample=speakers'], checks: ({ home, cfp, schedule, speakers, today, ics }) => ({
+    'the Speakers page, labeled "Sample"': /\bSample\b/.test(text(speakers)),
+    'no Event Day page, no calendar file, no Sessions by time': !today && !ics && !/data-schedule/.test(schedule),
+    'key dates: Schedule "Coming soon", with "Meet the Speakers" to the Speakers page': keyDates(home).Schedule === 'Coming soon' && /pr-lane--sched [^"]*">(?:(?!<\/li>)[\s\S])*<a href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(home),
+    'program block: "The Speakers are out.", the Schedule soon, and "Meet the Speakers" filled': /The Speakers are out\. See who’s speaking\. The Schedule comes out soon\./.test(text(sectionOf(home, 'program'))) && /<a class="btn" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(sectionOf(home, 'program')),
+    'the Schedule page: the Speakers are out, the Schedule comes later, with a link to the Speakers': /The Speakers are out\. The Schedule comes out soon\./.test(text(schedule)) && !/together with the Speakers|Session Committee/.test(text(schedule)) && /<a class="btn" href="\/2027\/speakers\/">Meet the Speakers<\/a>/.test(schedule),
+    'the CFP page: the Speakers are announced, the Schedule soon': /The Speakers are announced, and the Schedule comes out soon\./.test(text(cfp)),
+  }) },
 ];
 
 /** One line per page of what the key day shows, for the report. */

@@ -1,16 +1,19 @@
 ---
 // The program block: from Feb 1 it replaces the speak section, in the same reversed panel. Its words follow the
-// program's gate (programState), never the date: "Mar 1" before then, "coming soon" if the day passes without the
-// release, and links to the Schedule and the Speakers once public. The 2026 End-User talks stay beside it.
+// program's gates (programState), never the date: "Mar 1" before then, "coming soon" if the day passes without the
+// release, a link to the Speakers while only they are public, and links to the Schedule and the Speakers once it is.
+// The 2026 End-User talks stay beside it.
 import EndUserTalks from './EndUserTalks.astro';
 import { home } from '../data/home';
 import { paths } from '../data/nav';
 import { phase, programState } from '../data/edition-2027';
+import { program } from '../lib/program';
 
 const p = home.program;
-const out = programState() === 'out';
+const state = programState();
+const out = state === 'out';
 // On Event Day and in the Recap a program that never came out isn't announced as coming: only the 2026 talks.
-const late = !out && (phase === 'event-day' || phase === 'recap');
+const late = (state === 'dated' || state === 'soon') && (phase === 'event-day' || phase === 'recap');
 ---
 
 <section id="program" class="speak program" aria-labelledby="program-title">
@@ -19,13 +22,15 @@ const late = !out && (phase === 'event-day' || phase === 'recap');
       <p class="kicker">{late ? p.lateKicker : p.kicker}</p>
       <h2 id="program-title" class="h2">{late ? p.lateTitle : p.title}</h2>
       {!late && <p class="lead">{p.lead}</p>}
-      {p.sample && <p class="employer">{p.sample}</p>}
+      {p.sample && <p class="employer" data-sample>{p.sample}</p>}
       <div class="actions">
         {out ? (
           <>
             <a class="btn" href={paths.schedule}>{p.schedule}</a>
-            <a class="btn btn--line" href={`${paths.schedule}#speakers`}>{p.speakers}</a>
+            <a class="btn btn--line" href={program ? paths.speakers : `${paths.schedule}#speakers`}>{p.speakers}</a>
           </>
+        ) : state === 'speakers' ? (
+          <a class="btn" href={paths.speakers}>{p.speakers}</a>
         ) : (
           <a class="btn btn--line" href={`${paths.edition2026}#program`}>{p.past}</a>
         )}

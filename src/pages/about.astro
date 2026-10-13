@@ -7,6 +7,14 @@ import { about as a } from '../data/about';
 import { paths } from '../data/nav';
 import { contact, legal } from '../data/site';
 import { organizerPhotos2027 } from '../lib/images';
+import Credit from '../components/program/Credit.astro';
+import { fixtureOrganizer } from '../data/history-test';
+import { organizerCredit, organizerCreditsSample } from '../lib/loyalty';
+
+// A test build with the program sample adds a made-up Organizer, with initials in place of a photo, to show the
+// credit; the real Organizers show none there (src/lib/loyalty.ts).
+const organizers: { name: string; employer: string; title: string; photo?: string }[] = organizerCreditsSample ? [...a.organizers2027, fixtureOrganizer] : a.organizers2027;
+const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('');
 ---
 
 <Base title={`${a.title} · KCD Texas`} description={a.description}>
@@ -40,20 +48,24 @@ import { organizerPhotos2027 } from '../lib/images';
 
     <section class="page-sec page-wide" aria-labelledby="organizers">
       <h2 id="organizers" class="page-h2">{a.organizers.title}</h2>
+      {organizerCreditsSample && organizers.some((o) => organizerCredit(o.name)) && <p class="page-soon" data-sample>{a.organizers.creditsSample}</p>}
       {a.organizers2027.length === 0 ? (
         <p class="page-soon">{a.organizers.soon} <a href={a.organizers.past.href}>{a.organizers.past.text}</a></p>
       ) : (
         <>
           <ul class="pg-org">
-            {a.organizers2027.map((o) => (
+            {organizers.map((o) => (
               <li>
-                <Image class="pg-org-photo" src={organizerPhotos2027[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt="" loading="lazy" />
+                {o.photo
+                  ? <Image class="pg-org-photo" src={organizerPhotos2027[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt="" loading="lazy" />
+                  : <svg class="pg-org-photo" viewBox="0 0 120 120" aria-hidden="true" focusable="false"><text x="60" y="60" text-anchor="middle" dominant-baseline="central" fill="currentColor" font-size="44" font-weight="900">{initials(o.name)}</text></svg>}
                 <b>{o.name}</b>
                 {(o.employer || o.title) && <span class="pg-aff">{[o.employer, o.title].filter(Boolean).join(' · ')}</span>}
+                <Credit credit={organizerCredit(o.name)} role="Organizer" />
               </li>
             ))}
           </ul>
-          <p>{a.organizers.pastAfter.before} <a href={a.organizers.pastAfter.href}>{a.organizers.pastAfter.text}</a>.</p>
+          <p>{a.organizers.pastTeams.before} {a.organizers.pastTeams.years.map((y, i, all) => <>{i === 0 ? '' : i === all.length - 1 ? ' and ' : ', '}<a href={`/${y}/#organizers`}>{y}</a></>)}.</p>
         </>
       )}
     </section>

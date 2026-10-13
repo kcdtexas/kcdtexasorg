@@ -2,7 +2,7 @@
 // the hero's doors and the tickets button. Each comes from the four facts in edition-2027.ts, never from a date.
 import { contact, prospectus } from './site';
 import { cfpPath, paths } from './nav';
-import { cfpStatus, edition2027, phase, programPublic, sponsorAsk, sponsorshipsOpen, ticketsOnSale } from './edition-2027';
+import { cfpStatus, edition2027, phase, programDataSample, programPublic, programSampleGates, sponsorAsk, sponsorshipsOpen, ticketsOnSale } from './edition-2027';
 
 export interface Action { href: string; label: string }
 
@@ -11,8 +11,12 @@ export const ticketsAction: Action = ticketsOnSale() && edition2027.tickets.url
   ? { href: edition2027.tickets.url, label: 'Get tickets' }
   : { href: contact.chapterUrl, label: 'Get ticket news' };
 
-/** On Event Day and in the Recap: the Schedule once public, else the way to Dallas (Event Day) or the 2026 talks. */
-const afterAction: Action = programPublic() ? { href: paths.schedule, label: 'See the Schedule' }
+/** On Event Day and in the Recap: the Schedule once public, else the way to Dallas (Event Day) or the 2026 talks.
+ *  On Event Day with the Schedule's data (its gate open, or --program-sample's test data), the Event Day page
+ *  instead (/2027/today/). */
+const scheduleData = programDataSample ? programSampleGates.schedulePublic : edition2027.program.schedulePublic;
+const afterAction: Action = phase === 'event-day' && scheduleData ? { href: paths.today, label: 'See what’s on now' }
+  : programPublic() ? { href: paths.schedule, label: 'See the Schedule' }
   : phase === 'event-day' ? { href: paths.travel, label: 'Getting to Dallas' }
   : { href: paths.edition2026, label: '2026 talks' };
 

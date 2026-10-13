@@ -1,7 +1,9 @@
-# Rebuilds the live site on the days its date-driven text changes (docs/rebuilds.md). The pages are static, so
-# "Open now", "Closed" and the like only change when a build runs. Every morning this asks
-# scripts/rebuild-today.mjs whether today, in Central time, is one of the days scripts/rebuild-dates.mjs lists
-# from the Edition file. If it is, it POSTs to the Netlify build hook.
+# Rebuilds the live site on the days its date-driven text changes, and when the public program changes
+# (docs/rebuilds.md). The pages are static, so "Open now", "Closed" and the like only change when a build runs.
+# Each run asks scripts/rebuild-today.mjs what to do by the refresh policy (scripts/refresh-policy.mjs): rebuild
+# on the days scripts/rebuild-dates.mjs lists from the Edition file; while a program gate is open, check the
+# platform and rebuild only on a change, no sooner than the deploy budget allows; otherwise nothing. A rebuild
+# POSTs to the Netlify build hook, and after a program change it waits until the live site has the new program.
 name: Rebuild on date changes
 
 on:
@@ -11,15 +13,21 @@ on:
     # first run: it skips the hook when today's first run already rebuilt. tests/rebuild.mjs checks these times.
     - cron: '17 7 * * *'
     - cron: '47 10 * * *'
+    # Event Day, Apr 23: every 5 minutes from 7:02 a.m. to 6:57 p.m. CDT (12:02 to 23:57 UTC). GitHub can't read
+    # the Edition file, so this names the day; tests/rebuild.mjs checks it against the Edition's event day.
+    - cron: '2-59/5 12-23 23 4 *'
   workflow_dispatch:
     inputs:
       force:
-        description: Rebuild now, even if today isn't a rebuild day (to test the hook)
+        description: Force a rebuild now, even if today isn't a rebuild day
         type: boolean
         default: false
 
 permissions: {}
 
+# One run at a time. A run that starts while another is still going waits for it instead of cancelling it, so after
+# a program change the next run compares the platform with the site the first one waited for. (GitHub keeps one
+# waiting run; a newer one takes its place.)
 concurrency:
   group: rebuild
   cancel-in-progress: false
@@ -30,9 +38,11 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read # check out the repo
-      actions: read # the backup run looks for today's first run
+      actions: read # the backup run looks for today's first run; the deploy budget reads the last program deploy
     outputs:
       rebuild: ${{ steps.decide.outputs.rebuild }}
+      program: ${{ steps.today.outputs.check }}
+      forced: ${{ steps.today.outputs.forced }}
       day: ${{ steps.today.outputs.day }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,10 +51,19 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+          package-manager-cache: false
       # scripts/rebuild-dates.mjs reads the TypeScript Edition file with the compiler in the dependencies.
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      # check=true only while a program gate is open in the checked-out Edition file, on the policy's days and times,
+      # and when the deploy budget allows another program deploy. For that, the script reads when the last one
+      # started from this workflow's runs (scripts/last-program-deploy.mjs). If it can't, it doesn't check, and its
+      # line in the log says why.
       - id: today
-        run: node scripts/rebuild-today.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CRON: ${{ github.event.schedule }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+        run: node scripts/rebuild-today.mjs --cron "$CRON" --force "$FORCE"
       - id: earlier
         name: Did today's first run rebuild?
         if: github.event_name == 'schedule' && github.event.schedule == '47 10 * * *' && steps.today.outputs.rebuild == 'true'
@@ -57,33 +76,101 @@ jobs:
           echo "done=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - id: decide
         env:
-          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
           TODAY: ${{ steps.today.outputs.rebuild }}
           DONE: ${{ steps.earlier.outputs.done }}
         run: |
-          if [ "$FORCE" = true ]; then echo "Forced by hand."; r=true
-          elif [ "$TODAY" = true ] && [ "$DONE" = true ]; then echo "Today's first run already rebuilt."; r=false
+          if [ "$TODAY" = true ] && [ "$DONE" = true ]; then echo "Today's first run already rebuilt."; r=false
           else r=$TODAY; fi
           echo "rebuild=$r" >> "$GITHUB_OUTPUT"
 
-  rebuild:
+  # Has the public program changed on the platform since the live site was built? It runs only when the check job
+  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches.
+  program:
     needs: check
-    if: needs.check.outputs.rebuild == 'true'
+    if: needs.check.outputs.program == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
+    # The platform's key is a secret of the production environment, which only main can use (CLAUDE.md).
+    environment: production
+    permissions:
+      contents: read # check out the repo
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - id: compare
+        name: Has the program changed?
+        env:
+          SESSIONIZE_ENDPOINT_ID: ${{ secrets.SESSIONIZE_ENDPOINT_ID }}
+          PROGRAM_CSV_URL: ${{ secrets.PROGRAM_CSV_URL }}
+        run: node scripts/program-check.mjs
+
+  rebuild:
+    # scripts/last-program-deploy.mjs finds the last program deploy by this name: a forced run, or a program change.
+    name: ${{ (needs.check.outputs.forced == 'true' || (needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true')) && 'Program deploy' || 'Scheduled rebuild' }}
+    needs: [check, program]
+    # On a rebuild day, or after a check that found a change. The program job is skipped on most runs.
+    if: ${{ !cancelled() && needs.check.result == 'success' && (needs.check.outputs.rebuild == 'true' || needs.program.outputs.changed == 'true') }}
+    runs-on: ubuntu-24.04
+    # The wait after a program change takes at most 10 minutes.
+    timeout-minutes: 15
     # The hook is a secret of the production environment, which only main can use (CLAUDE.md).
     environment: production
     permissions: {}
     steps:
+      # After a program change, the run waits until the live site has the new program (the last step). Just before
+      # the build starts, it notes the live program version, a hash of the public program that the site publishes,
+      # in a file on the runner: no version passes between the jobs, and no command prints one. Only a 404 means
+      # there's no version yet (no program is live), and leaves the note empty. Any other failure stops the run
+      # before the build: with an empty note, the wait would take the old version for the new one.
+      - name: Note the live program version
+        if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
+        env:
+          LIVE: https://kcdtexas.org/2027/program-version.txt
+        run: |
+          status="$(curl -sS --retry 3 --retry-all-errors --max-time 10 -H 'Cache-Control: no-cache' -o "$RUNNER_TEMP/live-version" -w '%{http_code}' "$LIVE" || true)"
+          case "$status" in
+            200) ;;
+            404) : > "$RUNNER_TEMP/live-version" ;;
+            *)
+              if [ "${status:-000}" = 000 ]; then why='no answer'; else why="HTTP $status"; fi
+              echo "::error::Couldn't read the live program version ($why). No build started; the next run checks again."
+              exit 1 ;;
+          esac
       - name: Start a Netlify production build
         env:
           HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
           DAY: ${{ needs.check.outputs.day }}
+          TITLE: ${{ needs.check.outputs.rebuild == 'true' && 'Scheduled+rebuild' || 'Program+change' }}
         # The hook's address never goes in the log: it isn't echoed, and curl's errors don't print it.
         run: |
           if [ -z "$HOOK" ]; then echo "::error::NETLIFY_BUILD_HOOK isn't set in the production environment."; exit 1; fi
-          curl -fsS --retry 3 --retry-all-errors -o /dev/null -X POST -d '{}' "$HOOK?trigger_title=Scheduled+rebuild+$DAY"
+          curl -fsS --retry 3 --retry-all-errors -o /dev/null -X POST -d '{}' "$HOOK?trigger_title=$TITLE+$DAY"
           echo "Netlify accepted the build hook for $DAY. The deploy shows in Netlify's Deploys list."
+      # Then it checks the live version every 20 seconds, for up to 10 minutes, until it differs from the noted one
+      # (or appears, if there was none). The next run waits for this one (concurrency, above), so it compares with
+      # the new live site and doesn't deploy the same change again. Rebuild days and forced runs don't wait.
+      - name: Wait until the live site has the new program
+        if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
+        env:
+          LIVE: https://kcdtexas.org/2027/program-version.txt
+        run: |
+          before="$(cat "$RUNNER_TEMP/live-version")"
+          end=$((SECONDS + 600))
+          while [ "$SECONDS" -lt "$end" ]; do
+            sleep 20
+            got="$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
+            if [ -n "$got" ] && [ "$got" != "$before" ]; then echo "The live site has the new program."; exit 0; fi
+          done
+          echo "::error::The live site still doesn't have the new program after 10 minutes. Open the newest deploy in Netlify's Deploys list: its deploy log says whether it failed or is still building."
+          exit 1
 
   # GitHub turns off scheduled workflows in a public repo after 60 days without repository activity, and
   # Feb 1 to Apr 23 can pass without a commit. Enabling the workflow through the API restarts that count, so the

@@ -1,0 +1,175 @@
+/* The program pages: the Schedule, the Session and Speaker pages, the Speakers list and Event Day. Only those pages
+   load these styles, as /schedule.css (src/pages/[style].css.ts); every other page loads the shared stylesheet
+   alone. They load this file first, so its first line orders the layers as the shared stylesheet does, with this
+   file's layer after the shared components. The Schedule is a list of Sessions under time headings at every width;
+   from 900 px each time slot is a row, with every room's Session on its own line. */
+@layer properties, theme, base, components, program, utilities;
+
+@layer program {
+  /* The badges: the format in ink, an End-User Story in gold. */
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { padding: 2px 7px; border: 1px solid var(--fg); font-weight: 700; font-size: 12px; line-height: 1.4; letter-spacing: 0.08em; text-transform: uppercase; }
+  .badge--keynote { background: var(--fg); color: var(--bg); }
+  .badge--eu { background: var(--signal); border-color: var(--signal-edge, var(--signal)); color: var(--on-signal); }
+
+  /* Tap targets (tests/targets.mjs): the program's links that stand alone are at least 44 px tall, with the --tap
+     padding from base.css. An inline link's padding leaves its line as it is; a block one gives the space back with
+     an equal negative margin, so nothing moves. Each link sits above the plain text around it, so the text doesn't
+     take its padding back. A Session's Speakers sit just under its title: their padding goes below their names,
+     and the title keeps its own words. */
+  .kicker > a, .sch-title a, .sch-who a, .spk-links a, .spk-download a, .td-info dd > a, .spk-name, .td-title { position: relative; }
+  .kicker > a, .sch-title a, .spk-links a, .spk-download a, .td-info dd > a { padding-block: var(--tap); }
+  .sch-who a { padding-block: 4px calc(2 * var(--tap) - 4px); }
+  .spk-name, .td-title { padding-block: var(--tap); margin-block: calc(-1 * var(--tap)); }
+
+  /* Titles, names and abstracts come from the program platform: a word longer than its line breaks instead of
+     running off a narrow screen (WCAG 1.4.10). */
+  .sch, .ses-page, .spk-page, .spk-list, .td-page { overflow-wrap: break-word; }
+
+  /* The star: "Add to My Schedule". */
+  .star { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 44px; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--fg); font: inherit; cursor: pointer; }
+  .star-icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+  .star[data-on="true"] .star-icon { fill: var(--signal); stroke: var(--fg); }
+  .star:hover .star-icon { stroke-width: 2.4; }
+  .star--words { padding: 0 18px; border: 2px solid var(--action); background: var(--action); color: var(--on-action); font-weight: 700; font-size: 16px; }
+  .star--words:hover { background: var(--action-hover); border-color: var(--action-hover); }
+  .star--words .star-icon { stroke: currentColor; }
+  .star--words[data-on="true"] { background: transparent; color: var(--fg); border-color: var(--fg); }
+
+  /* The filters, shown by /schedule.js. */
+  .sch-links { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 20px; font-weight: 700; }
+  .sch-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 32px; margin-bottom: 12px; padding: 16px 0; border-top: 3px solid var(--fg); }
+  .sch-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+  .sch-group legend { float: left; width: 100%; margin-bottom: 6px; font-weight: 700; font-size: 14px; color: var(--muted); }
+  .chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--fg); font-weight: 700; font-size: 15px; cursor: pointer; }
+  .chip input { width: 18px; height: 18px; margin: 0; accent-color: var(--fg); }
+  .chip:has(input:checked) { background: var(--fg); color: var(--bg); }
+  .chip:has(input:checked) input { accent-color: var(--bg); }
+  .chip:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .sch-more { flex: 1 1 auto; }
+  .sch-more > summary { min-height: 44px; padding: 10px 0; font-weight: 700; cursor: pointer; }
+  .sch-more-body { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-top: 8px; }
+  .sch-more[open] > summary { margin-bottom: 0; }
+  .sch-count { flex-basis: 100%; font-weight: 700; }
+  .sch-count:empty { display: none; }
+  .sch-my { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; }
+
+  /* The Schedule as a list: a time heading, then its Sessions. */
+  .sch-slot { padding: 14px 0 18px; border-top: 1px solid var(--fg); }
+  .sch-time-h { margin-bottom: 10px; font-stretch: 62%; font-weight: 900; font-size: 30px; line-height: 1; text-transform: uppercase; }
+  .sch-items { display: grid; gap: 10px; }
+  .sch-item { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px 52px 14px 14px; border: 1px solid var(--line); background: var(--bg); }
+  .sch-item[data-format="keynote"] { border-color: var(--fg); border-top-width: 3px; }
+  .sch-item .star { position: absolute; top: 4px; right: 4px; }
+  .sch-title { font-weight: 700; font-size: 18px; line-height: 1.3; text-wrap: pretty; }
+  .sch-title a { color: var(--fg); }
+  .sch-who { font-size: 15px; line-height: 1.4; }
+  .sch-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 14px; color: var(--muted); }
+  .sch-time { font-weight: 700; color: var(--fg); }
+  .sch-break { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 10px 14px; background: var(--surface); }
+  .sch-break-title { font-weight: 700; }
+  .sch-items--list { margin-top: 8px; }
+
+  /* List-first at every width. From 900 px each time slot is a row: the time on the left, then every
+     room's Session as a line, with its room and time in the first column. */
+  @media (min-width: 900px) {
+    .sch-slot { display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 20px; }
+    .sch-time-h { margin: 0; font-size: 26px; }
+    .sch-items { gap: 0; }
+    .sch-item { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-content: start; column-gap: 20px; row-gap: 4px; padding: 12px 52px 14px 0; border: 0; border-bottom: 1px solid var(--line); }
+    .sch-item:first-child { padding-top: 4px; }
+    .sch-item:last-child { border-bottom: 0; }
+    .sch-item[data-format="keynote"] { border-top: 0; }
+    .sch-item > * { grid-column: 2; }
+    .sch-item .sch-meta { grid-column: 1; grid-row: 1 / span 3; flex-direction: column-reverse; justify-content: start; gap: 2px; font-size: 15px; }
+    .sch-item .sch-room { font-weight: 700; color: var(--fg); }
+    .sch-item .sch-time { font-weight: 400; color: var(--muted); }
+    .sch-break { margin-bottom: 8px; }
+  }
+
+  /* The Speakers. A Speaker with no photo gets their initials in the photo's place. */
+  .page-sec > .spk-list, .page-sec > .td-rooms { max-width: none; }
+  .page-sec:has(> .spk-list:first-child) { border-top: 0; padding-top: 0; }
+  .spk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: var(--gutter); margin-top: 8px; border-top: 3px solid var(--fg); }
+  .spk-list--rows { grid-template-columns: 1fr; }
+  .spk-card { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .spk-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .spk-name { font-weight: 700; font-size: 18px; line-height: 1.3; }
+  .spk-tag, .spk-ses { font-size: 15px; line-height: 1.4; color: var(--muted); }
+  .spk-ses { margin-top: 4px; color: var(--fg); }
+  .spk-photo { position: relative; display: flex; align-items: center; justify-content: center; flex: none; aspect-ratio: 1; background: var(--surface); color: var(--muted); font-stretch: 62%; font-weight: 900; text-transform: uppercase; }
+  .spk-photo--sm { width: 56px; font-size: 22px; }
+  .spk-photo--md { width: 72px; font-size: 28px; }
+  .spk-photo--lg { width: 200px; font-size: 72px; }
+  .spk-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .spk-head { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 28px; }
+  .spk-tagline { margin-top: 16px; }
+  .spk-head .credit { margin-top: 14px; font-size: 16px; }
+  .spk-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 12px; font-weight: 700; }
+
+  /* A Session's page. */
+  .ses-page .badges { margin-bottom: 12px; }
+  .ses-title { font-size: clamp(44px, 6vw, 84px); }
+  .ses-actions { margin-top: 28px; }
+  .ses-abstract { white-space: pre-line; }
+
+  /* Event Day: now and next in each room. */
+  .td-updated { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 20px; }
+  .td-updated b { font-size: 20px; }
+  .td-updated span { color: var(--muted); }
+  .td-break { margin-bottom: 16px; }
+  .td-break-item { display: block; padding: 10px 14px; background: var(--surface); }
+  .td-rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 28px var(--gutter); }
+  .td-room { padding-top: 10px; border-top: 3px solid var(--fg); }
+  .td-room-name { font-stretch: 68%; font-weight: 800; font-size: 26px; line-height: 1.1; }
+  .td-list { display: grid; gap: 14px; margin-top: 12px; }
+  .td-ses { display: flex; flex-direction: column; gap: 4px; }
+  .td-when { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+  .td-label { padding: 2px 8px; border: 1px solid var(--fg); font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .is-now .td-label { background: var(--fg); color: var(--bg); }
+  .td-time { font-weight: 700; }
+  .td-title { font-weight: 700; font-size: 18px; line-height: 1.3; }
+  .td-who { font-size: 15px; color: var(--muted); }
+  .td-none { margin-top: 12px; color: var(--muted); }
+  .td-news li { padding: 10px 0; border-top: 1px solid var(--line); }
+  .td-news time { margin-right: 10px; font-weight: 700; }
+  .td-info-sec { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gutter); }
+  .td-info > div { padding: 10px 0; border-top: 1px solid var(--line); }
+  .td-info dt { font-weight: 700; }
+  .td-map { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; padding: 20px; border: 1px dashed var(--muted); background: var(--surface); color: var(--muted); text-align: center; }
+
+
+  /* Event Day in the broadcast look, from the broadcast kit. The now-and-next board is a
+     scoreboard on the reversed band in both themes: a 3 px rule on top, a cell per room split by 1 px rules, labels
+     in spaced capitals, the times in gold condensed capitals, and a gold chip for what's on now. */
+  .td-page--gd .td-updated b { padding: 4px 10px; background: var(--signal); color: var(--on-signal); font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .td-board { margin-top: 8px; padding: 22px clamp(16px, 2.4vw, 32px) 28px; background: var(--band); color: var(--band-fg); }
+  .td-board .page-h2 { color: var(--band-fg); font-stretch: 62%; font-weight: 900; text-transform: uppercase; }
+  .td-board a { color: var(--band-link); }
+  .td-board :focus-visible { outline-color: var(--band-fg); }
+  .td-board .td-break-item { background: transparent; border: 1px solid var(--band-line); color: var(--band-fg); }
+  /* The rooms' 1 px rules sit only between columns, however many fit: each room has its rule on its left, 1 px
+     into the column before it, and the list clips the first column's. Stacked on phones, the rooms have none. */
+  .td-page--gd .td-rooms { gap: 0; overflow: hidden; border-top: 3px solid var(--band-fg); }
+  .td-page--gd .td-room { margin-left: -1px; padding: 14px 18px 18px; border-top: 0; border-left: 1px solid var(--band-line); border-bottom: 1px solid var(--band-line); }
+  .td-page--gd .td-room-name { font-stretch: 100%; font-weight: 700; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--band-muted); }
+  .td-page--gd .td-label { border-color: var(--band-line); color: var(--band-fg); }
+  .td-page--gd .is-now .td-label { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+  .td-page--gd .td-when { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .td-page--gd .td-time { font-stretch: 62%; font-weight: 900; font-size: 26px; line-height: 1; text-transform: uppercase; color: var(--signal); }
+  .td-page--gd .td-title { font-stretch: 68%; font-weight: 800; font-size: 22px; line-height: 1.1; text-decoration-color: var(--band-line); }
+  .td-page--gd .td-who, .td-page--gd .td-none { color: var(--band-muted); }
+  .td-board .more a { color: var(--band-fg); }
+
+  @media (max-width: 599px) {
+    .actions .star--words { width: 100%; }
+    .spk-list { grid-template-columns: 1fr; }
+    .spk-head { grid-template-columns: 1fr; gap: 16px; }
+    .spk-photo--lg { width: 120px; font-size: 44px; }
+    .td-info-sec { grid-template-columns: 1fr; }
+    /* Stacked, the venue map gets its own rule, as "Good to know" has the section's. */
+    .td-info-sec > div + div { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--fg); }
+    .sch-time-h { font-size: 26px; }
+    .chip { padding: 0 12px; font-size: 14px; }
+  }
+}

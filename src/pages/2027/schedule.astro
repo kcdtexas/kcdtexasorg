@@ -1,21 +1,40 @@
 ---
-// /2027/schedule/: when the Schedule and the Speakers come out (Session Committee).
+// /2027/schedule/: when the Schedule and the Speakers come out (Session Committee), then the Schedule. While only the
+// Speakers are public, it says the Schedule comes later and links to them.
 import Base from '../../layouts/Base.astro';
 import PageHead from '../../components/PageHead.astro';
 import { schedule as s } from '../../data/schedule';
 import { paths } from '../../data/nav';
 import { edition2026 } from '../../data/edition-2026';
 import { phase } from '../../data/edition-2027';
+import ScheduleBoard from '../../components/program/ScheduleBoard.astro';
+import { program } from '../../lib/program';
 ---
 
-<Base title={`${s.title} · KCD Texas`} description={s.description}>
+<Base title={`${s.title} · KCD Texas`} description={s.description} schedule={Boolean(program?.schedulePublic)}>
   <article class="page wrap">
     <PageHead kicker={s.kicker} title={s.title} lead={s.lead}>
       <dl class="page-facts">
         {s.facts.map((f) => <div><dt>{f.term}</dt><dd>{f.text}</dd></div>)}
       </dl>
-      {s.sample && <p class="page-soon">{s.sample}</p>}
+      {s.sample && <p class="page-soon" data-sample>{s.sample}</p>}
+      {program && !program.schedulePublic && (
+        <div class="actions">
+          <a class="btn" href={paths.speakers}>{s.meetSpeakers}</a>
+        </div>
+      )}
     </PageHead>
+
+    {program?.schedulePublic && (
+      <section class="page-sec page-wide" aria-labelledby="sessions">
+        <h2 id="sessions" class="page-h2">{s.program.title}</h2>
+        <p class="sch-links">
+          <a class="info-link" href={paths.speakers}>{s.program.speakers}</a>
+          <a class="info-link" href="/2027/schedule.ics" download>{s.program.ics}</a>
+        </p>
+        <ScheduleBoard />
+      </section>
+    )}
 
     {phase === 'cfp' && (
       <section class="page-sec" aria-labelledby="speak">
