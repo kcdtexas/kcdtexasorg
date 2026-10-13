@@ -5,6 +5,7 @@
 // name.
 // tests/run-local.mjs runs it; tests/run-program.mjs checks the same rules in real builds.
 // Usage: node --experimental-strip-types tests/credits.mjs (Node 22.12 needs the flag to read TypeScript)
+import { existsSync, readFileSync } from 'node:fs';
 import { creditFor, mergeHistory, recordsFor, validateHistory } from '../src/lib/credits.ts';
 
 const failures = [];
@@ -115,6 +116,26 @@ for (const [what, value] of bad) {
   let message = '';
   try { validateHistory(file, value, editions); } catch (e) { message = e.message; }
   expect(message.startsWith(`${file}: `), `a history file with ${what} passes the check, or fails without its name (${message || 'no error'})`);
+}
+
+// A normal build's About page: the 2027 Organizers' credits, exactly. Skipped when dist/ is missing or is a test
+// build, which credits only the made-up Organizer (tests/run-program.mjs).
+const about = new URL('../dist/about/index.html', import.meta.url);
+if (existsSync(about) && !existsSync(new URL('../dist/.test-build', import.meta.url))) {
+  const expected = {
+    'Mars Toktonaliev': 'Organizer since 2024',
+    'Rich Boyd': 'Organizer since 2025', 'Harsha Thirimanna': 'Organizer since 2025', 'Mara Ruvalcaba': 'Organizer since 2025', 'Jamie Prince': 'Organizer since 2025',
+    'Cris Nevares': 'Organizer since 2026', 'Joel Hernandez': 'Organizer since 2026', 'Srihari Nagaram': 'Organizer since 2026', 'Vishwa Gandhi': 'Organizer since 2026',
+    'Amy Marrich': null, 'Akshay Mittal': null, 'Myroslav Mishov': null,
+  };
+  const list = readFileSync(about, 'utf8').match(/<ul class="pg-org"[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? '';
+  const shown = Object.fromEntries([...list.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, li]) => [
+    li.match(/<b[^>]*>([^<]*)<\/b>/)?.[1], li.match(/<span class="credit"[^>]*>([^<]*)<\/span>/)?.[1] ?? null,
+  ]));
+  const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
+  expect(same(sorted(shown), sorted(expected)), `About's Organizer credits differ from the table: ${JSON.stringify(shown)}`);
+} else {
+  console.log('Credit tests: no normal build in dist/, so About\'s credits were not checked.');
 }
 
 if (failures.length) {
