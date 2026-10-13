@@ -56,7 +56,7 @@
 
   /* The video player (/watch.js): YouTube's player in a dialog, 16:9, as wide as the screen allows up to 1100 px. */
   .player { width: min(100% - 32px, 1100px, (100dvh - 120px) * 16 / 9); max-width: none; margin: auto; max-height: calc(100dvh - 32px); padding: 0; overflow: auto; border: 3px solid var(--fg); background: var(--bg); color: var(--fg); }
-  .player::backdrop { background: color-mix(in srgb, var(--bg) 88%, transparent); }
+  .player::backdrop { background: rgb(17 17 17 / 0.85); }
   .player-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 8px 8px 16px; }
   .player-title { font-weight: 700; font-size: 16px; line-height: 1.3; }
   .player-bar .btn { flex: none; cursor: pointer; }
