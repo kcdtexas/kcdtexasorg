@@ -15,6 +15,7 @@ Safety and emergency messages never wait for the website. They go through the MC
 1. Name the two Organizers on duty in the team chat.
 2. If GitHub requires a review before a change reaches `main`, a repository admin adds the two to the bypass list of the rule that protects `main` (in the repository's Settings, under Rules or Branches). Then they can commit to `main` on Event Day without a review.
 3. Check that both can sign in to Netlify, to watch the deploys and roll back.
+4. Check Netlify's usage page. April's credits left must cover Event Day: up to 6 program deploys, the Event Day and Recap rebuilds, and the announcements, at 15 credits each (`docs/rebuilds.md`, "The credit budget").
 
 ## Post an announcement
 
@@ -32,7 +33,7 @@ Announcements show on `/2027/today/`, newest first. They live in `src/data/annou
    - `link` is optional and must start with `https://`.
 3. Press "Commit changes", commit directly to `main`, and write a message such as `feat: announce that the 10:30 Sessions start late`. If GitHub offers only a pull request, open it: another Organizer approves and merges it, as on any other day.
 
-Each commit to `main` is a production deploy, and Netlify's free plan allows about 20 a month (ADR 0010). Put two announcements in one commit when you can.
+Each announcement is a commit to `main`, so each one is a production deploy and spends 15 of the month's 300 credits. Batch them: put two or more announcements in one commit when you can. Count them in the day's budget, next to up to 6 program deploys (`docs/rebuilds.md`, "The credit budget").
 
 ## Check that it's live
 
@@ -43,9 +44,11 @@ If the deploy fails, the site keeps the last good version. The deploy log names 
 
 ## The program refresh
 
-Room and time changes come from the program platform, not from this file. On Event Day, from 7 a.m. to 7 p.m. Central, the workflow "Rebuild on date changes" checks the program every 5 minutes and rebuilds only when it changed (`docs/rebuilds.md`).
+Room and time changes come from the program platform, not from this file. On Event Day, from 7 a.m. to 7 p.m. Central, the workflow "Rebuild on date changes" checks the program every 5 minutes and rebuilds only when it changed, at most once every 2 hours (`docs/rebuilds.md`).
 
-**Check the runs:** on GitHub, open Actions, then "Rebuild on date changes". A run should appear every 5 minutes. Its program check prints "changed" or "unchanged". After "changed", a Netlify deploy named "Program change" starts, and the run waits until the live site has the change, for up to 10 minutes. GitHub sometimes starts scheduled runs late. If none has run for 15 minutes, force one.
+**Check the runs:** on GitHub, open Actions, then "Rebuild on date changes". A run should appear every 5 minutes. Its program check prints "changed" or "unchanged". After "changed", a Netlify deploy named "Program change" starts, and the run waits until the live site has the change, for up to 10 minutes. Within 2 hours of the last program deploy, a run doesn't check, and its log says from what time the next one can deploy.
+
+GitHub starts scheduled runs late: on 2026-10-11, the first two started 5 to 7 hours late. Event Day's 5-minute runs can be late or skipped. If a program change isn't live within 15 minutes, and the newest run's log doesn't name a later time, force a rebuild.
 
 **Force a rebuild:** on the same page, press "Run workflow", choose `main`, tick "Force a rebuild now" and run it. The `rebuild` job ends with "Netlify accepted the build hook", and Netlify starts a production deploy.
 
