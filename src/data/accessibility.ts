@@ -12,6 +12,9 @@ export const accessibility = {
     // On since the keyboard and screen-reader check (tests/a11y.mjs) passed on every page. While false, the claim never shows.
     wcagClaim: true,
     claim: 'This website meets the Web Content Accessibility Guidelines (WCAG) 2.2 at level AA.',
+    // The claim's one exception: the video player (public/watch.js) plays YouTube's automatic captions. tests/a11y.mjs
+    // accepts the player only while this line is on the page.
+    claimException: 'One exception: the recordings play in YouTube’s player, with automatic captions that can contain errors.',
     // When the claim was last checked. Update it with each full check.
     claimChecked: 'We last checked every page on October 10, 2026: with a keyboard, in the accessibility tree that screen readers use, and with axe in both themes at 320 px wide and at 200% zoom.',
     checks: [

@@ -50,4 +50,4 @@ export const analytics = {
 
 export const privacyLine = analytics.enabled
   ? 'This website sets no cookies. Its cookieless analytics run on kcdtexas.org.'
-  : 'This website sets no cookies and loads nothing from other companies’ servers.';
+  : 'This website sets no cookies and loads nothing from other companies’ servers, except YouTube’s player when you play a recording.';

@@ -33,6 +33,10 @@ const cardAlt = typeof card === 'string' ? cards[card].alt : card.alt;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 // Link previews need an absolute image URL. Preview builds set CARD_ORIGIN to their own address.
 const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || Astro.site);
+// The page's content, rendered first so the head knows whether it has a "Watch" link (a.watch): only those pages
+// load the video player (/watch.js).
+const content = await Astro.slots.render('default');
+const watch = /<a class="watch"/.test(content);
 ---
 
 <!doctype html>
@@ -51,6 +55,7 @@ const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || A
     <!-- Applies a remembered theme before the first paint. Same-origin, so the CSP needs no inline code. -->
     <script is:inline src="/theme.js"></script>
     {schedule && <script is:inline src="/schedule.js" defer></script>}
+    {watch && <script is:inline src="/watch.js" defer></script>}
     {schedule && <link rel="stylesheet" href="/schedule.css" />}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="KCD Texas" />
@@ -69,7 +74,7 @@ const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || A
     <a class="skip" href="#main">Skip to content</a>
     <SiteHeader />
     <main id="main" class={mainClass}>
-      <slot />
+      <Fragment set:html={content} />
     </main>
     <SiteFooter />
   </body>

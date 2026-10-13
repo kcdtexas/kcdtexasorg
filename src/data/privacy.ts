@@ -18,7 +18,7 @@ const analyticsText = {
 
 export const privacy = {
   title: 'Privacy',
-  description: 'kcdtexas.org sets no cookies, has no forms and loads nothing from other companies’ servers. What it stores in your browser, and when.',
+  description: 'kcdtexas.org sets no cookies, has no forms and loads nothing from other companies’ servers until you play a recording. What it stores in your browser, and when.',
   kicker: 'This website',
   lead: program
     ? 'This website sets no cookies and has no forms. What it stores in your browser stays there.'
@@ -44,7 +44,8 @@ export const privacy = {
       title: 'What loads when you open a page',
       text: [
         'The pages, fonts, images and logos all come from kcdtexas.org. Opening a page here loads nothing from other companies’ servers.',
-        'The 2026 recordings are plain links to YouTube. Nothing from YouTube loads on this website. When you follow one of those links, you are on YouTube, and YouTube’s privacy policy applies.',
+        // The video player (public/watch.js): the one thing from another company's servers, and only on a click.
+        'When you play a recording here, YouTube’s player loads from youtube-nocookie.com, and YouTube’s privacy policy applies to it. Nothing from YouTube loads before you press play.',
       ],
     },
     {

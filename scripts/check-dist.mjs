@@ -222,8 +222,8 @@ async function check() {
   }
 
   // Zero data: no scripts except /theme.js (the remembered theme), on the key dates /now.js (today's date), and on
-  // the program pages /schedule.js (My Schedule, the filters, Event Day's now and next, offline use), no inline
-  // styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
+  // the program pages /schedule.js (My Schedule, the filters, Event Day's now and next, offline use), on pages with a
+  // "Watch" link /watch.js (the video player), no inline styles, nothing loaded from another host. The one other <script> allowed is a JSON-LD data block
   // (type="application/ld+json"): browsers never run it, it holds only JSON, and only the home page has one.
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
@@ -241,10 +241,13 @@ async function check() {
       if (m[1].includes('<')) failures.push(`${file}: the JSON-LD block contains an unescaped "<"`);
     }
     if (data.length && file !== join(DIST, 'index.html')) failures.push(`${file}: a JSON-LD block outside the home page`);
-    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer|schedule\.js" defer)><\/script>$/;
-    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || scripts.filter((m) => /now\.js/.test(m[0])).length > 1 || scripts.filter((m) => /schedule\.js/.test(m[0])).length > 1) {
-      failures.push(`${file}: scripts other than /theme.js first, /now.js once and /schedule.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
+    const allowed = /^<script src="\/(?:theme\.js"|now\.js" defer|schedule\.js" defer|watch\.js" defer)><\/script>$/;
+    const once = (name) => scripts.filter((m) => m[0].includes(`/${name}"`)).length <= 1;
+    if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || !once('now.js') || !once('schedule.js') || !once('watch.js')) {
+      failures.push(`${file}: scripts other than /theme.js first, /now.js once, /schedule.js once and /watch.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
     }
+    // /watch.js exactly where a "Watch" link (a.watch) is.
+    if (scripts.some((m) => /watch\.js/.test(m[0])) !== /<a class="watch"/.test(html)) failures.push(`${file}: ${/<a class="watch"/.test(html) ? 'has a "Watch" link without /watch.js' : 'loads /watch.js without a "Watch" link'}`);
     // /schedule.js only where the program is: the Schedule with its gate open, Session pages, Speaker pages, Event Day.
     const programPage = /[\\/]2027[\\/](?:sessions|speakers|today)[\\/]/.test(file) || /data-schedule/.test(html);
     if (scripts.some((m) => /schedule\.js/.test(m[0])) && !programPage) failures.push(`${file}: loads /schedule.js outside the program pages`);
@@ -275,6 +278,13 @@ async function check() {
   if (worker !== existsSync(join(DIST, 'schedule.js'))) failures.push('dist/sw.js and dist/schedule.js must ship together');
   if (/^\/sw\.js\n  Cache-Control: no-cache$/m.test(hostHeaders) !== worker) failures.push('_headers has a /sw.js no-cache rule without the file, or the file without its rule');
   if (/worker-src 'self'/.test(hostHeaders) !== worker) failures.push('the CSP has worker-src without /sw.js, or /sw.js without worker-src');
+  // The video player (/watch.js) ships only where a page loads it, with its cache rule and frame-src for YouTube's
+  // player (youtube-nocookie.com only) in the CSP.
+  const player = existsSync(join(DIST, 'watch.js'));
+  if (player !== pages.some(({ html }) => html.includes('<script src="/watch.js" defer></script>'))) failures.push(player ? 'dist/watch.js ships, but no page loads it' : 'a page loads /watch.js, but dist/watch.js is missing');
+  if (/^\/watch\.js$/m.test(hostHeaders) !== player) failures.push('_headers has a /watch.js rule without the file, or the file without its rule');
+  const frames = hostHeaders.match(/frame-src[^;\n]*/g) ?? [];
+  if (frames.join() !== (player ? 'frame-src https://www.youtube-nocookie.com' : '')) failures.push(`the CSP's frame-src is "${frames.join(' | ')}": it must be exactly youtube-nocookie.com with /watch.js, and absent without it`);
   if (worker && !/register\('\/sw\.js', \{ scope: '\/2027\/' \}\)/.test(readFileSync(join(DIST, 'schedule.js'), 'utf8'))) failures.push('schedule.js does not register /sw.js with the scope /2027/');
 
   for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {
@@ -328,6 +338,8 @@ async function check() {
   if (existsSync(join(DIST, 'now.js')) && statSync(join(DIST, 'now.js')).size >= 1024) failures.push('now.js is 1 KB or larger');
   // The program pages' one script stays small: at most 8 KB as written, about 3 KB gzipped.
   if (existsSync(join(DIST, 'schedule.js')) && statSync(join(DIST, 'schedule.js')).size > 8 * 1024) failures.push('schedule.js is larger than 8 KB');
+  // The video player: at most 2 KB.
+  if (existsSync(join(DIST, 'watch.js')) && statSync(join(DIST, 'watch.js')).size > 2 * 1024) failures.push('watch.js is larger than 2 KB');
   // The offline worker too: at most 3 KB.
   if (existsSync(join(DIST, 'sw.js')) && statSync(join(DIST, 'sw.js')).size > 3 * 1024) failures.push('sw.js is larger than 3 KB');
 

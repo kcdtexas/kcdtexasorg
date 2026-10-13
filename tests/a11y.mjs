@@ -11,7 +11,7 @@
 // - axe (WCAG 2.2 A and AA, and best practices) in light and dark at 320 px and at 200% zoom (1280 px at 200%:
 //   640 CSS px), with no sideways scroll.
 // - While the WCAG claim is on: no embedded media (iframe, video, audio, object, embed or a YouTube player address)
-//   in any built page or script.
+//   in any built page or script, except the video player's script while the claim names its exception.
 // Run it on a build of today and on a build of another day (scripts/build.sh --now 2027-02-01), and on the program
 // samples, whose program pages the claim covers once they're public: --build --program-sample, --build
 // --program-sample=speakers, and Event Day (--build --program-sample --now 2027-04-23 --clock 10:30).
@@ -167,19 +167,46 @@ async function tree(tab, cdp) {
 }
 
 // No embedded media while the WCAG claim is on. A player on our pages makes its captions and audio description
-// part of the claim (1.2.2, 1.2.5), and YouTube's auto-generated captions don't meet it. Before adding one, name
-// the exception in the claim or add accurate captions, then update this check.
-const claimOn = /wcagClaim:\s*true\b/.test(readFileSync('src/data/accessibility.ts', 'utf8'));
-if (claimOn) {
-  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
-  for (const file of walk('dist').filter((f) => /\.(html|m?js)$/.test(f))) {
-    const text = readFileSync(file, 'utf8');
+// part of the claim (1.2.2, 1.2.5), and YouTube's auto-generated captions don't meet it. The one player allowed is
+// the video player's script (dist/watch.js, from public/watch.js), with YouTube's address, and only while the
+// claim's exception line (claimException in src/data/accessibility.ts) is on the accessibility page. Every other
+// embed fails: name its exception in the claim or add accurate captions, then update this check.
+/** The media guard's failures for `files` ([path, text] pairs), given whether the exception line is on the page. */
+function mediaFailures(files, exceptionShown) {
+  const out = [];
+  for (const [file, text] of files) {
     const found = [
       ...(file.endsWith('.html') ? [...text.matchAll(/<(iframe|video|audio|object|embed)\b/gi)].map((m) => `<${m[1].toLowerCase()}>`) : []),
-      ...[...text.matchAll(/youtube-nocookie\.com|youtube\.com\\?\/embed/gi)].map((m) => m[0].replace('\\', '')),
+      // A player address: the privacy page names youtube-nocookie.com in its text, which embeds nothing.
+      ...[...text.matchAll(/youtube(?:-nocookie)?\.com\\?\/embed/gi)].map((m) => m[0].replace('\\', '')),
     ];
-    expect(!found.length, `${label} ${file}: embeds media (${[...new Set(found)].join(', ')}) while wcagClaim is true. Name the exception in the claim (src/data/accessibility.ts) or add accurate captions, then update this check in tests/a11y.mjs`);
+    const player = file === join('dist', 'watch.js') && exceptionShown && found.every((f) => f === 'youtube-nocookie.com/embed');
+    if (found.length && !player) out.push(`${label} ${file}: embeds media (${[...new Set(found)].join(', ')}) while wcagClaim is true${file === join('dist', 'watch.js') ? ', without the exception line on the accessibility page' : ''}. Name the exception in the claim (src/data/accessibility.ts) or add accurate captions, then update this check in tests/a11y.mjs`);
   }
+  return out;
+}
+// The guard itself, both ways: the player passes only with the exception line, and every other embed fails.
+{
+  const player = [join('dist', 'watch.js'), "f.src='https://www.youtube-nocookie.com/embed/'+id"];
+  const cases = [
+    ['the player with the exception line', [player], true, 0],
+    ['the player without the exception line', [player], false, 1],
+    ['the player address in a page', [[join('dist', 'x', 'index.html'), '<a href="https://www.youtube-nocookie.com/embed/x">']], true, 1],
+    ['YouTube in another script', [[join('dist', 'other.js'), 'https://www.youtube-nocookie.com/embed/x']], true, 1],
+    ['an iframe in a page', [[join('dist', 'x', 'index.html'), '<iframe src="/x">']], true, 1],
+    ['a youtube.com embed in the player', [[join('dist', 'watch.js'), 'https://www.youtube.com/embed/x']], true, 1],
+  ];
+  for (const [what, files, shown, want] of cases) expect(mediaFailures(files, shown).length === want, `the media guard: ${what} gives ${mediaFailures(files, shown).length} failures, not ${want}`);
+}
+const accessibilityData = readFileSync('src/data/accessibility.ts', 'utf8');
+const claimOn = /wcagClaim:\s*true\b/.test(accessibilityData);
+if (claimOn) {
+  const exception = accessibilityData.match(/claimException: '([^']+)'/)?.[1];
+  const shown = Boolean(exception) && readFileSync(join('dist', 'accessibility', 'index.html'), 'utf8').replace(/&#39;|&#x27;/g, "'").includes(exception);
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
+  const files = walk('dist').filter((f) => /\.(html|m?js)$/.test(f)).map((f) => [f, readFileSync(f, 'utf8')]);
+  for (const message of mediaFailures(files, shown)) expect(false, message);
+  checks += 1;
 }
 
 const browser = await chromium.launch();
