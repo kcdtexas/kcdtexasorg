@@ -20,11 +20,11 @@
   .bill26 { container-type: inline-size; margin-top: 72px; padding-top: 22px; border-top: 3px solid var(--fg); text-align: center; }
   .bill26-title { margin-bottom: 22px; font-weight: 700; font-size: 16px; }
   .bl { font-size: 0; line-height: 0; white-space: nowrap; text-align: center; text-transform: uppercase; font-stretch: 62%; }
-  .bl li { display: inline; font-size: calc(99.5cqi / var(--em)); font-weight: 800; line-height: 1.1; }
+  .bl li { display: inline; font-size: calc(98cqi / var(--em)); font-weight: 800; line-height: 1.1; }
   .bl li::after { content: "·"; padding: 0 0.295em; font-weight: 700; }
   .bl li:last-child::after { content: none; }
   .bl-key { margin-bottom: 0.1em; }
-  .bl-key li { font-weight: 900; font-size: calc(99.5cqi / var(--em)); line-height: 1.12; }
+  .bl-key li { font-weight: 900; font-size: calc(98cqi / var(--em)); line-height: 1.12; }
   .bl-by { margin-top: 26px; font-weight: 700; font-size: 15px; color: var(--muted); }
   .bl-hosts { margin-top: 8px; }
   .bl-hosts li { font-size: calc(99.5cqi / 50); }
@@ -87,7 +87,7 @@
     .bill26 { margin-top: 36px; padding-top: 16px; }
     .bill26-title { margin-bottom: 12px; }
     /* Phones: the keynotes, one fitted row each, then the full bill behind a disclosure. */
-    .bl-key li { display: block; font-size: calc(99.5cqi / var(--solo)); line-height: 1.04; }
+    .bl-key li { display: block; font-size: calc(98cqi / var(--solo)); line-height: 1.04; }
     .bl-key li::after { content: none; }
     .bl-all, .bill26 > .bl-by, .bill26 > .bl-hosts { display: none; }
     .bl-more { display: block; margin-top: 18px; text-align: center; }
@@ -96,7 +96,7 @@
     .bl-more summary::after { content: "+"; font-size: 22px; line-height: 1; }
     .bl-more[open] summary::after { content: "−"; }
     .bl-more .bl-n { margin-top: 18px; }
-    .bl-more .bl-hosts li { font-size: calc(99.5cqi / var(--em)); }
+    .bl-more .bl-hosts li { font-size: calc(98cqi / var(--em)); }
     .slot--end { margin-top: 20px; padding: 12px 10px; font-size: max(18.7px, calc((100vw - 2 * var(--pad) - 28px) / 14)); }
     .as-printed { margin-top: 16px; }
   }
