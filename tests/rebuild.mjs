@@ -5,7 +5,9 @@
 // caches, the keepalive, and no copied list of dates).
 // The refresh policy (scripts/refresh-policy.mjs): every run type on every day of the Edition, Event Day's
 // 5-minute runs and their edges, across DST, the Event Day cron against the Edition file, and the deploy budget:
-// with no program change, March and April rebuild only on the rebuild days.
+// with no program change, March and April rebuild only on the rebuild days; with a change every day, the program
+// deploys stay within DEPLOY_BUDGET's caps, also across DST and after a forced run; with the last program deploy's
+// time unreadable, nothing deploys. scripts/last-program-deploy.mjs against a stand-in for GitHub's API.
 // No second deploy of one program change: after a program change the rebuild job notes the live program version
 // before it starts the build and waits until the live site publishes another one, and runs queue behind each other.
 // Only a 404 leaves the note empty; any other failure to read the version stops the job before the build. No
@@ -22,7 +24,8 @@ import { join } from 'node:path';
 import { parse } from 'yaml';
 import { importTs } from '../scripts/lib/import-ts.mjs';
 import { rebuildDates } from '../scripts/rebuild-dates.mjs';
-import { BACKUP_CRON, MORNING_CRON, centralClock, eventDayCrons, refreshPolicy } from '../scripts/refresh-policy.mjs';
+import { HOOK_STEP, PROGRAM_DEPLOY_JOB, deployedIn, lastProgramDeploy } from '../scripts/last-program-deploy.mjs';
+import { BACKUP_CRON, DEPLOY_BUDGET, MORNING_CRON, centralClock, eventDayCrons, refreshPolicy } from '../scripts/refresh-policy.mjs';
 import { centralDay, rebuildToday } from '../scripts/rebuild-today.mjs';
 import { liveVersionUrl } from '../src/lib/program-source/config.mjs';
 import { DAYS } from './time-machine.mjs';
@@ -112,6 +115,12 @@ expect(prog?.steps?.filter((s) => s.run).map((s) => s.run.trim()).join(' | ') ==
 expect(prog?.outputs?.changed === '${{ steps.compare.outputs.changed }}', 'the program job does not pass on changed=');
 expect(/needs\.program\.outputs\.changed == 'true'/.test(wf.jobs.rebuild?.if ?? '') && /needs\.check\.outputs\.rebuild == 'true'/.test(wf.jobs.rebuild?.if ?? ''), 'the rebuild job does not rebuild on a rebuild day and on a change');
 expect(wf.jobs.rebuild?.environment === 'production', 'the rebuild job does not name the production environment');
+// The deploy budget finds program deploys by the rebuild job's name and its build hook step (scripts/last-program-deploy.mjs).
+expect(wf.jobs.rebuild?.name === `\${{ (needs.check.outputs.forced == 'true' || (needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true')) && '${PROGRAM_DEPLOY_JOB}' || 'Scheduled rebuild' }}`, `the rebuild job's name ${JSON.stringify(wf.jobs.rebuild?.name)} doesn't mark a forced run or a program change as "${PROGRAM_DEPLOY_JOB}"`);
+expect((wf.jobs.rebuild?.steps ?? []).filter((st) => st.name === HOOK_STEP).length === 1 && /secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify((wf.jobs.rebuild?.steps ?? []).find((st) => st.name === HOOK_STEP))), `no step named "${HOOK_STEP}" calls the build hook`);
+expect(wf.jobs.check?.outputs?.forced === '${{ steps.today.outputs.forced }}', 'the check job does not pass on forced=');
+const todayStep = (wf.jobs.check?.steps ?? []).find((st) => st.id === 'today');
+expect(todayStep?.env?.GH_TOKEN === '${{ github.token }}' && wf.jobs.check?.permissions?.actions === 'read', "the check job can't read the last program deploy: no GH_TOKEN or no actions: read");
 expect(/secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(wf.jobs.rebuild?.steps)), 'the rebuild job does not use NETLIFY_BUILD_HOOK');
 // No second deploy of one program change. After a program change (a rebuild day or a forced run doesn't wait), the
 // rebuild job notes the live program version just before the build hook, in a file on the runner, with the HTTP
@@ -201,18 +210,18 @@ for (const day of [...days].sort()) {
     const open = gname !== 'closed';
     for (const changed of [undefined, false, true]) {
       const tag = `${day} gates ${gname} changed ${changed}`;
-      const m = refreshPolicy({ at: utc(day, '07:17'), trigger: morning, calendar, gates, changed });
+      const m = refreshPolicy({ at: utc(day, '07:17'), trigger: morning, calendar, gates, changed, lastDeploy: null });
       const wantCheck = !hit && open && inWindow(day);
       expect(m.day === day && m.kind === 'morning', `${tag}: the morning run is ${m.kind} on ${m.day}`);
       expect(m.check === wantCheck, `${tag}: the morning run ${m.check ? 'checks' : "doesn't check"} the program`);
       expect(m.rebuild === (hit || (wantCheck && changed === true)), `${tag}: the morning run ${m.rebuild ? 'rebuilds' : "doesn't rebuild"}`);
-      const manual = refreshPolicy({ at: utc(day, '15:00'), trigger: { event: 'workflow_dispatch', force: false }, calendar, gates, changed });
+      const manual = refreshPolicy({ at: utc(day, '15:00'), trigger: { event: 'workflow_dispatch', force: false }, calendar, gates, changed, lastDeploy: null });
       expect(manual.rebuild === m.rebuild && manual.check === m.check, `${tag}: a manual run doesn't do what the morning run does`);
       expect(refreshPolicy({ at: utc(day, '15:00'), trigger: { event: 'workflow_dispatch', force: true }, calendar, gates, changed }).rebuild, `${tag}: a forced run doesn't rebuild`);
       const b = refreshPolicy({ at: utc(day, '10:47'), trigger: backup, calendar, gates, changed });
       expect(b.rebuild === hit && !b.check, `${tag}: the backup run ${b.check ? 'checks' : b.rebuild ? 'rebuilds' : 'skips'}`);
       // An Event Day cron at midday: it checks only on Event Day with a gate open.
-      const s = refreshPolicy({ at: utc(day, '17:02'), trigger: slotTrigger(), calendar, gates, changed });
+      const s = refreshPolicy({ at: utc(day, '17:02'), trigger: slotTrigger(), calendar, gates, changed, lastDeploy: null });
       const slotCheck = day === calendar.eventDay && open;
       expect(s.check === slotCheck && s.rebuild === (slotCheck && changed === true), `${tag}: a 5-minute run at 12:02 p.m. ${s.check ? 'checks' : "doesn't check"} and ${s.rebuild ? 'rebuilds' : "doesn't rebuild"}`);
     }
@@ -227,7 +236,7 @@ expect(eventSlots.length === 144, `Event Day has ${eventSlots.length} 5-minute r
 expect(eventSlots.length && hm(eventSlots[0]) === '07:02' && hm(eventSlots.at(-1)) === '18:57', `Event Day's runs go from ${eventSlots[0] && hm(eventSlots[0])} to ${eventSlots.at(-1) && hm(eventSlots.at(-1))} Central, not 07:02 to 18:57`);
 for (const at of eventSlots) {
   for (const changed of [false, true]) {
-    const p = refreshPolicy({ at, trigger: slotTrigger(slotCrons.find((c) => cronTimes(c, at, new Date(at.getTime() + 60_000)).length)), calendar, gates: GATES.speakers, changed });
+    const p = refreshPolicy({ at, trigger: slotTrigger(slotCrons.find((c) => cronTimes(c, at, new Date(at.getTime() + 60_000)).length)), calendar, gates: GATES.speakers, changed, lastDeploy: null });
     expect(p.day === calendar.eventDay && p.check && p.rebuild === changed, `${at.toISOString()} (${hm(at)} Central): an Event Day run ${p.check ? 'checks' : "doesn't check"}, rebuild ${p.rebuild}`);
   }
   expect(!refreshPolicy({ at, trigger: slotTrigger(), calendar, gates: GATES.closed, changed: true }).check, `${at.toISOString()}: an Event Day run checks with the gates closed`);
@@ -236,7 +245,7 @@ for (const at of eventSlots) {
 const offset = (centralClock(utc(calendar.eventDay, '12:00')).minutes - 12 * 60) / 60; // -5 in CDT, -6 in CST
 for (const [minutes, want] of [[6 * 60 + 59, false], [7 * 60, true], [7 * 60 + 2, true], [18 * 60 + 57, true], [18 * 60 + 59, true], [19 * 60, false], [19 * 60 + 2, false], [23 * 60 + 59, false]]) {
   const at = new Date(Date.UTC(...calendar.eventDay.split('-').map((v, i) => Number(v) - (i === 1 ? 1 : 0)), 0, minutes - offset * 60));
-  const p = refreshPolicy({ at, trigger: slotTrigger(), calendar, gates: GATES.both, changed: true });
+  const p = refreshPolicy({ at, trigger: slotTrigger(), calendar, gates: GATES.both, changed: true, lastDeploy: null });
   expect(p.day === calendar.eventDay && p.minutes === minutes, `the edge test's ${at.toISOString()} is ${p.day} ${p.minutes}, not ${minutes} minutes into Event Day`);
   expect(p.check === want && p.rebuild === want, `an Event Day run at ${hm(at)} Central ${p.check ? 'checks' : "doesn't check"}`);
 }
@@ -251,7 +260,7 @@ for (const day of ['2026-11-01', '2026-11-02', '2027-01-15', '2027-03-13', '2027
   expect(times.length === 144 && clocks.every((c) => c.day === day && c.minutes >= 7 * 60 && c.minutes < 19 * 60), `${day}: the crons ${JSON.stringify(lines)} run ${times.length} times, not 144 within 7 a.m. to 7 p.m. Central`);
   expect(times.length && hm(times[0]) === '07:02' && hm(times.at(-1)) === '18:57', `${day}: the crons ${JSON.stringify(lines)} start or end at the wrong time`);
   const cal = { ...calendar, eventDay: day };
-  expect(times.every((at) => refreshPolicy({ at, trigger: { event: 'schedule', cron: lines.find((c) => cronTimes(c, at, new Date(at.getTime() + 60_000)).length) }, calendar: cal, gates: GATES.both }).check), `${day}: an Event Day run doesn't check`);
+  expect(times.every((at) => refreshPolicy({ at, trigger: { event: 'schedule', cron: lines.find((c) => cronTimes(c, at, new Date(at.getTime() + 60_000)).length) }, calendar: cal, gates: GATES.both, lastDeploy: null }).check), `${day}: an Event Day run doesn't check`);
 }
 
 // The deploy budget (ADR 0010): every run in March and April 2027, as GitHub starts them, with no program change
@@ -265,14 +274,14 @@ for (const [gname, gates] of Object.entries(GATES)) {
   const rebuilt = [];
   let asked = 0;
   for (const day of budgetDays) {
-    const m = refreshPolicy({ at: utc(day, '07:17'), trigger: morning, calendar, gates, changed: false });
+    const m = refreshPolicy({ at: utc(day, '07:17'), trigger: morning, calendar, gates, changed: false, lastDeploy: null });
     if (m.check) asked += 1;
     if (m.rebuild) rebuilt.push(day);
     const b = refreshPolicy({ at: utc(day, '10:47'), trigger: backup, calendar, gates, changed: false });
     if (b.rebuild && !m.rebuild) rebuilt.push(day);
     for (const cron of slotCrons) {
       for (const at of cronTimes(cron, utc(day, '00:00'), utc(shift(day, 1), '00:00'))) {
-        const s = refreshPolicy({ at, trigger: slotTrigger(cron), calendar, gates, changed: false });
+        const s = refreshPolicy({ at, trigger: slotTrigger(cron), calendar, gates, changed: false, lastDeploy: null });
         if (s.check) asked += 1;
         if (s.rebuild) rebuilt.push(day);
       }
@@ -281,6 +290,120 @@ for (const [gname, gates] of Object.entries(GATES)) {
   budgetCount[gname] = rebuilt.length;
   expect(JSON.stringify(rebuilt) === JSON.stringify(wantBudget), `gates ${gname}: March and April rebuild on ${rebuilt.join(', ')}, not only the rebuild days ${wantBudget.join(', ')}`);
   expect(gname === 'closed' ? asked === 0 : asked > 0, `gates ${gname}: March and April check the program ${asked} times`);
+}
+
+// The deploy budget with a program change before every run (DEPLOY_BUDGET). Each run as GitHub starts it, the
+// morning, backup and Event Day runs, plus forced runs at the given instants. A program deploy (a check that found
+// the change, or a forced run) is every later run's last program deploy. Each decision is the same when the
+// last deploy before the policy's `since` is left out, as scripts/last-program-deploy.mjs may leave it out.
+const eve = shift(calendar.eventDay, -1);
+const daysBetween = (a, b) => (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000;
+function simulate(fromDay, toDay, forcedAt = []) {
+  const runs = [];
+  for (let d = fromDay; d <= toDay; d = shift(d, 1)) {
+    runs.push({ at: utc(d, '07:17'), trigger: morning }, { at: utc(d, '10:47'), trigger: backup });
+    for (const cron of slotCrons) for (const at of cronTimes(cron, utc(d, '00:00'), utc(shift(d, 1), '00:00'))) runs.push({ at, trigger: slotTrigger(cron) });
+  }
+  for (const at of forcedAt) runs.push({ at, trigger: { event: 'workflow_dispatch', force: true } });
+  runs.sort((a, b) => a.at - b.at);
+  const deploys = [];
+  for (const { at, trigger } of runs) {
+    const lastDeploy = deploys.at(-1) ?? null;
+    const p = refreshPolicy({ at, trigger, calendar, gates: GATES.both, changed: true, lastDeploy });
+    if (p.since) {
+      const seen = lastDeploy && lastDeploy >= p.since ? lastDeploy : null;
+      expect(refreshPolicy({ at, trigger, calendar, gates: GATES.both, changed: true, lastDeploy: seen }).rebuild === p.rebuild, `${at.toISOString()}: the decision depends on a deploy before ${p.since.toISOString()}`);
+    }
+    if (p.rebuild && (p.check || p.forced)) deploys.push(at);
+  }
+  return deploys;
+}
+const dayOf = (at) => centralClock(at).day;
+
+// March and April 2027, a change every day.
+const deploys = simulate('2027-03-01', '2027-04-30');
+const spaced = deploys.filter((at) => dayOf(at) < eve);
+const perMonth = (m) => spaced.filter((at) => dayOf(at).startsWith(m)).length;
+const onEventDay = deploys.filter((at) => dayOf(at) === calendar.eventDay);
+expect(perMonth('2027-03') <= 8 && perMonth('2027-04') <= 8, `with a change every day, March and April before the eve make ${perMonth('2027-03')} and ${perMonth('2027-04')} program deploys, more than 8 a month`);
+expect(perMonth('2027-03') === 8, `with a change every day, March makes ${perMonth('2027-03')} program deploys, not 8`);
+expect(spaced.every((at, i) => i === 0 || daysBetween(dayOf(spaced[i - 1]), dayOf(at)) >= DEPLOY_BUDGET.everyDays), `program deploys before the eve come less than ${DEPLOY_BUDGET.everyDays} Central days apart: ${spaced.map(dayOf).join(', ')}`);
+expect(deploys.filter((at) => dayOf(at) === eve).length === 1, `the eve of Event Day makes ${deploys.filter((at) => dayOf(at) === eve).length} program deploys, not 1`);
+expect(onEventDay.length === 6, `Event Day makes ${onEventDay.length} program deploys, not 6: ${onEventDay.map(hm).join(', ')}`);
+expect(onEventDay.every((at, i) => i === 0 || at - onEventDay[i - 1] >= DEPLOY_BUDGET.eventDayEveryMinutes * 60_000) && onEventDay.every((at) => hm(at) >= '07:00' && hm(at) < '19:00'), `Event Day's program deploys are ${onEventDay.map(hm).join(', ')} Central`);
+expect(deploys.every((at) => dayOf(at) <= calendar.eventDay), 'a program change deploys after Event Day');
+const productionDeploys = { '2027-03': perMonth('2027-03') + wantBudget.filter((d) => d.startsWith('2027-03')).length, '2027-04': deploys.filter((at) => dayOf(at).startsWith('2027-04')).length + wantBudget.filter((d) => d.startsWith('2027-04')).length };
+
+// Across DST (2 a.m. CST on Mar 14, 2027): the spacing counts Central days, not UTC days or hours.
+for (const [last, no, yes] of [
+  ['2027-03-12T03:00:00Z', '2027-03-14', '2027-03-15'], // 9 p.m. CST on Mar 11, already Mar 12 in UTC
+  ['2027-03-13T05:30:00Z', '2027-03-15', '2027-03-16'], // 11:30 p.m. CST on Mar 12
+  ['2027-03-14T07:30:00Z', '2027-03-17', '2027-03-18'], // 1:30 a.m. CST on Mar 14, just before the change
+  ['2027-03-14T08:30:00Z', '2027-03-17', '2027-03-18'], // 3:30 a.m. CDT on Mar 14, just after
+]) {
+  const at = (d) => utc(d, '07:17');
+  const a = refreshPolicy({ at: at(no), trigger: morning, calendar, gates: GATES.both, changed: true, lastDeploy: new Date(last) });
+  const b = refreshPolicy({ at: at(yes), trigger: morning, calendar, gates: GATES.both, changed: true, lastDeploy: new Date(last) });
+  expect(!a.check && !a.rebuild && b.check && b.rebuild, `after a program deploy at ${last}, ${no} ${a.rebuild ? 'deploys' : "doesn't deploy"} and ${yes} ${b.rebuild ? 'deploys' : "doesn't deploy"}`);
+}
+// Only a deploy since midnight Central 3 days earlier counts, in CST and in CDT.
+for (const [day, since] of [['2027-03-16', '2027-03-13T06:00:00Z'], ['2027-03-17', '2027-03-14T06:00:00Z'], ['2027-03-18', '2027-03-15T05:00:00Z']]) {
+  const p = refreshPolicy({ at: utc(day, '07:17'), trigger: morning, calendar, gates: GATES.both, lastDeploy: null });
+  expect(p.since?.toISOString() === new Date(since).toISOString(), `${day}: the morning run reads program deploys since ${p.since?.toISOString()}, not ${since}`);
+}
+
+// A forced run deploys and resets the spacing, before the eve and on Event Day.
+const forcedMarch = simulate('2027-03-02', '2027-03-20', [utc('2027-03-08', '15:00')]).map(dayOf);
+expect(JSON.stringify(forcedMarch) === JSON.stringify(['2027-03-02', '2027-03-06', '2027-03-08', '2027-03-12', '2027-03-16', '2027-03-20']), `with a forced run on Mar 8, the program deploys are ${forcedMarch.join(', ')}`);
+const forcedEventDay = simulate(calendar.eventDay, calendar.eventDay, [utc(calendar.eventDay, '15:30')]).map(hm);
+expect(JSON.stringify(forcedEventDay) === JSON.stringify(['07:02', '09:02', '10:30', '12:32', '14:32', '16:32', '18:32']), `with a forced run at 10:30 a.m. on Event Day, the program deploys are ${forcedEventDay.join(', ')} Central`);
+
+// The last program deploy's time can't be read: no check and no deploy where the budget needs it, with the reason.
+for (const lastDeploy of [undefined, new Date(Number.NaN), 'unknown']) {
+  for (const [at, trigger] of [[utc('2027-03-10', '07:17'), morning], [utc('2027-03-10', '15:00'), { event: 'workflow_dispatch', force: false }], [utc(calendar.eventDay, '17:02'), slotTrigger()]]) {
+    const p = refreshPolicy({ at, trigger, calendar, gates: GATES.both, changed: true, lastDeploy });
+    expect(!p.check && !p.rebuild && p.since && /can't be read/.test(p.why), `${at.toISOString()} with the last deploy ${String(lastDeploy)}: check ${p.check}, rebuild ${p.rebuild}, "${p.why}"`);
+  }
+  // Where the budget doesn't need it: the eve checks, a forced run and a rebuild day rebuild.
+  const e = refreshPolicy({ at: utc(eve, '07:17'), trigger: morning, calendar, gates: GATES.both, changed: true, lastDeploy });
+  const f = refreshPolicy({ at: utc('2027-03-10', '15:00'), trigger: { event: 'workflow_dispatch', force: true }, calendar, gates: GATES.both, lastDeploy });
+  const r = refreshPolicy({ at: utc(calendar.programDay, '07:17'), trigger: morning, calendar, gates: GATES.both, lastDeploy });
+  expect(e.check && e.rebuild && !e.since && f.rebuild && f.forced && r.rebuild, `with the last deploy ${String(lastDeploy)}, the eve, a forced run or a rebuild day doesn't rebuild`);
+}
+
+// scripts/last-program-deploy.mjs against a stand-in for GitHub's API: the newest run, other than this one, whose
+// "Program deploy" job got past the build hook, even if the run failed later.
+const job = (name, hook) => ({ name, steps: hook ? [{ name: HOOK_STEP, conclusion: hook }] : [] });
+const fakeRuns = [
+  { id: 9, status: 'completed', run_started_at: '2027-04-23T18:02:00Z', jobs: [job(PROGRAM_DEPLOY_JOB, 'success')] }, // this run
+  { id: 8, status: 'completed', run_started_at: '2027-04-23T17:02:00Z', jobs: [job('Scheduled rebuild', 'success')] },
+  { id: 7, status: 'completed', run_started_at: '2027-04-23T16:02:00Z', jobs: [job(PROGRAM_DEPLOY_JOB, 'failure')] },
+  { id: 6, status: 'completed', run_started_at: '2027-04-23T15:02:00Z', jobs: [job('check', null), { name: PROGRAM_DEPLOY_JOB, steps: [{ name: HOOK_STEP, conclusion: 'success' }, { name: 'Wait until the live site has the new program', conclusion: 'failure' }] }] },
+  { id: 5, status: 'completed', run_started_at: '2027-04-23T13:02:00Z', jobs: [job(PROGRAM_DEPLOY_JOB, 'success')] },
+  { id: 4, status: 'queued', run_started_at: '2027-04-23T18:07:00Z', jobs: [] },
+];
+expect(deployedIn([job(PROGRAM_DEPLOY_JOB, 'success')]) && !deployedIn([job(PROGRAM_DEPLOY_JOB, 'skipped')]) && !deployedIn([job(PROGRAM_DEPLOY_JOB, null)]) && !deployedIn([job('Scheduled rebuild', 'success')]) && !deployedIn(undefined), 'deployedIn() is wrong');
+const requests = [];
+const fakeFetch = (runs, status = 200) => async (url, opts) => {
+  requests.push({ url, opts });
+  if (status !== 200) return { ok: false, status };
+  const m = url.match(/\/actions\/runs\/(\d+)\/jobs/);
+  const body = m ? { jobs: runs.find((r) => String(r.id) === m[1])?.jobs ?? [] } : { workflow_runs: runs.map(({ jobs, ...r }) => r) };
+  return { ok: true, status: 200, json: async () => body };
+};
+const reader = { since: utc(calendar.eventDay, '16:02'), repo: 'example/site', token: 'test-token', runId: '9' };
+const found = await lastProgramDeploy({ ...reader, fetch: fakeFetch(fakeRuns) });
+expect(found?.toISOString() === '2027-04-23T15:02:00.000Z', `the last program deploy is ${found?.toISOString()}, not 2027-04-23T15:02:00Z`);
+expect(requests.every((q) => !q.url.includes('test-token') && q.opts.headers.authorization === 'Bearer test-token') && requests[0].url.includes('/actions/workflows/rebuild.yml/runs?created=%3E%3D2027-04-23T15%3A02%3A00Z'), `the reader's requests are wrong: ${requests[0]?.url}`);
+expect(!requests.some((q) => /\/runs\/(9|5|4)\/jobs/.test(q.url)), 'the reader reads this run, a queued run, or runs older than the newest program deploy');
+expect((await lastProgramDeploy({ ...reader, fetch: fakeFetch([fakeRuns[1]]) })) === null, 'with no program deploy in the runs, the reader does not say none');
+for (const [what, input, want] of [
+  ['a 403', { fetch: fakeFetch(fakeRuns, 403) }, /HTTP 403/],
+  ['no answer', { fetch: async () => { throw new TypeError('fetch failed'); } }, /didn't answer/],
+  ['no token', { token: '', fetch: fakeFetch(fakeRuns) }, /GH_TOKEN/],
+]) {
+  const err = await lastProgramDeploy({ ...reader, ...input }).then(() => null, (e) => e);
+  expect(err && want.test(err.message) && !err.message.includes('test-token'), `the reader with ${what}: ${err ? err.message : 'no error'}`);
 }
 
 // The program check with the gates closed in the checked-out Edition file: "unchanged", no platform call.
@@ -382,17 +505,22 @@ try {
     [['--at', '2026-11-01T07:17:00Z', '--cron', MORNING_CRON, '--force', 'false'], 'true'],
     [['--at', '2026-11-02T10:47:00Z', '--cron', BACKUP_CRON, '--force', 'false'], 'false'],
     [['--at', '2026-11-02T15:00:00Z', '--cron', '', '--force', 'true'], 'true'],
-    [['--at', '2027-03-05T07:17:00Z', '--cron', MORNING_CRON, '--force', 'false'], 'false', open],
-    [['--at', `${calendar.eventDay}T17:02:00Z`, '--cron', slotCrons[0], '--force', 'false'], 'false', open],
+    [['--at', '2027-03-05T07:17:00Z', '--cron', MORNING_CRON, '--force', 'false', '--last-deploy', 'none'], 'false', open],
+    [['--at', '2027-03-05T07:17:00Z', '--cron', MORNING_CRON, '--force', 'false', '--last-deploy', '2027-03-03T07:17:00Z'], 'false'],
+    [['--at', '2027-03-05T07:17:00Z', '--cron', MORNING_CRON, '--force', 'false', '--last-deploy', 'unknown'], 'false'],
+    [['--at', `${calendar.eventDay}T17:02:00Z`, '--cron', slotCrons[0], '--force', 'false', '--last-deploy', 'none'], 'false', open],
   ]) {
     const out = join(dir, `out-${checks}`);
     const res = spawnSync(process.execPath, ['scripts/rebuild-today.mjs', ...args], { encoding: 'utf8', env: { ...process.env, GITHUB_OUTPUT: out } });
     const written = readFileSync(out, 'utf8');
     expect(res.status === 0 && res.stdout.trim().split('\n').length === 1, `rebuild-today ${args.join(' ')}: exit ${res.status}, ${JSON.stringify(res.stdout)}`);
-    expect(written.includes(`rebuild=${want}\n`) && written.includes(`check=${check}\n`) && /^day=\d{4}-\d\d-\d\d$/m.test(written) && /^why=/m.test(written), `rebuild-today ${args.join(' ')}: $GITHUB_OUTPUT is ${JSON.stringify(written)}`);
+    const forced = args.includes('--force') && args[args.indexOf('--force') + 1] === 'true';
+    expect(written.includes(`rebuild=${want}\n`) && written.includes(`check=${check}\n`) && written.includes(`forced=${forced}\n`) && /^day=\d{4}-\d\d-\d\d$/m.test(written) && /^why=/m.test(written), `rebuild-today ${args.join(' ')}: $GITHUB_OUTPUT is ${JSON.stringify(written)}`);
   }
   const bad = spawnSync(process.execPath, ['scripts/rebuild-today.mjs', '--day', 'Nov 1'], { encoding: 'utf8' });
   expect(bad.status === 2, 'rebuild-today accepts a malformed --day');
+  const badLast = spawnSync(process.execPath, ['scripts/rebuild-today.mjs', '--day', '2027-03-05', '--last-deploy', 'yesterday'], { encoding: 'utf8' });
+  expect(badLast.status === 2, 'rebuild-today accepts a malformed --last-deploy');
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
@@ -401,4 +529,4 @@ if (failures.length) {
   console.error(`Rebuild tests failed (${failures.length} of ${checks}):\n  ${failures.join('\n  ')}`);
   process.exit(1);
 }
-console.log(`Rebuild tests passed: ${checks} checks; rebuild days ${[...listed].sort().join(', ')}; cron ${allCrons.join(' and ')} UTC; March and April with no program change rebuild ${budgetCount.both} times (${wantBudget.join(', ')}); ${linted}.`);
+console.log(`Rebuild tests passed: ${checks} checks; rebuild days ${[...listed].sort().join(', ')}; cron ${allCrons.join(' and ')} UTC; March and April with no program change rebuild ${budgetCount.both} times (${wantBudget.join(', ')}); with a change every day, ${perMonth('2027-03')} program deploys in March, ${perMonth('2027-04')} in April to Apr 21, 1 on the eve and ${onEventDay.length} on Event Day (${onEventDay.map(hm).join(', ')} Central), so ${productionDeploys['2027-03']} and ${productionDeploys['2027-04']} production deploys from the schedule in March and April (${productionDeploys['2027-03'] * 15} and ${productionDeploys['2027-04'] * 15} credits); ${linted}.`);

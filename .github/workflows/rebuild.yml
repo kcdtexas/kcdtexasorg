@@ -2,8 +2,8 @@
 # (docs/rebuilds.md). The pages are static, so "Open now", "Closed" and the like only change when a build runs.
 # Each run asks scripts/rebuild-today.mjs what to do by the refresh policy (scripts/refresh-policy.mjs): rebuild
 # on the days scripts/rebuild-dates.mjs lists from the Edition file; while a program gate is open, check the
-# platform and rebuild only on a change; otherwise nothing. A rebuild POSTs to the Netlify build hook, and after a
-# program change it waits until the live site has the new program.
+# platform and rebuild only on a change, no sooner than the deploy budget allows; otherwise nothing. A rebuild
+# POSTs to the Netlify build hook, and after a program change it waits until the live site has the new program.
 name: Rebuild on date changes
 
 on:
@@ -38,10 +38,11 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read # check out the repo
-      actions: read # the backup run looks for today's first run
+      actions: read # the backup run looks for today's first run; the deploy budget reads the last program deploy
     outputs:
       rebuild: ${{ steps.decide.outputs.rebuild }}
       program: ${{ steps.today.outputs.check }}
+      forced: ${{ steps.today.outputs.forced }}
       day: ${{ steps.today.outputs.day }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,9 +54,13 @@ jobs:
           package-manager-cache: false
       # scripts/rebuild-dates.mjs reads the TypeScript Edition file with the compiler in the dependencies.
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      # check=true only while a program gate is open in the checked-out Edition file, on the policy's days and times.
+      # check=true only while a program gate is open in the checked-out Edition file, on the policy's days and times,
+      # and when the deploy budget allows another program deploy. For that, the script reads when the last one
+      # started from this workflow's runs (scripts/last-program-deploy.mjs). If it can't, it doesn't check, and its
+      # line in the log says why.
       - id: today
         env:
+          GH_TOKEN: ${{ github.token }}
           CRON: ${{ github.event.schedule }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
         run: node scripts/rebuild-today.mjs --cron "$CRON" --force "$FORCE"
@@ -108,6 +113,8 @@ jobs:
         run: node scripts/program-check.mjs
 
   rebuild:
+    # scripts/last-program-deploy.mjs finds the last program deploy by this name: a forced run, or a program change.
+    name: ${{ (needs.check.outputs.forced == 'true' || (needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true')) && 'Program deploy' || 'Scheduled rebuild' }}
     needs: [check, program]
     # On a rebuild day, or after a check that found a change. The program job is skipped on most runs.
     if: ${{ !cancelled() && needs.check.result == 'success' && (needs.check.outputs.rebuild == 'true' || needs.program.outputs.changed == 'true') }}

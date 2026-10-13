@@ -5,11 +5,24 @@
 //
 // - The morning run (or a manual run) rebuilds on every rebuild day from scripts/rebuild-dates.mjs.
 // - While the program is public (a gate open), from the program's day to the eve of Event Day, the morning run
-//   checks the program and rebuilds only on a change.
-// - On Event Day, the runs every 5 minutes from 7 a.m. to 7 p.m. Central check, and rebuild only on a change.
+//   checks the program and rebuilds only on a change, and no sooner than DEPLOY_BUDGET allows.
+// - On Event Day, the runs every 5 minutes from 7 a.m. to 7 p.m. Central check, and rebuild only on a change, at
+//   most once per DEPLOY_BUDGET.eventDayEveryMinutes.
 // - The backup run repeats the morning run's rebuild day, never its check.
-// - A manual run with "force" rebuilds.
-// Netlify's free plan allows about 20 production deploys a month (ADR 0010), so nothing else rebuilds.
+// - A manual run with "force" rebuilds, and counts as the last program deploy.
+// Netlify's free plan has 300 credits a month, and a production deploy costs 15 (docs/rebuilds.md, "The credit
+// budget"), so nothing else rebuilds.
+
+/**
+ * The deploy budget for program changes. A program deploy is a rebuild after a check found a change, or a forced
+ * run. The caller reads the last one's time (scripts/last-program-deploy.mjs).
+ * - From the program's day to 2 days before Event Day, a change deploys only if the last program deploy was
+ *   `everyDays` or more Central days earlier: at most 8 a month.
+ * - On the eve of Event Day, a change always deploys, so the program is fresh for the day.
+ * - On Event Day, from 7 a.m. to 7 p.m. Central, a change deploys only if the last program deploy started
+ *   `eventDayEveryMinutes` or more earlier: at most 6.
+ */
+export const DEPLOY_BUDGET = { everyDays: 4, eventDayEveryMinutes: 120 };
 
 /** The morning run and its backup, in UTC: both fall after midnight Central all year. */
 export const MORNING_CRON = '17 7 * * *';
@@ -68,6 +81,11 @@ export function triggerKind(trigger, eventDay) {
 
 const gatesOpen = (gates) => Boolean(gates?.speakersPublic || gates?.schedulePublic);
 
+/** A Central day `n` days after `day` (YYYY-MM-DD), and the days between two days. */
+const dayNumber = (day) => Date.UTC(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8, 10))) / 86_400_000;
+const shiftDay = (day, n) => new Date((dayNumber(day) + n) * 86_400_000).toISOString().slice(0, 10);
+const UNREADABLE = "the last program deploy's time can't be read, so no deploy";
+
 /**
  * What a run does.
  * @param {object} input
@@ -76,21 +94,38 @@ const gatesOpen = (gates) => Boolean(gates?.speakersPublic || gates?.schedulePub
  * @param {{ rebuildDays: { day: string, why: string }[], programDay: string, eventDay: string }} input.calendar
  * @param {{ speakersPublic: boolean, schedulePublic: boolean }} input.gates  the program gates in the Edition file
  * @param {boolean} [input.changed]  the check's result, once there is one
- * @returns {{ day: string, minutes: number, kind: string, rebuild: boolean, check: boolean, why: string }}
+ * @param {Date | null} [input.lastDeploy]  when the last program deploy's run started; null if there was none
+ *   since `since` (below). Anything else means its time couldn't be read, and a spaced check doesn't run.
+ * @returns {{ day: string, minutes: number, kind: string, rebuild: boolean, check: boolean, forced: boolean,
+ *   since: Date | null, why: string }}
  *   `check`: the run asks the platform and rebuilds only on a change. Without `changed`, `rebuild` is then false.
+ *   `since`: set when the decision depends on the last program deploy: only one at or after it matters.
+ *   `forced`: a forced run, which counts as a program deploy.
  */
-export function refreshPolicy({ at, trigger, calendar, gates, changed }) {
+export function refreshPolicy({ at, trigger, calendar, gates, changed, lastDeploy }) {
   const { day, minutes } = centralClock(at);
   const kind = triggerKind(trigger, calendar.eventDay);
   const hit = calendar.rebuildDays.find((d) => d.day === day);
   const open = gatesOpen(gates);
-  const out = (rebuild, check, why) => ({ day, minutes, kind, rebuild: check ? changed === true : rebuild, check, why });
+  const forced = kind === 'manual' && Boolean(trigger.force);
+  const out = (rebuild, check, why, since = null) => ({ day, minutes, kind, rebuild: check ? changed === true : rebuild, check, forced, since, why });
+  const known = lastDeploy === null || (lastDeploy instanceof Date && !Number.isNaN(lastDeploy.getTime()));
+  const { everyDays, eventDayEveryMinutes } = DEPLOY_BUDGET;
 
-  if (kind === 'manual' && trigger.force) return out(true, false, 'forced by hand');
+  if (forced) return out(true, false, 'forced by hand');
   if (kind === 'morning' || kind === 'manual') {
     if (hit) return out(true, false, hit.why);
     if (day >= calendar.programDay && day < calendar.eventDay) {
-      return open ? out(false, true, 'the program is public: rebuild if it changed') : out(false, false, 'the program gates are closed');
+      if (!open) return out(false, false, 'the program gates are closed');
+      if (day === shiftDay(calendar.eventDay, -1)) return out(false, true, 'the eve of Event Day: rebuild if the program changed');
+      // Spaced by Central days, so DST doesn't matter: only a deploy since midnight `everyDays - 1` days ago counts.
+      const since = centralInstant(shiftDay(day, 1 - everyDays), 0);
+      if (!known) return out(false, false, UNREADABLE, since);
+      const last = lastDeploy && centralClock(lastDeploy).day;
+      if (last && dayNumber(day) - dayNumber(last) < everyDays) {
+        return out(false, false, `the last program deploy was on ${last}: the next can be on ${shiftDay(last, everyDays)}`, since);
+      }
+      return out(false, true, 'the program is public: rebuild if it changed', since);
     }
     return out(false, false, 'not a rebuild day');
   }
@@ -98,7 +133,15 @@ export function refreshPolicy({ at, trigger, calendar, gates, changed }) {
   if (kind === 'event-day') {
     const { from, until } = EVENT_DAY_WINDOW;
     if (day !== calendar.eventDay || minutes < from || minutes >= until) return out(false, false, 'outside Event Day, 7 a.m. to 7 p.m. Central');
-    return open ? out(false, true, 'Event Day: rebuild if the program changed') : out(false, false, 'the program gates are closed');
+    if (!open) return out(false, false, 'the program gates are closed');
+    const gap = eventDayEveryMinutes * 60_000;
+    const since = new Date(at.getTime() - gap);
+    if (!known) return out(false, false, UNREADABLE, since);
+    if (lastDeploy && at.getTime() - lastDeploy.getTime() < gap) {
+      const next = centralClock(new Date(lastDeploy.getTime() + gap)).minutes;
+      return out(false, false, `Event Day: the last program deploy was less than ${eventDayEveryMinutes} minutes ago; the next can be from ${String(Math.floor(next / 60)).padStart(2, '0')}:${String(next % 60).padStart(2, '0')} Central`, since);
+    }
+    return out(false, true, 'Event Day: rebuild if the program changed', since);
   }
   return out(false, false, `"${trigger.cron}" is not one of this workflow's times`);
 }
