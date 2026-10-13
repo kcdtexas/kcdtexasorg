@@ -8,7 +8,9 @@
 // the device scheme, is applied before first paint, and works by keyboard and
 // without JS. Last, the key dates: NOW and the fills on ten days (clock fixed), and the
 // phase rail's layout from 1440 down to 360 px. And the hero bill in every variant (tests/bill-variants.mjs),
-// fitted from the font, inside its measure from 320 to 1600 px. And every page's tap targets (tests/targets.mjs).
+// fitted from the font, inside its measure from 320 to 1600 px. The video player: no request to YouTube before a
+// click, open by mouse and keyboard, Close and Escape, focus, axe on the open dialog, and the link without JS. And
+// every page's tap targets (tests/targets.mjs).
 //
 // Usage: node tests/browser.mjs [baseUrl] [--shots <dir>]
 // Pages run in parallel, $BROWSER_JOBS at a time (default 4).
@@ -569,6 +571,109 @@ try {
     expect(result.passes > 10, `${label}: axe checked only ${result.passes} nodes`);
     expect(result.band === 'rgb(34, 38, 34)', `${label}: the band is ${result.band}, not the raised dark surface`);
     await context.close();
+  }
+
+  // The video player (public/watch.js): each page with "Watch" links (a.watch) asks nothing of YouTube until a click;
+  // a click or Enter opens YouTube's player in a dialog, and Close or Escape removes it and returns focus to the link.
+  // YouTube is stubbed: its player page is served locally, so the test needs no network and sees every request.
+  {
+    const YOUTUBE = /^https:\/\/(?:www\.)?youtube(?:-nocookie)?\.com\//;
+    const STUB = '<!doctype html><html lang="en"><title>Player</title><p>Player</p></html>';
+    const stub = async (context, asked) => {
+      context.on('request', (req) => { if (YOUTUBE.test(req.url())) asked.push(req.url()); });
+      await context.route(YOUTUBE, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: STUB }));
+    };
+    const pages = PAGES.map((p) => p.path).filter((p) => existsSync(join(DIST, p, 'index.html')) && readFileSync(join(DIST, p, 'index.html'), 'utf8').includes('<a class="watch"'));
+    expect(['/', '/2026/', '/2025/', '/2024/'].every((p) => pages.includes(p)), `player: "Watch" links on ${pages.join(' ')}, not on /, /2026/, /2025/ and /2024/`);
+    const dialog = (tab) => tab.evaluate(() => {
+      const d = document.querySelector('dialog.player');
+      const f = d?.querySelector('iframe');
+      const close = d?.querySelector('button')?.getBoundingClientRect();
+      return { open: !!d?.open, src: f?.src ?? '', iframes: document.querySelectorAll('iframe').length, name: d?.getAttribute('aria-label') ?? '', title: f?.title ?? '', close: close && [close.width, close.height], focus: document.activeElement?.textContent.trim() };
+    });
+    // The dialog's close event comes a moment after Close or Escape: wait up to a second for the player to go.
+    const closed = (tab) => tab.waitForFunction(() => !document.querySelector('dialog.player')?.open && !document.querySelector('iframe'), null, { timeout: 1000 }).catch(() => {}).then(() => dialog(tab));
+    for (const path of pages) {
+      const label = `player ${path}`;
+      const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+      const asked = [];
+      await stub(context, asked);
+      const tab = await context.newPage();
+      const problems = await watch(tab);
+      await tab.goto(base + path, { waitUntil: 'networkidle' });
+      expect(!asked.length, `${label}: asks YouTube before a click: ${asked.join(', ')}`);
+      const links = tab.locator('a.watch');
+      const n = await links.count();
+      for (let i = 0; i < n; i += 1) {
+        const link = links.nth(i);
+        const href = await link.getAttribute('href');
+        const id = new URL(href).searchParams.get('v');
+        const title = (await link.locator('.sr-only').textContent()).replace(/^[\s:]+/, '').trim();
+        // By mouse on the first link; by keyboard (Enter, then Escape) on every link.
+        if (i === 0) {
+          await link.click();
+          const s = await dialog(tab);
+          expect(s.open, `${label}: a click on "${title}" doesn't open the player`);
+          expect(s.src === `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&cc_load_policy=1&cc_lang_pref=en&rel=0`, `${label}: the player loads ${s.src}`);
+          expect(s.name === title && s.title === title, `${label}: the dialog is named "${s.name}" and the player "${s.title}", not "${title}"`);
+          expect(s.focus === 'Close', `${label}: focus is on "${s.focus}" in the open dialog, not Close`);
+          expect(s.close && s.close[0] >= 44 && s.close[1] >= 44, `${label}: the Close target is ${s.close?.join('x')} px`);
+          await tab.locator('dialog.player button').click();
+          const after = await closed(tab);
+          expect(!after.open && !after.iframes, `${label}: Close leaves the dialog open (${after.open}) or ${after.iframes} iframes`);
+          expect(await link.evaluate((a) => a === document.activeElement), `${label}: focus goes to "${after.focus}" after Close, not the link`);
+        }
+        await link.focus();
+        await tab.keyboard.press('Enter');
+        const s = await dialog(tab);
+        expect(s.open && s.src.includes(`/embed/${id}?`), `${label}: Enter on "${title}" doesn't open its player (${s.src})`);
+        await tab.keyboard.press('Escape');
+        const after = await closed(tab);
+        expect(!after.open && !after.iframes, `${label}: Escape leaves the dialog open (${after.open}) or ${after.iframes} iframes`);
+        expect(await link.evaluate((a) => a === document.activeElement), `${label}: focus goes to "${after.focus}" after Escape, not the link`);
+      }
+      expect(n > 0 && asked.length && asked.every((u) => u.startsWith('https://www.youtube-nocookie.com/embed/')), `${label}: after the clicks, requests to ${asked.slice(0, 3).join(', ') || 'nothing'}`);
+      const p = await problems();
+      expect(!p.length, `${label}: ${p.join(' | ')}`);
+      await context.close();
+    }
+
+    // axe on the open dialog, in light and dark, at 390 and 1280 px. YouTube's own page in the frame isn't checked.
+    for (const width of [390, 1280]) {
+      for (const scheme of ['light', 'dark']) {
+        const label = `player /2026/ open at ${width} ${scheme}`;
+        const context = await browser.newContext({ viewport: { width, height: width < 600 ? 844 : 900 }, colorScheme: scheme, isMobile: width < 600 });
+        await stub(context, []);
+        const tab = await context.newPage();
+        await tab.goto(base + '/2026/', { waitUntil: 'networkidle' });
+        await tab.locator('a.watch').first().click();
+        await tab.locator('dialog.player iframe').waitFor();
+        await tab.evaluate(axeSource);
+        const v = await tab.evaluate(async () => (await window.axe.run(document, { iframes: false, runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] } })).violations.map((x) => `${x.id} (${x.nodes.length}x): ${x.help}`));
+        expect(!v.length, `${label}: accessibility: ${v.join(' | ')}`);
+        const fit = await tab.evaluate(() => { const r = document.querySelector('dialog.player').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && Math.abs(r.left - (innerWidth - r.right)) <= 1; });
+        expect(fit, `${label}: the dialog runs off screen or isn't centered`);
+        if (shotsDir) writeFileSync(join(shotsDir, `player-${width}-${scheme}.png`), await tab.screenshot());
+        await context.close();
+      }
+    }
+
+    // Without JavaScript, a "Watch" link goes to the talk on YouTube.
+    {
+      const label = 'player /2026/ without JavaScript';
+      const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, javaScriptEnabled: false });
+      const asked = [];
+      await stub(context, asked);
+      const tab = await context.newPage();
+      await tab.goto(base + '/2026/', { waitUntil: 'networkidle' });
+      const link = tab.locator('a.watch').first();
+      const href = await link.getAttribute('href');
+      expect(/^https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}$/.test(href), `${label}: the link goes to ${href}`);
+      await link.click();
+      await tab.waitForURL(href);
+      expect(tab.url() === href && asked.length === 1, `${label}: the click went to ${tab.url()} (${asked.length} requests to YouTube)`);
+      await context.close();
+    }
   }
 
   // Tap targets: every link and button in the header and main at least 44 px tall, on every page at 390 and 1280 px.
