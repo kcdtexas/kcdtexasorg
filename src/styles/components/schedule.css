@@ -89,6 +89,7 @@
 
   /* The Speakers. A Speaker with no photo gets their initials in the photo's place. */
   .page-sec > .spk-list, .page-sec > .td-rooms { max-width: none; }
+  .page-sec:has(> .spk-list:first-child) { border-top: 0; padding-top: 0; }
   .spk-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); column-gap: var(--gutter); margin-top: 8px; border-top: 3px solid var(--fg); }
   .spk-list--rows { grid-template-columns: 1fr; }
   .spk-card { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
