@@ -5,8 +5,9 @@ import { speakers2025, sources2025 } from '../program-2025';
 
 export default {
   year: 2025,
-  // The application lists the team as it applied in Oct 2024.
-  organizers: { names: [...edition2025.organizers.names], complete: false, source: edition2025.organizers.source },
+  // The record, by the Organizers' decision of 2026-10-10: the team list on the Edition's CNCF application.
+  // Corrections come on request.
+  organizers: { names: [...edition2025.organizers.names], complete: true, source: edition2025.organizers.source },
   // Every Speaker on the Schedule: 29, as the report counts. The hosts didn't speak.
   speakers: { names: speakers2025.map((s) => s.name), complete: true, source: sources2025.schedule },
   // The Event Page's whole sponsor wall; the Partners aren't sponsors.

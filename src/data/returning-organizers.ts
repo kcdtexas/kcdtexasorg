@@ -23,6 +23,4 @@ export interface HeldOrganizer {
 }
 
 // Organizers whose credit is held until their earlier Editions are confirmed: a held person shows no credit.
-export const heldOrganizers: readonly HeldOrganizer[] = [
-  { name: 'Mars Toktonaliev', until: 'the 2024 team is confirmed' },
-];
+export const heldOrganizers: readonly HeldOrganizer[] = [];
