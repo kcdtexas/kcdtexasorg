@@ -33,10 +33,10 @@ const cardAlt = typeof card === 'string' ? cards[card].alt : card.alt;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 // Link previews need an absolute image URL. Preview builds set CARD_ORIGIN to their own address.
 const cardUrl = new URL(`/cards/${cardId}.png`, import.meta.env.CARD_ORIGIN || Astro.site);
-// The page's content, rendered first so the head knows whether it has a "Watch" link (a.watch): only those pages
+// The page's content, rendered first so the head knows whether it has a "Watch" link (a.watch or a[data-watch]): only those pages
 // load the video player (/watch.js).
 const content = await Astro.slots.render('default');
-const watch = /<a class="watch"/.test(content);
+const watch = /<a (?:class="watch"|data-watch)/.test(content);
 ---
 
 <!doctype html>

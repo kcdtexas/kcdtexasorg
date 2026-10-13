@@ -246,8 +246,8 @@ async function check() {
     if (scripts[0]?.[0] !== '<script src="/theme.js"></script>' || scripts.some((m) => !allowed.test(m[0])) || !once('now.js') || !once('schedule.js') || !once('watch.js')) {
       failures.push(`${file}: scripts other than /theme.js first, /now.js once, /schedule.js once and /watch.js once: ${scripts.map((m) => m[0].slice(0, 80)).join(' | ') || 'none'}`);
     }
-    // /watch.js exactly where a "Watch" link (a.watch) is.
-    if (scripts.some((m) => /watch\.js/.test(m[0])) !== /<a class="watch"/.test(html)) failures.push(`${file}: ${/<a class="watch"/.test(html) ? 'has a "Watch" link without /watch.js' : 'loads /watch.js without a "Watch" link'}`);
+    // /watch.js exactly where a "Watch" link (a.watch or a[data-watch]) is.
+    if (scripts.some((m) => /watch\.js/.test(m[0])) !== /<a (?:class="watch"|data-watch)/.test(html)) failures.push(`${file}: ${/<a (?:class="watch"|data-watch)/.test(html) ? 'has a "Watch" link without /watch.js' : 'loads /watch.js without a "Watch" link'}`);
     // /schedule.js only where the program is: the Schedule with its gate open, Session pages, Speaker pages, Event Day.
     const programPage = /[\\/]2027[\\/](?:sessions|speakers|today)[\\/]/.test(file) || /data-schedule/.test(html);
     if (scripts.some((m) => /schedule\.js/.test(m[0])) && !programPage) failures.push(`${file}: loads /schedule.js outside the program pages`);

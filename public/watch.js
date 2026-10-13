@@ -1,9 +1,9 @@
-/* The video player: a "Watch" link to one talk (a.watch) plays it in a dialog, from youtube-nocookie.com.
+/* The video player: a "Watch" link to one talk (a.watch, or a[data-watch] on a talk's title) plays it in a dialog, from youtube-nocookie.com.
    Nothing loads from YouTube before the click (ADR 0007). Close and Escape remove the player, so playback
    stops, and focus goes back to the link. Without this script, the link goes to YouTube. */
 (function(d){var g,l;
 d.addEventListener('click',function(e){
-var a=e.target.closest&&e.target.closest('a.watch');
+var a=e.target.closest&&e.target.closest('a.watch,a[data-watch]');
 if(!a||e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
 var u=new URL(a.href),id=u.searchParams.get('v')||'';
 if(u.hostname!='www.youtube.com'||u.pathname!='/watch'||u.searchParams.has('list')||!/^[\w-]{11}$/.test(id))return;

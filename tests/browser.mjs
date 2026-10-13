@@ -573,7 +573,7 @@ try {
     await context.close();
   }
 
-  // The video player (public/watch.js): each page with "Watch" links (a.watch) asks nothing of YouTube until a click;
+  // The video player (public/watch.js): each page with "Watch" links (a.watch, or a[data-watch] on a talk's title) asks nothing of YouTube until a click;
   // a click or Enter opens YouTube's player in a dialog, and Close or Escape removes it and returns focus to the link.
   // YouTube is stubbed: its player page is served locally, so the test needs no network and sees every request.
   {
@@ -602,13 +602,13 @@ try {
       const problems = await watch(tab);
       await tab.goto(base + path, { waitUntil: 'networkidle' });
       expect(!asked.length, `${label}: asks YouTube before a click: ${asked.join(', ')}`);
-      const links = tab.locator('a.watch');
+      const links = tab.locator('a.watch, a[data-watch]');
       const n = await links.count();
       for (let i = 0; i < n; i += 1) {
         const link = links.nth(i);
         const href = await link.getAttribute('href');
         const id = new URL(href).searchParams.get('v');
-        const title = (await link.locator('.sr-only').textContent()).replace(/^[\s:]+/, '').trim();
+        const title = await link.evaluate((a) => (a.querySelector('.sr-only') || a).textContent.replace(/^[\s:]+/, '').trim());
         // By mouse on the first link; by keyboard (Enter, then Escape) on every link.
         if (i === 0) {
           await link.click();
