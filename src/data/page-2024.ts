@@ -55,7 +55,7 @@ export const page2024: PastPage = {
   sponsors: {
     title: 'The sponsors of 2024',
     tiers: e.tiers,
-    note: `A sponsor shown by name had no logo file we could use. ${e.coLocated.name}’s own sponsor page lists more companies whose packages included KCD Texas.`,
+    note: `Sponsors shown by name had no logo file we could use. ${e.coLocated.name}’s own sponsor page lists more companies whose packages included KCD Texas.`,
     source: { text: 'The 2024 Event Page', href: e.sponsorsSource },
     logoCredits: [
       {

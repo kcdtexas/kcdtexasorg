@@ -56,7 +56,7 @@ export const page2025: PastPage = {
   sponsors: {
     title: 'The sponsors of 2025',
     tiers: e.tiers,
-    note: 'A sponsor shown by name had no logo file we could use.',
+    note: 'Sponsors shown by name had no logo file we could use.',
     source: { text: 'The 2025 Event Page', href: e.sponsorsSource },
     partnersTitle: 'Partners',
     partnerGroups: e.partnerGroups,
