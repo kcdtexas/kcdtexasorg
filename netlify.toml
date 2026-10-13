@@ -9,3 +9,5 @@
 [build.environment]
   NODE_VERSION = "22"
   ASTRO_TELEMETRY_DISABLED = "1"
+  # No dependency's install script runs in a production build, where the program platform's key is set.
+  NPM_FLAGS = "--ignore-scripts"
