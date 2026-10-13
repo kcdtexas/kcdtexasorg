@@ -284,7 +284,8 @@ export function fingerprint(dist) {
     return statSync(p).isDirectory() ? walk(p) : [p];
   });
   const out = new Map();
-  for (const file of walk(dist).sort()) {
+  // build.txt names the build's day, so it differs every day; check-dist checks it against the day.
+  for (const file of walk(dist).sort().filter((f) => relative(dist, f) !== 'build.txt')) {
     const buf = readFileSync(file);
     const body = file.endsWith('.html') ? normalize(buf.toString('utf8')) : buf;
     out.set(relative(dist, file).split(sep).join('/'), createHash('sha256').update(body).digest('hex'));
