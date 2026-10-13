@@ -579,7 +579,7 @@ try {
     const credits = organizerCredits(read('about/index.html'));
     expect(credits['Rich Boyd'] === 'Organizer since 2025', `a new history file does not join: Rich Boyd shows ${credits['Rich Boyd']}`);
     expect(credits['Joel Hernandez'] === 'Organizer since 2026', `Joel Hernandez shows ${credits['Joel Hernandez']}, not "Organizer since 2026"`);
-    expect(credits['Mars Toktonaliev'] === null, 'a held Organizer shows a credit in a normal build');
+    expect(credits['Mars Toktonaliev'] === 'Organizer since 2024', `Mars Toktonaliev shows ${credits['Mars Toktonaliev']}, not "Organizer since 2024" from the 2024 record`);
     expect(credits['Amy Marrich'] === null && credits['Myroslav Mishov'] === null, 'a first-time Organizer shows a credit in a normal build');
     expect(!/\bSample\b/.test(text(read('about/index.html'))), 'a normal build labels its credits "Sample"');
     writeFileSync(historyFile, "export default { year: 2025, speakers: { names: 'Rich Boyd', complete: true, source: 'https://example.com/' } };\n");

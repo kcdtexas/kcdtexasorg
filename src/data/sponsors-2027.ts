@@ -30,6 +30,6 @@ const sample = (tier: Tier2027, name: string, n: number, returning: string): Spo
   Array.from({ length: n }, (_, i) => ({ id: i === 0 ? returning : `sample-${tier}-${i + 1}`, name: `Sample ${name} sponsor`, tier, logo: null, link: '', alt: '', sample: true }));
 
 /** The sample tiles, which only --sponsors-sample builds show (and src/data/history-test.ts credits). */
-export const sampleSponsors2027: Sponsor2027[] = [...sample('platinum', 'Platinum', 2, 'solo'), ...sample('gold', 'Gold', 4, 'grafana'), ...sample('silver', 'Silver', 3, 'akamai')];
+export const sampleSponsors2027: Sponsor2027[] = [...sample('platinum', 'Platinum', 2, 'solo'), ...sample('gold', 'Gold', 4, 'grafana'), ...sample('silver', 'Silver', 3, 'isovalent')];
 
 export const sponsors2027: Sponsor2027[] = sponsorsSample ? sampleSponsors2027 : announcedSponsors2027;
