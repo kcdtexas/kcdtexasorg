@@ -1,6 +1,6 @@
 // The program's small fake set, for tests and design reviews: made-up Sessions and Speakers ("Fixture Speaker 1"),
 // in the raw shape a program platform hands over, extra fields included. src/lib/program.ts reads it only in a
-// test build with --program-sample, next to the 2026 Schedule.
+// test build with --program-sample, next to the made-up sample Schedule (program-sample-schedule.ts).
 //
 // The planted marker (ADR 0009) sits in fields the allowlist drops: a Speaker's private notes and a Session's
 // review notes. scripts/check-dist.mjs fails any build whose served files contain it, and the tests also check
@@ -10,7 +10,7 @@ import type { RawSession, RawSpeaker } from '../lib/program';
 
 export const plantedMarker = 'kcd-planted-marker-q7x4v2';
 
-// The fixture's own room, so its Sessions never overlap the 2026 Schedule's.
+// The fixture's own room, so its Sessions never overlap the sample Schedule's.
 const room = 'Fixture Room';
 const day = '2027-04-23';
 

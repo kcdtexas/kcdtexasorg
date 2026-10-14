@@ -1,6 +1,7 @@
 // The program's tests (ADR 0009), in tests/run-local.mjs. First the platform's own tests
 // (tests/program-adapter.mjs). Then it builds the site with the program sample and the sample sponsors
-// (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: the Share Cards' "Sample" stamp
+// (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: made-up names only, with no real
+// Speaker's name, title or tagline on a program page or a Share Card (tests/sample-program.mjs), the Share Cards' "Sample" stamp
 // and their time budget, the test-build marker, the calendar files (RFC 5545, with the America/Chicago zone), the
 // marks on the program's text and the "Sample" labels, the program pages' own styles, the credits from the test
 // history (on About, only its made-up Organizer's), and scripts/check-dist.mjs's rules on the gates and on builds
@@ -26,6 +27,7 @@ import { createRequire } from 'node:module';
 import { join, relative, sep } from 'node:path';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
+import { checkRecords, checkSampleBuild, madeUpRecords, realRecords } from './sample-program.mjs';
 
 const failures = [];
 let checks = 0;
@@ -156,6 +158,26 @@ try {
   if (sample.status !== 0) throw new Error(`the sample build failed:\n${sample.log.slice(-3000)}`);
   expect(!sample.log.includes(marker), 'the sample build log contains the planted marker');
   for (const f of served()) for (const d of DROPPED) expect(!readFileSync(f, 'utf8').includes(d), `${f}: contains a dropped field (${d === marker ? 'the planted marker' : d})`);
+  // Made-up names only: none of the test program's names, titles or taglines is real, and no real Speaker's name,
+  // title or tagline reaches a program page or a Share Card (tests/sample-program.mjs).
+  const realProgram = await realRecords();
+  const madeProgram = await madeUpRecords();
+  for (const f of checkRecords(realProgram, madeProgram)) expect(false, `the test program: ${f}`);
+  for (const f of checkSampleBuild(realProgram, madeProgram)) expect(false, `the sample build: ${f}`);
+  {
+    // The check bites: a real title planted on the Schedule, and a Share Card under a real Speaker's name.
+    const page = 'dist/2027/schedule/index.html';
+    const before = readFileSync(page, 'utf8');
+    const realTitle = realProgram.titles.find((t) => t.includes('’')) ?? realProgram.titles[0];
+    const realName = realProgram.names.find((n) => n.split(' ').length === 2);
+    const planted = `dist/cards/speaker-${realName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+    writeFileSync(page, before.replace('</main>', `<p>${realTitle.replace(/’/g, '&#8217;')}</p></main>`));
+    writeFileSync(planted, '');
+    const caught = checkSampleBuild(realProgram, madeProgram);
+    writeFileSync(page, before);
+    rmSync(planted);
+    expect(caught.some((f) => f.includes(`a real title: ${realTitle}`)) && caught.some((f) => f.includes(planted)), `tests/sample-program.mjs misses a planted real title or a real Speaker's Share Card: ${caught.join('; ') || 'nothing found'}`);
+  }
 
   const schedule = read('2027/schedule/index.html');
   const sessionPages = readdirSync('dist/2027/sessions').filter((n) => statSync(join('dist/2027/sessions', n)).isDirectory());
@@ -183,7 +205,7 @@ try {
   expect(!/Speaker since/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'a first-time fixture Speaker shows a credit');
   expect(!/\bFixture\b/.test(read('2026/index.html')), 'the test history reaches the 2026 page');
   const credits = (speakers.match(/Speaker since/g) ?? []).length;
-  expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only Fixture Speaker 4 should (2026 test data never credits itself)`);
+  expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only Fixture Speaker 4 should (the other names are made up)`);
   expect(/<a href="https:\/\/example\.com\/" data-ugc-attrs>Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
   // The program's text is marked for check-dist's draft-marker checks (data-ugc): the head's title, description and card
   // text, and the title, the room, the abstract, the Speakers and their taglines; every "Sample" label has data-sample.
@@ -519,6 +541,7 @@ try {
   const speakersOnly = build(['--program-sample=speakers']);
   if (speakersOnly.status !== 0) throw new Error(`the speakers-only sample build failed:\n${speakersOnly.log.slice(-3000)}`);
   expect(!speakersOnly.log.includes(marker), 'the speakers-only build log contains the planted marker');
+  for (const f of checkSampleBuild(realProgram, madeProgram)) expect(false, `the speakers-only build: ${f}`);
   {
     const sessionDirs = readdirSync('dist/2027/sessions').filter((n) => statSync(join('dist/2027/sessions', n)).isDirectory());
     expect(sessionDirs.length === sessionPages.length && existsSync('dist/2027/speakers/index.html') && existsSync('dist/2027/speakers/fixture-speaker-4/index.html'), 'the speakers-only build lacks Session or Speaker pages');
@@ -537,7 +560,7 @@ try {
     for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`, '2027/schedule/index.html']) {
       const html = read(page);
       expect(!/class="sch-(?:time|room|meta)"|data-start="\d/.test(html), `${page}: shows a time or a room`);
-      expect(text(html).includes('Sample: this test build shows the 2026 Speakers and Sessions, without times or rooms, plus made-up Sessions, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
+      expect(text(html).includes('Sample: this test build shows made-up Speakers and Sessions, without times or rooms, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
       expect(!/data-star=/.test(html), `${page}: offers the My Schedule star while only the Speakers are public`);
     }
     expect(text(sched).includes('The Speakers are out. The Schedule comes out soon.') && !/together with the Speakers|Session Committee/.test(text(sched))

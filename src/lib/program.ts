@@ -7,19 +7,22 @@
 //   speakersPublic: the Speakers, the titles and the abstracts, with no times or rooms;
 //   schedulePublic: adds the times and the rooms.
 // A test build with --program-sample opens both on test data, and --program-sample=speakers only `speakersPublic`:
-// the 2026 Schedule (src/data/program-2026-schedule.ts) moved to the 2027 Event Day, plus the made-up fixture
-// (src/data/program-fixture.ts). The pages label it "Sample".
+// the made-up sample Schedule (src/data/program-sample-schedule.ts, in the 2026 Schedule's shape) and the made-up
+// fixture (src/data/program-fixture.ts). No real name reaches a test build. The pages label it "Sample".
 // Real data comes from Sessionize or the CSV fallback (src/lib/program-source/), read only in a production build
 // (CONTEXT=production) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
 // Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007), and the
 // public model's hash is published at /2027/program-version.txt for the refresh check (scripts/program-check.mjs).
-import { edition2026 } from '../data/edition-2026';
 import { asOfDay, edition2027, programDataSample, programSampleGates } from '../data/edition-2027';
-import { home } from '../data/home';
-import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../data/program-2026';
-import { breaks2026, rooms2026, sessions2026 } from '../data/program-2026-schedule';
-import { fixtureSessions, fixtureSpeakers } from '../data/program-fixture';
-import { norm, speakerCredit, type Credit } from './loyalty';
+import { fixtureOrganizer } from '../data/history-test';
+import { hosts2024 } from '../data/program-2024';
+import { hosts2025 } from '../data/program-2025';
+import { hosts2026 } from '../data/program-2026';
+import { fixtureEarlierSpeakers, fixtureSessions, fixtureSpeakers } from '../data/program-fixture';
+import { sampleBreaks, sampleRooms, sampleSessions, sampleSpeakers } from '../data/program-sample-schedule';
+import { returningOrganizers } from '../data/returning-organizers';
+import { returningSpeakers } from '../data/returning-speakers';
+import { history, norm, speakerCredit, type Credit } from './loyalty';
 import { LINK_KINDS } from './program-source/model.mjs';
 import { downloadPhotos } from './program-source/photos.mjs';
 import { chooseSource, publicModel, readPlatform } from './program-source/platform.mjs';
@@ -114,43 +117,32 @@ function slugify(s: string, taken: Set<string>): string {
 interface Source {
   speakers: readonly RawSpeaker[];
   sessions: readonly RawSession[];
-  /** Which Edition each Session belongs to, for the Returning Speaker credit. */
-  edition: (sessionId: string) => number;
   rooms: readonly string[];
   breaks: readonly Break[];
 }
 
-// The 2026 Schedule as test data, moved to the 2027 Event Day at the same times. Taglines are the 2026 Event
-// Page's printed lines; the End-User Stories are the Sessions of the Speakers whose talks the home page shows as
-// 2026 End-User talks (by Speaker: Sessionize's titles differ a little from the recordings').
+// The test data: the made-up sample Schedule and the fixture. Their names are made up, so none may be a real
+// person's: a Speaker, host or Organizer of any Edition in src/data/. A match fails the build, before any page
+// could show it. tests/sample-program.mjs also checks the built pages for the real names, titles and taglines.
 function sample(): Source {
-  const day = edition2027.eventDay;
-  const moved = (t: string) => `${day}${t.slice(10)}`;
-  const printed = new Map([...keynotes2026, ...speakers2026, ...hosts2026].map((e) => [norm(e.name), asPrinted(e) || null]));
-  const endUsers = new Set(edition2026.talks
-    .filter((t) => home.speak.talks.includes(t.face) || t.youtube === home.speak.photoYoutube)
-    .map((t) => norm(t.name)));
-
-  const speakers = new Map<string, RawSpeaker>();
-  const idOf = (name: string) => {
-    const key = norm(name);
-    if (!speakers.has(key)) speakers.set(key, { id: `s26-${speakers.size + 1}`, name, tagline: printed.get(key) ?? null });
-    return speakers.get(key)!.id;
-  };
-  const sessions: RawSession[] = sessions2026.map((s, i) => ({
-    id: `s26-s${i + 1}`, title: s.title, format: s.format, endUser: s.speakers.some((n) => endUsers.has(norm(n))),
-    speakers: s.speakers.map(idOf), start: moved(s.start), end: moved(s.end), room: s.room,
-  }));
-  // The fixture is made up, so none of its Speakers has a 2026 Speaker's name.
-  const real = fixtureSpeakers.find((f) => speakers.has(norm(f.name)));
-  if (real) throw new Error(`src/data/program-fixture.ts: ${real.id} has a 2026 Speaker's name; the fixture's names are made up`);
-  const fixtureSessionIds = new Set(fixtureSessions.map((s) => s.id));
+  const real = new Set([
+    ...history.flatMap((h) => [...(h.organizers?.names ?? []), ...(h.speakers?.names ?? [])]),
+    ...[...hosts2024, ...hosts2025, ...hosts2026].map((p) => p.name),
+    ...[...returningSpeakers, ...returningOrganizers].flatMap((r) => [r.name, ...r.earlier]),
+  ].map(norm));
+  const madeUp = [
+    ...sampleSpeakers.map((s) => ['src/data/program-sample-schedule.ts', s.name]),
+    ...fixtureSpeakers.map((s) => ['src/data/program-fixture.ts', s.name]),
+    ...fixtureEarlierSpeakers.names.map((n) => ['src/data/program-fixture.ts', n]),
+    ['src/data/history-test.ts', fixtureOrganizer.name],
+  ];
+  const clash = madeUp.find(([, name]) => real.has(norm(name)));
+  if (clash) throw new Error(`${clash[0]}: "${clash[1]}" is a real Speaker's, host's or Organizer's name; the test data's names are made up`);
   return {
-    speakers: [...speakers.values(), ...fixtureSpeakers],
-    sessions: [...sessions, ...fixtureSessions],
-    edition: (id) => (fixtureSessionIds.has(id) ? edition2027.year : edition2026.year),
-    rooms: [...rooms2026, ...new Set(fixtureSessions.map((s) => s.room!))],
-    breaks: breaks2026.map((b) => ({ ...b, start: moved(b.start), end: moved(b.end) })),
+    speakers: [...sampleSpeakers, ...fixtureSpeakers],
+    sessions: [...sampleSessions, ...fixtureSessions],
+    rooms: [...sampleRooms, ...new Set(fixtureSessions.map((s) => s.room!))],
+    breaks: [...sampleBreaks],
   };
 }
 
@@ -163,7 +155,7 @@ async function source(): Promise<Source> {
   // scripts/build.sh builds every non-production build with a gate open on the test data (--program-sample).
   if (choice.kind !== 'sessionize' && choice.kind !== 'csv') throw new Error('A program gate is open outside a production build: build with scripts/build.sh, which uses the test data there.');
   const raw = await readPlatform(choice, env);
-  return { ...raw, edition: () => edition2027.year };
+  return raw;
 }
 
 interface Built { program: Program; version: string; photos: Map<string, { small: Buffer; large: Buffer }> }
@@ -178,8 +170,8 @@ async function build(src: Source, open: { speakersPublic: boolean; schedulePubli
   const speakers = model.speakers
     .sort((a, b) => a.name.split(' ').at(-1)!.localeCompare(b.name.split(' ').at(-1)!) || a.name.localeCompare(b.name))
     .map((s) => {
-      // The credit counts only this Edition's Sessions: test data from 2026 never credits itself.
-      const here = sessions.some((x) => x.speakerIds.includes(s.id) && src.edition(x.id) === edition2027.year);
+      // The credit needs a Session in this Edition.
+      const here = sessions.some((x) => x.speakerIds.includes(s.id));
       return { ...s, links: s.links as Speaker['links'], slug: slugify(s.name, takenSpeakers), credit: here ? speakerCredit(s.name) : null };
     });
   // The photos, downloaded and resized now; a Speaker without one keeps the placeholder. An error names the Speaker
