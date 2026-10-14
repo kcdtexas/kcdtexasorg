@@ -18,7 +18,7 @@ export const sampleRooms: readonly string[] = ['Room 1', 'Room 2', 'Room 3'];
 export const sampleSpeakers: readonly RawSpeaker[] = [
   { id: 'sm-1', name: 'Neva Calderwood', tagline: 'Program Lead, Prairie Compute Collective' },
   { id: 'sm-2', name: 'Thaddeus Wrenfield', tagline: 'Spanlark Metrics · VP of Engineering, Runtime and Developer Platforms' },
-  { id: 'sm-3', name: 'Ines Marrowby', tagline: 'Hill Country Systems · Principal Engineer' },
+  { id: 'sm-3', name: 'Ines Marrowby', tagline: 'Grackleford Systems · Principal Engineer' },
   { id: 'sm-4', name: 'Hollis Ferrante', tagline: 'Gullwind Networks · Senior Developer Advocate, Platform Tooling' },
   { id: 'sm-5', name: 'Ambrose Tullis', tagline: 'Caprockly · Staff Engineer' },
   { id: 'sm-6', name: 'Benedikt Harrowgate', tagline: 'Mesquite Freight Systems · Lead Platform Architect · Weekend Woodworker' },
@@ -39,10 +39,10 @@ export const sampleSpeakers: readonly RawSpeaker[] = [
   { id: 'sm-21', name: 'Mateus Arraial', tagline: 'Greywater Analytics · Principal Engineer, Machine Learning Platforms' },
   { id: 'sm-22', name: 'Rosalind Vega Thornbury', tagline: 'Senior Engineer at Coldspring Robotics' },
   { id: 'sm-23', name: 'Wade Pettibone', tagline: 'Bandera GPU Works · Solutions Engineer' },
-  { id: 'sm-24', name: 'Colby Ashendorf', tagline: 'Staff Engineer @ Lockhart Logistics' },
-  { id: 'sm-25', name: 'Rekha Quint', tagline: 'Policywright · Security Engineer' },
+  { id: 'sm-24', name: 'Colby Ashendorf', tagline: 'Staff Engineer @ Quillmont Logistics' },
+  { id: 'sm-25', name: 'Rekha Quint', tagline: 'Wardenmoss · Security Engineer' },
   { id: 'sm-26', name: 'Ulises Barrientos Ocampo', tagline: 'Traceburrow · Principal Observability Engineer' },
-  { id: 'sm-27', name: 'Saul Echeverri', tagline: 'Bramblegate · Founder and CEO · Community Organizer, Meetup Host and Occasional Podcast Guest.' },
+  { id: 'sm-27', name: 'Saul Echeverri', tagline: 'Sotolbrooke · Founder and CEO · Community Organizer, Meetup Host and Occasional Podcast Guest.' },
 ];
 
 type Slot = [title: string, speakers: string[], start: string, end: string, room: string, format: RawSession['format'], endUser?: true];
