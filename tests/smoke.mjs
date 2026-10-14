@@ -17,8 +17,13 @@ function expect(ok, message) {
   if (!ok) failures.push(message);
 }
 
+// Reads every response's body before handing it on, so no unread body keeps a connection open and Node exits on its
+// own after the last line. Callers get the same status, headers and body.
 async function get(path, init = {}) {
-  return fetch(base + path, { redirect: 'manual', ...init });
+  const res = await fetch(base + path, { redirect: 'manual', ...init });
+  const empty = init.method === 'HEAD' || [204, 205, 304].includes(res.status);
+  const body = empty ? (await res.body?.cancel(), null) : await res.arrayBuffer();
+  return new Response(body, { status: res.status, statusText: res.statusText, headers: res.headers });
 }
 
 // 1. Pages: status, security headers, no cookies.
