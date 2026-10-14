@@ -17,6 +17,13 @@ Safety and emergency messages never wait for the website. They go through the MC
 3. Check that both can sign in to Netlify, to watch the deploys and roll back.
 4. Check Netlify's usage page. April's credits left must cover Event Day: up to 6 program deploys, the Event Day and Recap rebuilds, and the announcements, at 15 credits each (`docs/rebuilds.md`, "The credit budget").
 
+## On the day
+
+1. **Apr 23, 6 a.m. CT:** one Organizer on duty forces a rebuild (see "Force a rebuild" below), from GitHub's web page or app. When the run ends, open https://kcdtexas.org/ and check that the home page says "Today in Dallas". Don't wait for the scheduled runs: GitHub often starts them hours late.
+2. **Apr 24, any time in the morning:** the same, for "Thank you, Dallas". It isn't urgent, since the scheduled runs catch it up during the day.
+
+If the forced run shows "Cancelled" in Actions, a newer run took its place in the queue: force it again.
+
 ## Post an announcement
 
 Announcements show on `/2027/today/`, newest first. They live in `src/data/announcements-2027.yaml`.
@@ -48,7 +55,7 @@ Room and time changes come from the program platform, not from this file. On Eve
 
 **Check the runs:** on GitHub, open Actions, then "Rebuild on date changes". A run should appear every 5 minutes. Its program check prints "changed" or "unchanged". After "changed", a Netlify deploy named "Program change" starts, and the run waits until the live site has the change, for up to 10 minutes. Within 2 hours of the last program deploy, a run doesn't check, and its log says from what time the next one can deploy.
 
-GitHub starts scheduled runs late: on 2026-10-11, the first two started 5 to 7 hours late. Event Day's 5-minute runs can be late or skipped. If a program change isn't live within 15 minutes, and the newest run's log doesn't name a later time, force a rebuild.
+GitHub starts scheduled runs late: in October 2026, they started 6 to 9 hours late. Event Day's 5-minute runs can be late or skipped. If a program change isn't live within 15 minutes, and the newest run's log doesn't name a later time, force a rebuild.
 
 **Force a rebuild:** on the same page, press "Run workflow", choose `main`, tick "Force a rebuild now" and run it. The `rebuild` job ends with "Netlify accepted the build hook", and Netlify starts a production deploy.
 
@@ -60,6 +67,8 @@ If a deploy breaks the site:
 2. Open it and press "Publish deploy". The site switches to it at once.
 3. Fix the cause on `main`: edit the file again, or undo the change.
 4. Netlify may stop auto publishing after a rollback. If the Deploys page says so, press "Start auto publishing" once the fix is on `main`, or later commits won't go live.
+
+If you rolled back to a deploy from the day before, the next scheduled run may start one build of `main` (`docs/rebuilds.md`, "Catch-up"). While auto publishing is stopped, Netlify doesn't publish it.
 
 ## After the day
 

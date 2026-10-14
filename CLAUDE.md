@@ -15,7 +15,7 @@ The official website of KCD Texas at kcdtexas.org: one permanent site that prese
 - **Zero data (ADR 0007).** No cookies and no forms on our domain. Download images, fonts and thumbnails at build time. Videos load only on click through our nocookie facade. Umami analytics is the only exception.
 - **Verified numbers only.** Attendance means checked-in Attendees, never Registrations. Every figure needs a public source, and survey figures are labeled as survey figures.
 - **English only** for now. **Central time** (America/Chicago) everywhere.
-- **Public copy workflow:** Claude drafts the text and runs the delete-ai-words / red-pen pass. The user skims it, and the owning Committee approves before merge. An approval given in Slack is recorded in the pull request.
+- **Public copy workflow:** Claude drafts the text and runs the delete-ai-words / red-pen pass, and the user skims it. It goes live without waiting for a Committee's sign-off: anyone who disagrees tells the Organizers, and the next release fixes it.
 - **No secrets in git.** Sessionize endpoint IDs, deploy hooks and analytics settings belong in host environment variables or the `production` GitHub environment, which is limited to `main`.
 - **`docs/research/` is private and git-ignored.** Never commit it, and never quote it as fact without checking a primary source. `docs/research/past-editions.md` is the only source for published numbers.
 - **Licensing:**
