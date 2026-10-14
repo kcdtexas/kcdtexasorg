@@ -146,7 +146,8 @@ jobs:
           echo "Netlify accepted the build hook for $DAY. The deploy shows in Netlify's Deploys list."
       # Then it checks the live version every 20 seconds, for up to 10 minutes, until it differs from the noted one
       # (or appears, if there was none). The next run waits for this one (concurrency, above), so it compares with
-      # the new live site and doesn't deploy the same change again. Rebuild days and forced runs don't wait.
+      # the new live site and doesn't deploy the same change again. Rebuild days and forced runs wait for the new day
+      # instead (the next step).
       - name: Wait until the live site has the new program
         if: needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true'
         env:
