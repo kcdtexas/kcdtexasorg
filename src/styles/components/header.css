@@ -19,8 +19,8 @@
   }
   .nav > ul { display: flex; gap: 28px; }
   .nav > ul > li > a, .pe summary { display: block; padding: 12px 0; color: var(--fg); font-weight: 600; font-size: 16px; text-decoration: none; white-space: nowrap; }
-  .nav > ul > li > a:hover, .pe summary:hover { color: var(--fg); text-decoration: underline 2px var(--action); text-underline-offset: 0.35em; }
-  .nav > ul > li > a[aria-current="page"], .pe:has([aria-current="page"]) summary, .pe[open] summary { text-decoration: underline 3px var(--action); text-underline-offset: 0.35em; }
+  .nav > ul > li > a:hover, .pe summary:hover, .pe[open] summary { color: var(--fg); text-decoration: underline 2px var(--action); text-underline-offset: 0.35em; }
+  .nav > ul > li > a[aria-current="page"], .pe:has([aria-current="page"]) summary { text-decoration: underline 3px var(--action); text-underline-offset: 0.35em; }
 
   /* "Past Editions": a <details> that opens a panel of the Past Editions, newest first, then the Editions page.
      No script, like the phone menu: it closes when you pick a year or click "Past Editions" again. */

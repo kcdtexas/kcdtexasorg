@@ -4,7 +4,8 @@
 // The records check compares the made-up data with every Edition's records in src/data/: the Speakers, hosts and
 // Organizers of 2024 to 2027, the Session titles (the 2026 Schedule's included), the taglines as printed, and the
 // companies (sponsors, Partners, employers and affiliations). No made-up name may equal a real one, or share both
-// its first name and its surname; no made-up title or tagline may equal a real one; and no made-up tagline or
+// its first name and its surname; no made-up title or tagline may equal a real one, or a title share more than half
+// of its longer words with one; and no made-up tagline or
 // title may name a real company.
 //
 // The build check reads a --program-sample build's program pages (dist/2027/: the Schedule, the Session and Speaker
@@ -102,6 +103,15 @@ export function checkRecords(real, made) {
   }
   const realTitles = new Set(real.titles.map(norm));
   for (const title of made.titles) if (realTitles.has(norm(title))) failures.push(`"${title}" is a real Session's title`);
+  // Nor a real title reworded: no made-up title shares more than half of its words (of four letters or more) with one.
+  const words = (t) => new Set(norm(t).split(/[^a-z0-9]+/).filter((w) => w.length >= 4));
+  for (const title of made.titles) {
+    const mine = words(title);
+    for (const r of real.titles) {
+      const shared = [...words(r)].filter((w) => mine.has(w)).length;
+      if (mine.size && shared / mine.size > 0.5) failures.push(`"${title}" shares ${shared} of its ${mine.size} words with the real title "${r}"`);
+    }
+  }
   const realTaglines = new Set(real.taglines.map(norm));
   for (const tagline of made.taglines) if (realTaglines.has(norm(tagline))) failures.push(`"${tagline}" is a real Speaker's tagline`);
   // A company as a whole word, so a short one never matches inside another word.

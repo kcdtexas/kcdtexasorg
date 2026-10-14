@@ -9,7 +9,7 @@ const e = edition2027;
  *  the Sessions have no times or rooms. */
 export const programSampleLabel = programSampleGates.schedulePublic
   ? 'Sample: this test build shows made-up Speakers and Sessions, not the 2027 program.'
-  : 'Sample: this test build shows made-up Speakers and Sessions, without times or rooms, not the 2027 program.';
+  : 'Sample: this test build shows made-up Speakers and Sessions without times or rooms, not the 2027 program.';
 
 export const programPages = {
   year: e.year,

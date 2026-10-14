@@ -560,7 +560,7 @@ try {
     for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`, '2027/schedule/index.html']) {
       const html = read(page);
       expect(!/class="sch-(?:time|room|meta)"|data-start="\d/.test(html), `${page}: shows a time or a room`);
-      expect(text(html).includes('Sample: this test build shows made-up Speakers and Sessions, without times or rooms, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
+      expect(text(html).includes('Sample: this test build shows made-up Speakers and Sessions without times or rooms, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
       expect(!/data-star=/.test(html), `${page}: offers the My Schedule star while only the Speakers are public`);
     }
     expect(text(sched).includes('The Speakers are out. The Schedule comes out soon.') && !/together with the Speakers|Session Committee/.test(text(sched))

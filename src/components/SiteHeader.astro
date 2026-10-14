@@ -54,7 +54,7 @@ const here = (href: string) => (isCurrent(href, Astro.url.pathname) ? 'page' : u
           <ul>
             {links.map((l) => 'menu' in l ? (
               <li class="menu-pe">
-                <span class="menu-pe-label" id="menu-pe">{l.label}</span>
+                <span class="menu-pe-label" id="menu-pe" aria-hidden="true">{l.label}</span>
                 <ul class="menu-years" aria-labelledby="menu-pe">
                   {pe.years.map((y) => <li><a href={y.href} aria-current={here(y.href)}>{y.year}</a></li>)}
                 </ul>
