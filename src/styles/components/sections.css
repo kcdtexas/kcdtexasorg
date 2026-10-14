@@ -3,7 +3,7 @@
   /* Sponsor block */
   .sponsor { padding-top: var(--sec); }
   /* A 3 px rule over the content only, not the wrap's side padding, as on the stage and the bills. */
-  .sponsor > .wrap, .attend > .wrap, .day > .wrap { padding-top: 31px; background: linear-gradient(var(--fg), var(--fg)) var(--pad) 0 / calc(100% - 2 * var(--pad)) 3px no-repeat; }
+  .sponsor > .wrap, .attend > .wrap, .day > .wrap, .organizers > .wrap { padding-top: 31px; background: linear-gradient(var(--fg), var(--fg)) var(--pad) 0 / calc(100% - 2 * var(--pad)) 3px no-repeat; }
   .sponsor-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 36px; align-items: start; }
   /* The photo column starts at the kicker, so no empty corner sits beside the heading. */
   .sponsor-head { grid-column: 1 / span 6; }
@@ -53,6 +53,10 @@
   /* The photo band: a day at KCD Texas 2026 */
   .day { padding-top: var(--sec); }
   .day .h2 { margin-bottom: 32px; }
+  /* The Organizers' cards on the home page (TeamBlock.astro), as on About. */
+  .organizers { padding-top: var(--sec); }
+  .organizers .h2 { margin-bottom: 16px; }
+  .organizers-later { color: var(--muted); }
   .day-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px var(--gutter); }
   .day-grid img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
   .day-grid figure:nth-child(3) img { object-position: 50% 0%; }

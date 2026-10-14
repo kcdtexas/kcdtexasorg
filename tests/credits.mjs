@@ -51,6 +51,18 @@ expect(creditFor(no2024, 'organizers', ['Cy Example'], rule(2024)) === null, 'a 
 // Where the history starts: from 2025, 2024 is not needed.
 expect(creditFor(no2024, 'organizers', ['Cy Example'], rule(2025))?.since === 2025, 'history from 2025 still asks for 2024');
 
+// A credit as of a past Edition counts that Edition and the ones before it: the first Edition gets none, a later
+// Edition's records never change an earlier page, and a sponsor that skipped a year keeps its first year.
+const asOf = (current) => ({ editions, current, from: 2024 });
+expect(['Ann Example'].every((n) => creditFor(full, 'organizers', [n], asOf(2024)) === null) && creditFor(full, 'sponsors', ['acme'], asOf(2024)) === null, 'the first Edition gets a credit');
+expect(same(creditFor(full, 'organizers', ['Ann Example'], asOf(2025)), { since: 2024, editions: 2 }), 'as of 2025: Ann is not "since 2024" over 2 Editions');
+expect(creditFor(full, 'organizers', ['Cy Example'], asOf(2025)) === null, 'as of 2025: a first-time 2025 Organizer gets a credit');
+expect(same(creditFor(full, 'organizers', ['Cy Example'], asOf(2026)), { since: 2025, editions: 2 }), 'as of 2026: Cy is not "since 2025"');
+expect(creditFor(full, 'organizers', ['Di Example'], asOf(2026)) === null, 'as of 2026: a 2027 record gives a 2026 first-timer a credit');
+expect(same(creditFor(full, 'speakers', ['Bo Example'], asOf(2026)), { since: 2024, editions: 2 }), 'as of 2026: a Speaker who skipped 2025 is not "since 2024"');
+expect(creditFor(full.map((h) => (h.year === 2026 ? { ...h, sponsors: ids(['acme']) } : h)), 'sponsors', ['acme'], asOf(2026))?.since === 2024, 'as of 2026: a sponsor that skipped 2025 is not "since 2024"');
+expect(creditFor(full, 'organizers', ['Ann Example'], asOf(2026)) === null, 'as of 2026: someone not on the 2026 record gets a credit there');
+
 // An incomplete record counts as missing.
 const partial2026 = full.map((h) => (h.year === 2026 ? { ...h, sponsors: ids(['bolt'], false) } : h));
 expect(creditFor(partial2026, 'sponsors', ['bolt'], rule(2024)) === null, 'an incomplete 2026 sponsors record still prints sponsor credits');

@@ -85,6 +85,14 @@ export const edition2025 = {
   // application is the team as it applied, so it may miss someone who joined later.
   organizers: {
     names: ['Chad Crowell', 'Eddie Wassef', 'Harsha Thirimanna', 'Rafael Brito', 'Mark Lavi', 'Jamie Prince', 'Mars Toktonaliev', 'Cristher Castro', 'Mara Ruvalcaba', 'Richard Boyd II'],
+    // Each name's photo in src/assets/organizers/ (the 2026 Event Page's, and Mark Lavi's from GitHub). A name
+    // with none shows initials: to add a photo, put the file there and the name's line here.
+    photos: {
+      'Chad Crowell': 'chad-crowell', 'Eddie Wassef': 'eddie-wassef', 'Harsha Thirimanna': 'harsha-thirimanna',
+      'Rafael Brito': 'rafael-brito', 'Mark Lavi': 'mark-lavi', 'Jamie Prince': 'jamie-prince',
+      'Mars Toktonaliev': 'mars-toktonaliev', 'Cristher Castro': 'cristher-castro', 'Mara Ruvalcaba': 'mara-ruvalcaba',
+      'Richard Boyd II': 'richard-boyd-ii',
+    } as Readonly<Record<string, string>>,
     source: 'https://github.com/cncf/kubernetes-community-days/issues/587',
   },
 } as const;

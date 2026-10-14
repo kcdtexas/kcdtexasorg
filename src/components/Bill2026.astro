@@ -1,10 +1,17 @@
 ---
 // The 2026 bill: keynotes in the day's order, every Speaker by surname, then the hosts.
-// Desktop and tablet rows are fitted to the measure; phones show the keynotes and a disclosure.
+// Desktop and tablet rows are fitted to the measure; phones show the keynotes and a disclosure. Below it, the
+// returning Speakers by their "Speaker since" credit as of 2026 (src/lib/loyalty.ts), outside the fitted rows.
 import { edition2026 } from '../data/edition-2026';
+import { speakerCredit } from '../lib/loyalty';
 
 const b = edition2026.bill;
 const total = `See all ${edition2026.speakers} Speakers and ${edition2026.hosts} hosts`;
+const and = (list: string[]) => (list.length < 2 ? list.join('') : `${list.slice(0, -1).join(', ')} and ${list.at(-1)}`);
+const returning = [...b.keynotes, ...b.speakers.map(([n]) => n)]
+  .map((n) => ({ n, credit: speakerCredit(n, 2026) }))
+  .filter((r) => r.credit);
+const since = [...new Set(returning.map((r) => r.credit!.since))].sort().map((y) => ({ y, names: and(returning.filter((r) => r.credit!.since === y).map((r) => r.n)) }));
 ---
 
 <div class="bill26">
@@ -19,4 +26,7 @@ const total = `See all ${edition2026.speakers} Speakers and ${edition2026.hosts}
     <p class="bl-by">Hosted by</p>
     <ul class="bl bl-hosts">{b.hosts.map((n) => <li>{n}</li>)}</ul>
   </details>
+  {since.length > 0 && (
+    <ul class="bl-since">{since.map((g) => <li><span class="credit">Speaker since {g.y}</span><span>{g.names}</span></li>)}</ul>
+  )}
 </div>

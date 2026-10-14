@@ -65,6 +65,7 @@ export const page2025: PastPage = {
   organizers: {
     title: 'The 2025 Organizers',
     names: e.organizers.names,
+    photos: e.organizers.photos,
     note: 'The team as listed on the KCD Texas 2025 application to CNCF in October 2024.',
     source: { text: 'The application on GitHub', href: e.organizers.source },
   },

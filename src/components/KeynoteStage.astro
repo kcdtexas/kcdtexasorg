@@ -4,11 +4,13 @@
 // only they are public.
 import { Image } from 'astro:assets';
 import Bill2026 from './Bill2026.astro';
+import Credit from './program/Credit.astro';
 import { home } from '../data/home';
 import { edition2026, youtube } from '../data/edition-2026';
 import { cfpPath, paths } from '../data/nav';
 import { edition2027, phase, programState } from '../data/edition-2027';
 import { keynotePhotos } from '../lib/images';
+import { speakerCredit } from '../lib/loyalty';
 
 const st = home.stage;
 ---
@@ -27,6 +29,7 @@ const st = home.stage;
           <p class="kn-meta"><b>{k.time}</b> Keynote</p>
           <h3 class="kn-name">{k.name}</h3>
           <p class="kn-aff">{k.affiliation}</p>
+          <Credit credit={speakerCredit(k.name, 2026)} role="Speaker" />
           <p class="kn-talk">{k.talk}</p>
           {k.youtube && <a class="watch" href={youtube(k.youtube)}>Watch on YouTube<span class="sr-only">: {k.talk}</span></a>}
         </li>

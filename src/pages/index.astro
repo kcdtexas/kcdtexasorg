@@ -9,6 +9,7 @@ import ProgramBlock from '../components/ProgramBlock.astro';
 import KeynoteStage from '../components/KeynoteStage.astro';
 import DayPhotos from '../components/DayPhotos.astro';
 import AttendBlock from '../components/AttendBlock.astro';
+import TeamBlock from '../components/TeamBlock.astro';
 import { home } from '../data/home';
 import { homeJsonLd } from '../lib/structured-data';
 import { phase, sponsorAsk, ticketsOnSale } from '../data/edition-2027';
@@ -16,7 +17,8 @@ import { phase, sponsorAsk, ticketsOnSale } from '../data/edition-2027';
 // The order follows the state, in the DOM (never CSS order; r4-critics). The wall stays third through Apr 22
 // (plan-release-5, "The sponsor analysis"). CFP Phase: sponsors first, Attend last, or fourth once tickets are on
 // sale. Countdown: Attend fourth, the program, and the sponsor pitch last, through Apr 22. Event Day: the program,
-// then getting there. The Recap: thanks, the program and the day; no key dates.
+// then getting there. The Recap: thanks, the program and the day; no key dates. The Organizers follow the day's
+// photos in every phase; on Event Day, which has no photos, they come last.
 const tickets = ticketsOnSale();
 ---
 
@@ -31,6 +33,7 @@ const tickets = ticketsOnSale();
       <KeynoteStage />
       <SpeakBlock />
       <DayPhotos />
+      <TeamBlock />
       {!tickets && <AttendBlock />}
     </>
   )}
@@ -42,6 +45,7 @@ const tickets = ticketsOnSale();
       <ProgramBlock />
       <KeynoteStage />
       <DayPhotos />
+      <TeamBlock />
       {sponsorAsk() && <SponsorBlock />}
     </>
   )}
@@ -51,6 +55,7 @@ const tickets = ticketsOnSale();
       <SponsorWall />
       <ProgramBlock />
       <AttendBlock />
+      <TeamBlock />
     </>
   )}
   {phase === 'recap' && (
@@ -58,6 +63,7 @@ const tickets = ticketsOnSale();
       <SponsorWall />
       <ProgramBlock />
       <DayPhotos />
+      <TeamBlock />
     </>
   )}
 </Base>

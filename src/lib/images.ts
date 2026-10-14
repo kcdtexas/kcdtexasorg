@@ -14,3 +14,11 @@ export const organizerPhotos2027 = byName(import.meta.glob('../assets/organizers
 export const logos = byName(import.meta.glob('../assets/logos/*.svg', { eager: true }));
 export { default as badge } from '../assets/brand/badge-2027-600.png';
 export { default as recapPoster } from '../assets/video/recap-poster.jpg';
+
+/** A photo by its file name in one of the folders above; a name with no file fails the build, so a typo never shows
+ *  initials in a photo's place. No file name: null, for initials. */
+export const photoOf = (folder: Record<string, ImageMetadata>, file: string | undefined, who: string) => {
+  if (!file) return null;
+  if (!folder[file]) throw new Error(`No photo "${file}" for ${who}`);
+  return folder[file];
+};
