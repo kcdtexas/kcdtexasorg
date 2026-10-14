@@ -3,6 +3,9 @@
 // the phone button on one line; nothing scrolls sideways from 320 to 1100 px; the hero bill stays inside its
 // measure from 320 to 1600 px; the wall is third through Apr 22; nothing invites proposals after Jan 31; and
 // nothing asks for sponsors from Event Day (Apr 23) on. And every page's tap targets, at 390 and 1280 px (tests/targets.mjs).
+// The header with "Past Editions" open, at 900, 980, 1024 and 1280 px with a 17 px scrollbar: no sideways scroll,
+// no overlap, the panel on screen, and the theme switch named.
+import { chromium } from 'playwright-core';
 import { distPages, targetChecks } from './targets.mjs';
 
 const range = (from, to, step) => Array.from({ length: Math.floor((to - from) / step) + 1 }, (_, i) => from + i * step);
@@ -30,8 +33,9 @@ export async function stateChecks(browser, base, day) {
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       bill: Math.max(slots.getBoundingClientRect().left - Math.min(...used.map((r) => r.left)), Math.max(...used.map((r) => r.right)) - slots.getBoundingClientRect().right),
       cta: { ...box(cta), lines: lines(cta), label: cta.textContent.trim() },
-      navShown: shown(nav) && [...nav.querySelectorAll('a')].every(shown),
-      navWrapped: [...nav.querySelectorAll('a')].filter((a) => shown(a) && lines(a) > 1).map((a) => a.textContent.trim()),
+      navShown: shown(nav) && [...nav.querySelectorAll(':scope > ul > li > a, summary')].every(shown),
+      // The summary's words alone: its chevron sits on the same line, but its box starts higher.
+      navWrapped: [...nav.querySelectorAll(':scope > ul > li > a, summary')].filter((a) => shown(a) && lines(a.matches('summary') ? a.firstChild : a) > 1).map((a) => a.textContent.trim()),
       // The lockup, the nav and the button share one row: each one's middle lies inside the others' height.
       row: [document.querySelector('.lockup'), nav, document.querySelector('.head-end')].filter(shown).map(box),
       filled: [...document.querySelectorAll('.hero .btn')].filter(shown).filter((b) => !/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(b).backgroundColor)).map((b) => b.textContent.trim()),
@@ -83,6 +87,44 @@ export async function stateChecks(browser, base, day) {
   }
   if (day <= '2027-04-22') expect(seen.sections[2] === 'wall', `${day}: the wall is not third (${seen.sections.join(', ')})`);
   await context.close();
+
+  // "Past Editions" open with a 17 px scrollbar, in a browser that shows classic scrollbars.
+  const barBrowser = await chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] });
+  try {
+    for (const width of [900, 980, 1024, 1280]) {
+      const ctx = await barBrowser.newContext({ viewport: { width, height: 900 }, colorScheme: 'light', bypassCSP: true });
+      const page = await ctx.newPage();
+      await page.clock.setFixedTime(new Date(`${day}T18:00:00Z`));
+      await page.goto(base + '/', { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: '::-webkit-scrollbar { width: 17px; height: 17px; } ::-webkit-scrollbar-thumb { background: #888; }' });
+      await page.locator('.pe summary').click();
+      const m = await page.evaluate(() => {
+        const cw = document.documentElement.clientWidth;
+        const items = ['.lockup', '.nav', '.head-end'].map((s) => document.querySelector(s).getBoundingClientRect());
+        const panel = document.querySelector('.pe[open] .pe-panel')?.getBoundingClientRect();
+        const theme = document.querySelector('.theme');
+        return {
+          cw,
+          over: document.documentElement.scrollWidth - cw,
+          overlap: items.some((a, i) => i > 0 && a.left < items[i - 1].right) || items[2].right > cw,
+          panel: panel ? panel.left >= 0 && panel.right <= cw : false,
+          lines: [...document.querySelectorAll('.pe[open] .pe-line')].every((l) => l.getClientRects().length === 1 && l.getBoundingClientRect().right <= panel.right - 2),
+          theme: theme.textContent.replace(/\s+/g, ' ').trim(),
+          labels: [...document.querySelectorAll('.nav > ul > li > a, .nav summary, .head-cta')].map((a) => a.textContent.trim()).join(', '),
+        };
+      });
+      const where = `${day} at ${width} px with a 17 px scrollbar (${m.labels})`;
+      expect(m.cw === width - 17, `${where}: the page is ${m.cw} px wide`);
+      expect(m.over <= 0, `${where}: the page scrolls sideways by ${m.over}px with "Past Editions" open`);
+      expect(!m.overlap, `${where}: the header's parts overlap or run off screen`);
+      expect(m.panel, `${where}: the "Past Editions" panel runs off screen`);
+      expect(m.lines, `${where}: a "Past Editions" row takes more than one line`);
+      expect(/theme\. Switch to (Dark|Light)$/.test(m.theme), `${where}: the theme switch's name is "${m.theme}"`);
+      await ctx.close();
+    }
+  } finally {
+    await barBrowser.close();
+  }
 
   // Every page's tap targets in this state (tests/targets.mjs).
   const targets = await targetChecks(browser, base, distPages(), day);

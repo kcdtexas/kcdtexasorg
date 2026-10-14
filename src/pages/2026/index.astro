@@ -7,6 +7,7 @@ import PageHead from '../../components/PageHead.astro';
 import SponsorTiers from '../../components/SponsorTiers.astro';
 import OrganizerCard from '../../components/OrganizerCard.astro';
 import Credit from '../../components/program/Credit.astro';
+import MoreEditions from '../../components/MoreEditions.astro';
 import { page2026 as p } from '../../data/page-2026';
 import { edition2026, youtube } from '../../data/edition-2026';
 import { asPrinted, hosts2026, keynotes2026, speakers2026 } from '../../data/program-2026';
@@ -97,5 +98,6 @@ const others = speakers2026.filter((s) => !s.youtube);
         {p.lookBack.links.map((l) => <li><a href={l.href}>{l.text}</a> <span class="pg-aff">{l.note}</span></li>)}
       </ul>
     </section>
+    <MoreEditions year={2026} />
   </article>
 </Base>

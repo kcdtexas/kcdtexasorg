@@ -1,4 +1,4 @@
-// Runs the smoke and browser tests against a fresh local server on dist/, the rebuild tests (tests/rebuild.mjs), the
+// Runs the smoke and browser tests and the Past Editions menu's (tests/editions-nav.mjs) against a fresh local server on dist/, the rebuild tests (tests/rebuild.mjs), the
 // loyalty credits' rules (tests/credits.mjs) and the credits the built pages print (tests/credits-pages.mjs), the Event Day announcements file's rules (tests/announcements.mjs), the
 // program pages' browser scripts (tests/program-scripts.mjs), and then the program's tests (tests/run-program.mjs),
 // which build the test program in each of its states and leave dist/ as a normal build.
@@ -54,6 +54,7 @@ try {
   await ready();
   const smoke = await run('tests/smoke.mjs');
   const browser = await run('tests/browser.mjs', process.argv.slice(2));
+  const editionsNav = await run('tests/editions-nav.mjs');
   const rebuild = await new Promise((resolve) => spawn(process.execPath, ['tests/rebuild.mjs'], { stdio: 'inherit' }).on('exit', resolve));
   const credits = await new Promise((resolve) => spawn(process.execPath, ['--experimental-strip-types', '--no-warnings', 'tests/credits.mjs'], { stdio: 'inherit' }).on('exit', resolve));
   const pages = await new Promise((resolve) => spawn(process.execPath, ['tests/credits-pages.mjs'], { stdio: 'inherit' }).on('exit', resolve));
@@ -62,7 +63,7 @@ try {
   server.kill();
   // The program's tests rebuild dist/, so they come last.
   const program = await new Promise((resolve) => spawn(process.execPath, ['tests/run-program.mjs'], { stdio: 'inherit' }).on('exit', resolve));
-  code = smoke || browser || rebuild || credits || pages || announcements || scripts || program ? 1 : 0;
+  code = smoke || browser || editionsNav || rebuild || credits || pages || announcements || scripts || program ? 1 : 0;
 } finally {
   server.kill();
 }

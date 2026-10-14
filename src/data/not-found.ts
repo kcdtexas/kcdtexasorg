@@ -7,7 +7,7 @@ const notes: Record<string, string> = {
   [paths.cfp]: 'The call for proposals',
   [paths.sponsors]: `Sponsor KCD Texas ${edition2027.year}`,
   [paths.tickets]: 'Tickets and how to hear first',
-  [paths.edition2026]: 'The 2026 program and recordings',
+  [paths.editions]: 'KCD Texas since 2024, with the 2026 recordings',
   [paths.about]: 'Who runs KCD Texas',
 };
 

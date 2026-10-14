@@ -9,6 +9,7 @@ import PageHead from './PageHead.astro';
 import SponsorTiers from './SponsorTiers.astro';
 import OrganizerCard from './OrganizerCard.astro';
 import Credit from './program/Credit.astro';
+import MoreEditions from './MoreEditions.astro';
 import { youtube } from '../data/edition-2026';
 import { printedLine, type PastSession } from '../data/past-program';
 import type { PastPage } from '../data/past-page';
@@ -116,5 +117,6 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
         {p.lookBack.links.map((l) => <li><a href={l.href}>{l.text}</a> <span class="pg-aff">{l.note}</span></li>)}
       </ul>
     </section>
+    <MoreEditions year={p.year} />
   </article>
 </Base>
