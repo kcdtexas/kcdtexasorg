@@ -114,7 +114,7 @@ for (const path of ['index.html', 'about/index.html', '2026/index.html', '2025/i
   }
 }
 const initialsOn = (path) => cards(read(path)).filter((c) => /<svg[^>]*class="pg-org-photo"/.test(c)).map((c) => c.match(/<b>([^<]+)<\/b>/)[1]).join(', ');
-expect(initialsOn('2024/index.html') === 'Chris Aniszczyk, Jim Angel, Laura Santamaria, Aly Ibrahim, Joaquin Rodriguez, Moeez Mustafa, Alvin Estrada',
+expect(initialsOn('2024/index.html') === 'Moeez Mustafa, Alvin Estrada',
   `/2024/: initials for ${initialsOn('2024/index.html')}`);
 for (const path of ['2025/index.html', '2026/index.html']) expect(!initialsOn(path), `/${path.replace(/index\.html$/, '')}: initials for ${initialsOn(path)}`);
 // The past cards print no title: the 2024 and 2025 records have none.
