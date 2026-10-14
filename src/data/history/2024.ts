@@ -10,7 +10,7 @@ export default {
   organizers: { names: [...edition2024.organizers.names], complete: true, source: edition2024.organizers.source },
   // Every Speaker on the KCD Texas 2024 Schedule. The hosts didn't speak.
   speakers: { names: speakers2024.map((s) => s.name), complete: true, source: sources2024.schedule },
-  // The record, under the same decision: the seven sponsors on the 2024 Event Page. Texas Linux Fest's own
+  // The record, under the same decision: the eight sponsors on the 2024 Event Page. Texas Linux Fest's own
   // packages, whose tiers included KCD Texas, aren't counted. Corrections come on request.
   sponsors: { ids: edition2024.tiers.flatMap((t) => t.sponsors.map((s) => s.id)), complete: true, source: edition2024.sponsorsSource },
 };
