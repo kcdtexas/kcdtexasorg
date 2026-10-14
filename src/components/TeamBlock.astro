@@ -1,0 +1,30 @@
+---
+// The home page's Organizers: the current Edition's cards, as on the About page, then a link there. Until the
+// current Edition's team is in, the last Edition's cards, as the footer does. Each card shows the "Organizer since"
+// credit as of its Edition (src/lib/loyalty.ts).
+import OrganizerCard from './OrganizerCard.astro';
+import { about } from '../data/about';
+import { edition2026 } from '../data/edition-2026';
+import { edition2027 } from '../data/edition-2027';
+import { home } from '../data/home';
+import { paths } from '../data/nav';
+import { organizerPhotos, organizerPhotos2027, photoOf } from '../lib/images';
+import { organizerCredit } from '../lib/loyalty';
+
+const now = about.organizers2027.length > 0;
+const year = now ? edition2027.year : edition2026.year;
+const cards = now
+  ? about.organizers2027.map((o) => ({ name: o.name, photo: photoOf(organizerPhotos2027, o.photo, o.name), line: [o.employer, o.title].filter(Boolean).join(' · ') }))
+  : edition2026.organizers.map((o) => ({ name: o.name, photo: photoOf(organizerPhotos, o.photo, o.name), line: [o.company, o.title].filter(Boolean).join(' · ') }));
+---
+
+<section class="organizers" aria-labelledby="team-title">
+  <div class="wrap">
+    <h2 id="team-title" class="h2">{home.team.title(year)}</h2>
+    {!now && <p class="organizers-later">{home.team.later}</p>}
+    <ul class="pg-org">
+      {cards.map((c) => <OrganizerCard name={c.name} photo={c.photo} line={c.line} credit={organizerCredit(c.name, year)} />)}
+    </ul>
+    <p class="more"><a href={paths.about}>{home.team.link}</a></p>
+  </div>
+</section>

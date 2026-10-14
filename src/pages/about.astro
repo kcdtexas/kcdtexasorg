@@ -1,20 +1,18 @@
 ---
 // The About page (Core Event Committee). Words in src/data/about.ts.
-import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PageHead from '../components/PageHead.astro';
 import { about as a } from '../data/about';
 import { paths } from '../data/nav';
 import { contact, legal } from '../data/site';
-import { organizerPhotos2027 } from '../lib/images';
-import Credit from '../components/program/Credit.astro';
+import { organizerPhotos2027, photoOf } from '../lib/images';
+import OrganizerCard from '../components/OrganizerCard.astro';
 import { fixtureOrganizer } from '../data/history-test';
 import { organizerCredit, organizerCreditsSample } from '../lib/loyalty';
 
 // A test build with the program sample adds a made-up Organizer, with initials in place of a photo, to show the
 // credit; the real Organizers show none there (src/lib/loyalty.ts).
 const organizers: { name: string; employer: string; title: string; photo?: string }[] = organizerCreditsSample ? [...a.organizers2027, fixtureOrganizer] : a.organizers2027;
-const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('');
 ---
 
 <Base title={`${a.title} · KCD Texas`} description={a.description}>
@@ -54,16 +52,7 @@ const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).slice(0, 2
       ) : (
         <>
           <ul class="pg-org">
-            {organizers.map((o) => (
-              <li>
-                {o.photo
-                  ? <Image class="pg-org-photo" src={organizerPhotos2027[o.photo]} quality={70} widths={[160, 320]} sizes="160px" alt="" loading="lazy" />
-                  : <svg class="pg-org-photo" viewBox="0 0 120 120" aria-hidden="true" focusable="false"><text x="60" y="60" text-anchor="middle" dominant-baseline="central" fill="currentColor" font-size="44" font-weight="900">{initials(o.name)}</text></svg>}
-                <b>{o.name}</b>
-                {(o.employer || o.title) && <span class="pg-aff">{[o.employer, o.title].filter(Boolean).join(' · ')}</span>}
-                <Credit credit={organizerCredit(o.name)} role="Organizer" />
-              </li>
-            ))}
+            {organizers.map((o) => <OrganizerCard name={o.name} photo={photoOf(organizerPhotos2027, o.photo, o.name)} line={[o.employer, o.title].filter(Boolean).join(' · ')} credit={organizerCredit(o.name)} />)}
           </ul>
           <p>{a.organizers.pastTeams.before} {a.organizers.pastTeams.years.map((y, i, all) => <>{i === 0 ? '' : i === all.length - 1 ? ' and ' : ', '}<a href={`/${y}/#organizers`}>{y}</a></>)}.</p>
         </>

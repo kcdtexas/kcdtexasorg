@@ -1,13 +1,19 @@
 ---
 // An earlier Edition's page (/2025/, /2024/), laid out like /2026/: the figures with their sources, the keynotes,
-// the program, the sponsors and Partners, the Organizers and the links to look back. People appear by name only.
-// A section the Edition has nothing for is left out.
+// the program, the sponsors and Partners, the Organizers and the links to look back. Speakers appear by name, the
+// Organizers on cards with their photos, and each returning one with a credit as of this Edition (src/lib/loyalty.ts).
+// The Organizers' cards print no titles: the Edition's record has none. A section the Edition has nothing for is
+// left out.
 import Base from '../layouts/Base.astro';
 import PageHead from './PageHead.astro';
 import SponsorTiers from './SponsorTiers.astro';
+import OrganizerCard from './OrganizerCard.astro';
+import Credit from './program/Credit.astro';
 import { youtube } from '../data/edition-2026';
 import { printedLine, type PastSession } from '../data/past-program';
 import type { PastPage } from '../data/past-page';
+import { organizerPhotos, photoOf } from '../lib/images';
+import { organizerCredit, speakerCredit } from '../lib/loyalty';
 
 interface Props {
   p: PastPage;
@@ -32,6 +38,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
           <li>
             <h3 class="pg-kn-name">{names(k)}</h3>
             <p class="pg-aff">{k.speakers.map(printedLine).join('; ')}</p>
+            {k.speakers.map((x) => <Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />)}
             <p class="pg-title">{k.title}</p>
             {k.youtube ? <a class="watch" href={youtube(k.youtube)}>{p.program.watch}<span class="sr-only">: {k.title}</span></a> : <p class="pg-none">{p.keynotes.noRecording}</p>}
           </li>
@@ -49,7 +56,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
             {p.program.recorded.map((s) => (
               <li>
                 <p class="pg-title">{s.title}</p>
-                {s.speakers.map((x) => <p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>)}
+                {s.speakers.map((x) => <><p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>{<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />}</>)}
                 <a class="watch" href={youtube(s.youtube!)}>{p.program.watch}<span class="sr-only">: {s.title}</span></a>
               </li>
             ))}
@@ -64,7 +71,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
             {p.program.others.map((s) => (
               <li>
                 <p class="pg-title">{s.title}</p>
-                {s.speakers.map((x) => <p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>)}
+                {s.speakers.map((x) => <><p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>{<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />}</>)}
               </li>
             ))}
           </ul>
@@ -97,8 +104,8 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
 
     <section class="page-sec page-wide" aria-labelledby="organizers">
       <h2 id="organizers" class="page-h2">{p.organizers.title}</h2>
-      <ul class="pg-people">
-        {p.organizers.names.map((n) => <li><b>{n}</b></li>)}
+      <ul class="pg-org">
+        {p.organizers.names.map((n) => <OrganizerCard name={n} photo={photoOf(organizerPhotos, p.organizers.photos[n], n)} credit={organizerCredit(n, p.year)} />)}
       </ul>
       <p class="pg-src">{p.organizers.note} Source: <a href={p.organizers.source.href}>{p.organizers.source.text}</a>.</p>
     </section>

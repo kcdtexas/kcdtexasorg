@@ -72,6 +72,7 @@ export const page2024: PastPage = {
   organizers: {
     title: 'The 2024 Organizers',
     names: e.organizers.names,
+    photos: e.organizers.photos,
     note: 'The team as listed on the KCD Texas application to CNCF, opened in February 2023. The 2023 Edition was canceled, and the team may have changed by April 2024.',
     source: { text: 'The application on GitHub', href: e.organizers.source },
   },

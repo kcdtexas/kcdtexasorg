@@ -41,7 +41,8 @@ export interface PastPage {
     partnersTitle: string;
     partnerGroups: readonly { type: string; names: readonly string[] }[];
   };
-  organizers: { title: string; names: readonly string[]; note: string; source: Link };
+  /** `photos`: each name's file in src/assets/organizers/; a name with none shows initials. */
+  organizers: { title: string; names: readonly string[]; photos: Readonly<Record<string, string>>; note: string; source: Link };
   lookBack: { title: string; links: readonly (Link & { note: string })[] };
 }
 

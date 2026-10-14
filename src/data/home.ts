@@ -191,6 +191,13 @@ export const home = {
     slot2027: prog === 'out' ? 'See the keynotes' : prog === 'speakers' ? 'Meet the Speakers' : `Keynotes: ${programStatus()}`,
   },
 
+  // The Organizers' cards (TeamBlock.astro): the current Edition's team, or the last Edition's until it's in.
+  team: {
+    title: (year: number) => `The ${year} Organizers`,
+    later: `The ${e.year} team is announced later.`,
+    link: 'About KCD Texas and its Committees',
+  },
+
   day: {
     title: 'A day at KCD Texas 2026',
     photos: [

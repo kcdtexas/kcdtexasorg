@@ -57,6 +57,12 @@ export const edition2024 = {
   // to April 2024, under the names the site prints for 2026. The team that ran the day may differ.
   organizers: {
     names: ['Chad Crowell', 'Chris Aniszczyk', 'Jim Angel', 'Laura Santamaria', 'Mars Toktonaliev', 'Aly Ibrahim', 'Cristher Castro', 'Joaquin Rodriguez', 'Moeez Mustafa', 'Alvin Estrada', 'Rafael Brito'],
+    // Each name's photo in src/assets/organizers/, from the 2026 Event Page. The others show initials: no headshot
+    // was found for them. To add a photo, put the file there and the name's line here.
+    photos: {
+      'Chad Crowell': 'chad-crowell', 'Mars Toktonaliev': 'mars-toktonaliev', 'Cristher Castro': 'cristher-castro',
+      'Rafael Brito': 'rafael-brito',
+    } as Readonly<Record<string, string>>,
     source: 'https://github.com/cncf/kubernetes-community-days/issues/466',
   },
 } as const;

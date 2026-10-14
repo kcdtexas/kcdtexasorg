@@ -368,11 +368,12 @@ try {
   }
 
   // A credit sits in the normal flow and never covers what it credits: its box intersects no logo, sponsor name,
-  // photo or person's name, on a desktop and a phone.
+  // photo or person's name, on a desktop and a phone. The past Editions' pages and the home page print their own
+  // credits (tests/credits-pages.mjs); /2024/, the first Edition, has none, but its tier sizes are checked too.
   for (const width of [1280, 390]) {
     const c = await browser.newContext({ viewport: { width, height: 900 } });
     const p = await c.newPage();
-    for (const path of ['/2027/sponsors/', '/about/', '/2027/speakers/', '/2027/speakers/fixture-speaker-4/']) {
+    for (const path of ['/2027/sponsors/', '/about/', '/2027/speakers/', '/2027/speakers/fixture-speaker-4/', '/', '/2026/', '/2025/', '/2024/']) {
       await p.goto(`${base}${path}`);
       const found = await p.locator('.credit').evaluateAll((credits) => credits.map((cr) => {
         const box = cr.getBoundingClientRect();
@@ -388,7 +389,7 @@ try {
         const hit = content.find((e) => shapes(e).some((r) => r.width && r.height && box.left < r.right - 0.5 && r.left < box.right - 0.5 && box.top < r.bottom - 0.5 && r.top < box.bottom - 0.5));
         return { text: cr.textContent.trim(), hit: hit ? `${hit.tagName.toLowerCase()}.${hit.className} "${(hit.textContent || hit.alt || '').trim().slice(0, 40)}"` : null };
       }));
-      expect(found.length > 0, `${path} at ${width}: no credit to check`);
+      expect(found.length > 0 || path === '/2024/', `${path} at ${width}: no credit to check`);
       for (const f of found) expect(!f.hit, `${path} at ${width}: "${f.text}" overlaps ${f.hit}`);
       // The tier sizes don't change: a tile with a credit is the same size as the others in its tier.
       const sizes = await p.locator('.tier').evaluateAll((tiers) => tiers.map((t) => [...new Set([...t.querySelectorAll('.logos > li:not(.has-credit), .sp-tile')]

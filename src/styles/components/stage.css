@@ -29,6 +29,10 @@
   .bl-hosts { margin-top: 8px; }
   .bl-hosts li { font-size: calc(99.5cqi / 50); }
   .bl-more { display: none; }
+  /* The returning Speakers, under the bill: the credit, then their names. */
+  .bl-since { display: grid; grid-template-columns: auto minmax(0, max-content); justify-content: center; align-items: baseline; gap: 6px 10px; margin-top: 26px; font-size: 15px; line-height: 1.4; text-align: left; }
+  .bl-since li { display: contents; }
+  .bl-since .credit { justify-self: end; margin: 0; white-space: nowrap; }
   /* Row widths, measured from program-2026.json by the Round 2 bill tool. */
   .bl-key { --em: 20.0152; }
   .bl-key .k1 { --solo: 5.802; }

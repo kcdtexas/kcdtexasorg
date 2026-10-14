@@ -81,7 +81,7 @@ export const DAYS = {
     'hero: Sponsor filled, then "Submit a talk" outlined': doorsAre(home, 'filled Sponsor KCD Texas 2027', 'line Submit a talk'),
     'CFP page: "Opens Nov 1."': cfpCallout(cfp) === 'Opens Nov 1.',
     '/2027/cfp/ uses the default card': cardOf(cfp) === 'default',
-    'home page sections in the one order for every width': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,attend',
+    'home page sections in the one order for every width': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,organizers,attend',
     'key dates: tickets line "Coming soon"': tixLine(home)?.join() === 'Tickets,Coming soon' && keyDates(home).Tickets === 'Coming soon',
     'no tickets row before the sale day is set': !/pr-lane--tix/.test(home),
     'wall: the open slot "Be the first 2027 sponsor"': slotLabel(home) === 'Be the first 2027 sponsor',
@@ -106,7 +106,7 @@ export const DAYS = {
     'header: "Tickets", to the hero\'s filled door (ticket news until the link is in)': headCta(home).join() === `${chapter},Tickets` && heroDoors(home)[0]?.href === chapter,
     'hero: tickets filled, then the Sponsor door outlined': doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027'),
     'hero bill: Tickets, Schedule, Sponsorships, then the 2026 talks': bill(home) === 'Tickets: coming soon | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks',
-    'home order: the wall third, Attend fourth, the pitch last': sections(home) === 'hero,dates,wall,attend,program,stage,day,sponsor',
+    'home order: the wall third, Attend fourth, the pitch last': sections(home) === 'hero,dates,wall,attend,program,stage,day,organizers,sponsor',
     'no "Submit a talk" or "Speak" on any page checked': [home, cfp, schedule, sponsors].every((h) => !talkAsks(h).length),
     'wall: the open slot stays': slotLabel(home) === 'Be the first 2027 sponsor',
     'phase rail: CFP past, "Closed"': lane(home, 'cfp').state === 'past' && keyDates(home)['Call for proposals'] === 'Closed',
@@ -155,7 +155,7 @@ export const DAYS = {
     'hero: one filled button, "Getting to Dallas"': doorsAre(home, 'filled Getting to Dallas'),
     'hero bill: the statement "Today in Dallas"': bill(home) === 'Today in Dallas',
     'no sponsor call to action on the home page or in the header': !sponsorAsks(home).length && !sponsorAsks(cfp).length,
-    'home order: Hero, Key dates, Wall, Program, Attend': sections(home) === 'hero,dates,wall,program,attend',
+    'home order: Hero, Key dates, Wall, Program, Attend, the Organizers': sections(home) === 'hero,dates,wall,program,attend,organizers',
     'sponsors page: still open on Event Day': sponsorsPage(sponsors) === 'open',
     'key dates: no Tickets line and no Schedule row for what never came': !tixLine(home) && !/pr-lane--sched/.test(home) && !/Coming soon/.test(text(home)),
     'program block: only the 2026 talks, nothing "coming soon"': /Watch the 2026 talks/.test(text(home)) && !/Schedule: coming soon/.test(text(home)),
@@ -167,13 +167,13 @@ export const DAYS = {
     'hero: one filled button, "2026 talks"': doorsAre(home, 'filled 2026 talks'),
     'hero bill: the statement "Thank you, Dallas"': bill(home) === 'Thank you, Dallas',
     'no sponsor call to action on the home page or in the header': !sponsorAsks(home).length && !sponsorAsks(cfp).length,
-    'home order: Hero, Wall, Program, Day': sections(home) === 'hero,wall,program,day',
+    'home order: Hero, Wall, Program, Day, the Organizers': sections(home) === 'hero,wall,program,day,organizers',
     'program block: only the 2026 talks, nothing "coming soon"': /Watch the 2026 talks/.test(text(home)) && !/coming soon/i.test(text(home)),
     'sponsors page: "Sponsorships are closed.", thank you': sponsorsPage(sponsors) === 'closed' && /Thank you to every KCD Texas 2027 sponsor\./.test(sponsors),
   }),
   '2027-05-01': ({ home }) => ({
     'no NOW in the built page': !/pr-now/.test(home),
-    'still the Recap': headCta(home)[1] === '2026 talks' && sections(home) === 'hero,wall,program,day',
+    'still the Recap': headCta(home)[1] === '2026 talks' && sections(home) === 'hero,wall,program,day,organizers',
   }),
 };
 
@@ -184,12 +184,12 @@ export const RUNS = [
     'header: still "Submit a talk"': headCta(home)[1] === 'Submit a talk',
     'hero: Sponsor filled, "Submit a talk" outlined': doorsAre(home, 'filled Sponsor KCD Texas 2027', 'line Submit a talk'),
     'hero bill: "Tickets: on sale now" third': bill(home) === 'Sponsorships: open now | Call for proposals: open now | Tickets: on sale now | Your End-User Story here',
-    'home order: Attend fourth': sections(home) === 'hero,dates,wall,attend,sponsor,stage,speak,day',
+    'home order: Attend fourth': sections(home) === 'hero,dates,wall,attend,sponsor,stage,speak,day,organizers',
   }) },
   { name: 'tickets on sale in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', cfpSaleDay], checks: ({ home }) => ({
     'header: "Tickets", where the hero\'s "Get tickets" goes': headCta(home)[1] === 'Tickets' && doorsAre(home, 'filled Get tickets', 'line Sponsor KCD Texas 2027') && heroDoors(home)[0].href === headCta(home)[0],
     'hero bill: "Tickets: on sale now"': bill(home) === 'Tickets: on sale now | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks',
-    'home order: as without tickets': sections(home) === 'hero,dates,wall,attend,program,stage,day,sponsor',
+    'home order: as without tickets': sections(home) === 'hero,dates,wall,attend,program,stage,day,organizers,sponsor',
   }) },
   { name: 'a later sale day in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', laterSaleDay], checks: ({ home }) => ({
     'header: "Tickets", to ticket news until the sale day': headCta(home).join() === `${chapter},Tickets` && doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027'),
@@ -213,11 +213,11 @@ export const RUNS = [
   }) },
   { name: 'sample sponsors in the CFP Phase', flags: ['--now', '2026-10-28', '--sponsors-sample'], checks: ({ home }) => ({
     'wall: 2027 leads, "Join them", the 2026 wall below as thanks': /Sample Platinum sponsor/.test(home) && slotLabel(home) === 'Join them' && /Thanks to our 2026 sponsors/.test(home),
-    'home order: as without': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,attend',
+    'home order: as without': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,organizers,attend',
   }) },
   { name: 'sample sponsors in the Countdown', flags: ['--now', '2027-02-01', '--sponsors-sample'], checks: ({ home, sponsors }) => ({
     'wall: only 2027, "KCD Texas 2027 is made possible by", "Join them"': /KCD Texas 2027 is made possible by/.test(home) && slotLabel(home) === 'Join them' && !/Thanks to our 2026 sponsors/.test(home),
-    'home order: the wall third': sections(home) === 'hero,dates,wall,attend,program,stage,day,sponsor',
+    'home order: the wall third': sections(home) === 'hero,dates,wall,attend,program,stage,day,organizers,sponsor',
     'sponsors page: the 2027 wall says "Sample"': /Sample Platinum sponsor/.test(sponsors),
   }) },
   { name: 'sample sponsors on Event Day', flags: ['--now', '2027-04-23', '--sponsors-sample'], checks: ({ home }) => ({
