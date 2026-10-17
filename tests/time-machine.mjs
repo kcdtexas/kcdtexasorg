@@ -35,8 +35,8 @@ const sponsorsAgree = (html) => (lane(html, 'spons').state === 'past') === (lane
 const headCta = (html) => html.match(/<a class="btn btn--sm head-cta" href="([^"]*)"(?: aria-current="page")?>([^<]*)<\/a>/)?.slice(1, 3) ?? [];
 // The wide nav's top-level labels, "Past Editions" included, without the links inside its panel (the phone menu is a
 // separate list, with "Past Editions" as a label over the years).
-const navLabels = (html) => [...(html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="pe-panel">[\s\S]*?<\/ul>/, '').matchAll(/<(?:a [^>]*|summary)>([^<]*)</g)].map((m) => m[1]);
-const menuLabels = (html) => [...(html.match(/<nav class="menu-panel" aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="menu-years"[\s\S]*?<\/ul>\s*<a class="menu-pe-all"[^>]*>[\s\S]*?<\/a>/, '').matchAll(/<(?:a [^>]*|span class="menu-pe-label"[^>]*)>([^<]*)</g)].map((m) => m[1]);
+const navLabels = (html) => [...(html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="pe-panel"[^>]*>[\s\S]*?<\/ul>/, '').matchAll(/<(?:a [^>]*|button class="pe-btn"[^>]*)>([^<]*)</g)].map((m) => m[1]);
+const menuLabels = (html) => [...(html.match(/<nav class="menu-panel"[^>]* aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="menu-years"[\s\S]*?<\/ul>\s*<a class="menu-pe-all"[^>]*>[\s\S]*?<\/a>/, '').matchAll(/<(?:a [^>]*|span class="menu-pe-label"[^>]*)>([^<]*)</g)].map((m) => m[1]);
 const allLinks = 'Speak,Sponsor,Attend,Past Editions,About';
 const navWithout = (html) => navLabels(html).join() === 'Speak,Attend,Past Editions,About' && menuLabels(html).join() === allLinks;
 const navWith = (html) => navLabels(html).join() === allLinks && menuLabels(html).join() === allLinks;

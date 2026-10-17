@@ -465,7 +465,7 @@ try {
         billOverflow: Math.max(slots.getBoundingClientRect().left - Math.min(...used.map((r) => r.left)), Math.max(...used.map((r) => r.right)) - slots.getBoundingClientRect().right),
         cta: { right: cta.right, height: cta.height },
         // A nav link on two lines (one line is about 48 px with its padding).
-        navWrapped: [...document.querySelectorAll('.nav > ul > li > a, .nav summary')].filter((a) => shown(a) && a.getBoundingClientRect().height > 60).map((a) => a.textContent),
+        navWrapped: [...document.querySelectorAll('.nav > ul > li > a, .nav .pe-btn')].filter((a) => shown(a) && a.getBoundingClientRect().height > 60).map((a) => a.textContent),
         // While the button says "Sponsor", the wide nav drops its own Sponsor link; the phone menu keeps every link.
         ctaLabel: document.querySelector('.head-cta').textContent.trim(),
         navShown: [...document.querySelectorAll('.nav > ul > li > a')].some(shown),

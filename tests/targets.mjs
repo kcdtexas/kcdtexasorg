@@ -68,8 +68,8 @@ export async function targetChecks(browser, base, paths, day) {
       await tab.goto(base + path, { waitUntil: 'load' });
       const runs = [await measureTargets(tab)];
       // The phone menu, open.
-      if (await tab.locator('.menu summary').isVisible()) {
-        await tab.locator('.menu summary').click();
+      if (await tab.locator('.menu-btn').isVisible()) {
+        await tab.locator('.menu-btn').click();
         runs.push(await measureTargets(tab));
       }
       for (const { small, exempt: ex } of runs) {

@@ -3,7 +3,9 @@
 //   one-line note and a link that answers; then "All Editions" to /editions/. The phone menu has the same years and
 //   "All Editions". No header link or phone menu entry says "2026 talks" (the header button may, in the Recap).
 // - Using it: a click opens and closes it, and so do Enter and Space from the keyboard; once open, Tab moves
-//   through its links in order.
+//   through its links in order. Escape and a click elsewhere close it, and the phone menu, both popovers; Escape
+//   gives the focus back to the button. A browser without popovers hides both, and the phone header links to the
+//   footer's lists instead.
 // - Fit: at 900, 980, 1024 and 1280 px with a 17 px scrollbar, nothing scrolls sideways, the header's parts don't
 //   overlap, the open panel is fully on screen and each of its rows takes one line. The theme switch keeps its
 //   name at every width (tests/states-browser.mjs repeats the fit in every phase of the time machine).
@@ -13,7 +15,7 @@
 //   aria-current="page", and "Past Editions" is underlined; on /editions/, "All Editions" is the current one.
 // - The past pages each end with "More Editions": the other Past Editions, then "All Editions", in a labeled nav.
 // Usage: node tests/editions-nav.mjs <baseUrl>
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { chromium } from 'playwright-core';
 import { distPages } from './targets.mjs';
@@ -49,14 +51,14 @@ async function axe(tab) {
     return r.violations.map((v) => `${v.id} (${v.nodes.length}x): ${v.help} [${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(', ')}]`);
   });
 }
-const isOpen = (tab) => tab.evaluate(() => document.querySelector('.pe').open);
+const isOpen = (tab, panel = '.pe-panel') => tab.evaluate((p) => document.querySelector(p).matches(':popover-open'), panel);
 
 try {
   // Contents, on every built page: the panel's rows, the phone menu's years, and no "2026 talks" in either list.
   for (const path of distPages()) {
     const html = await (await fetch(base + path)).text();
     const nav = html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '';
-    const menu = html.match(/<nav class="menu-panel" aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '';
+    const menu = html.match(/<nav class="menu-panel"[^>]* aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '';
     const rows = [...nav.matchAll(/<li><a href="([^"]+)"[^>]*><b class="pe-year">(\d{4})<\/b> <span class="pe-line">([^<]+)<\/span><\/a><\/li>/g)].map(([, href, year, line]) => ({ href, year, line }));
     expect(rows.map((r) => `${r.year} ${r.href}`).join() === past.map((p) => `${p.year} ${p.href}`).join(), `${path}: the panel's rows are ${rows.map((r) => `${r.year} ${r.href}`).join(', ')}, not the Past Editions ${past.map((p) => p.year).join(', ')}`);
     expect(rows.every((r) => r.line.trim().length > 0), `${path}: a panel row has no line`);
@@ -67,30 +69,38 @@ try {
     const words = [...(nav + menu).matchAll(/>([^<]*)</g)].map((m) => m[1].trim());
     expect(!words.includes('2026 talks'), `${path}: the header's links or the phone menu still say "2026 talks"`);
   }
+  // A browser without popovers: the stylesheet hides both menus and shows the phone header's "Menu" link, which goes
+  // to the footer's lists.
+  {
+    const css = readdirSync('dist/_astro').filter((f) => f.endsWith('.css')).map((f) => readFileSync(`dist/_astro/${f}`, 'utf8')).join('').replace(/\s+/g, '');
+    expect(css.includes('@supportsnotselector(:popover-open){.pe,.menu-btn,.menu-panel{display:none}.menu-link{display:flex}}'), 'the stylesheet lacks the fallback for browsers without popovers');
+    const home = await (await fetch(`${base}/`)).text();
+    expect(/<a class="menu-link" href="#site-footer">/.test(home) && /<footer class="site-footer" id="site-footer">/.test(home), 'the phone header has no "Menu" link to the footer, or the footer has no id="site-footer"');
+  }
   // Every row's link answers.
   for (const href of [...pastPaths, '/editions/']) expect((await fetch(base + href)).ok, `${href}: doesn't answer`);
 
   // Using it: by click, then by keyboard (Enter and Space), and Tab through its links in order.
   {
     const { context, tab } = await open('/');
-    const summary = tab.locator('.pe summary');
-    await summary.click();
+    const button = tab.locator('.pe-btn');
+    await button.click();
     expect(await isOpen(tab), 'a click doesn\'t open "Past Editions"');
     const shown = await tab.evaluate(() => [...document.querySelectorAll('.pe-panel a')].every((a) => a.getBoundingClientRect().height > 0));
     expect(shown, 'the open panel hides a link');
-    await summary.click();
+    await button.click();
     expect(!(await isOpen(tab)), 'a second click doesn\'t close "Past Editions"');
-    await summary.focus();
+    await button.focus();
     for (const key of ['Enter', 'Space']) {
       await tab.keyboard.press(key);
       expect(await isOpen(tab), `${key} doesn't open "Past Editions"`);
       await tab.keyboard.press(key);
       expect(!(await isOpen(tab)), `${key} doesn't close "Past Editions"`);
     }
-    // From the page's top: Tab reaches the summary after the lockup and the links before it.
+    // From the page's top: Tab reaches the button after the lockup and the links before it.
     await tab.goto(base + '/', { waitUntil: 'networkidle' });
     let steps = 0;
-    while (steps < 20 && !(await tab.evaluate(() => document.activeElement?.matches('.pe summary')))) { await tab.keyboard.press('Tab'); steps += 1; }
+    while (steps < 20 && !(await tab.evaluate(() => document.activeElement?.matches('.pe-btn')))) { await tab.keyboard.press('Tab'); steps += 1; }
     expect(steps < 20, 'Tab never reaches "Past Editions"');
     if (steps < 20) await tab.keyboard.press('Enter');
     const want = await tab.evaluate(() => [...document.querySelectorAll('.pe-panel a')].map((a) => a.getAttribute('href')));
@@ -99,8 +109,16 @@ try {
     expect(reached.join() === want.join(), `Tab in the open panel reaches ${reached.join(', ')}, not ${want.join(', ')}`);
     await tab.keyboard.press('Tab');
     expect(await tab.evaluate(() => !document.activeElement.closest('.pe-panel')), 'Tab after the last panel link stays in the panel');
+    // Escape closes it from inside the panel and gives the focus back to "Past Editions"; so does a click elsewhere.
+    if (!(await isOpen(tab))) await tab.locator('.pe-btn').click();
+    await tab.locator('.pe-panel a').first().focus();
+    await tab.keyboard.press('Escape');
+    expect(!(await isOpen(tab)) && (await tab.evaluate(() => document.activeElement?.matches('.pe-btn'))), 'Escape doesn\'t close "Past Editions", or doesn\'t give the focus back to its button');
+    await tab.locator('.pe-btn').click();
+    await tab.mouse.click(640, 850);
+    expect(!(await isOpen(tab)), 'a click elsewhere doesn\'t close "Past Editions"');
     // Picking a year opens its page, with the menu closed.
-    if (!(await isOpen(tab))) await tab.locator('.pe summary').click();
+    if (!(await isOpen(tab))) await tab.locator('.pe-btn').click();
     await Promise.all([tab.waitForURL(`**${pastPaths[1]}`), tab.locator(`.pe-panel a[href="${pastPaths[1]}"]`).click()]);
     expect(!(await isOpen(tab)), `${pastPaths[1]}: opens with "Past Editions" open`);
     await context.close();
@@ -114,7 +132,7 @@ try {
         const cw = document.documentElement.clientWidth;
         const box = (s) => document.querySelector(s).getBoundingClientRect();
         const items = ['.lockup', '.nav', '.head-end'].map(box);
-        const panel = document.querySelector('.pe[open] .pe-panel')?.getBoundingClientRect();
+        const panel = document.querySelector('.pe-panel:popover-open')?.getBoundingClientRect();
         const lines = (el) => { const r = document.createRange(); r.selectNodeContents(el); return new Set([...r.getClientRects()].filter((b) => b.width > 0).map((b) => Math.round(b.top))).size; };
         const theme = document.querySelector('.theme');
         return {
@@ -124,7 +142,7 @@ try {
           end: items[2].right,
           panel: panel && { left: panel.left, right: panel.right, bottom: panel.bottom },
           // Each row's line on one line, inside the panel's border.
-          wrapped: [...document.querySelectorAll('.pe[open] .pe-line')].filter((l) => lines(l) > 1 || l.getBoundingClientRect().right > panel.right - 2).map((l) => l.textContent.trim()),
+          wrapped: [...document.querySelectorAll('.pe-panel:popover-open .pe-line')].filter((l) => lines(l) > 1 || l.getBoundingClientRect().right > panel.right - 2).map((l) => l.textContent.trim()),
           theme: theme.hidden ? 'hidden' : theme.textContent.replace(/\s+/g, ' ').trim(),
           word: getComputedStyle(theme.querySelector('.theme-word')).clipPath,
         };
@@ -136,7 +154,7 @@ try {
       expect(!closed.overlap && closed.end <= closed.cw, `${where}: the header's parts overlap or end at ${closed.end}px`);
       expect(/theme\. Switch to (Dark|Light)$/.test(closed.theme), `${where}: the theme switch's name is "${closed.theme}"`);
       expect((width < 1024) === (closed.word !== 'none'), `${where}: the theme switch's word is ${closed.word === 'none' ? 'shown' : 'hidden'}`);
-      await tab.locator('.pe summary').click();
+      await tab.locator('.pe-btn').click();
       const opened = await fit();
       expect(opened.panel && opened.panel.left >= 0 && opened.panel.right <= opened.cw && opened.panel.bottom <= 900, `${where}: the open panel runs off screen (${JSON.stringify(opened.panel)})`);
       expect(!opened.wrapped.length, `${where}: panel rows wrap: ${opened.wrapped.join('; ')}`);
@@ -149,19 +167,25 @@ try {
   for (const scheme of ['light', 'dark']) {
     for (const width of [1280, 900]) {
       const { context, tab } = await open('/', { width, scheme });
-      await tab.locator('.pe summary').click();
+      await tab.locator('.pe-btn').click();
       const v = await axe(tab);
       expect(!v.length, `/ at ${width} px ${scheme}, the panel open: axe: ${v.join('; ')}`);
       await context.close();
     }
     const { context, tab } = await open(pastPaths[1], { width: 390, height: 844, scheme });
-    await tab.locator('.menu summary').click();
+    await tab.locator('.menu-btn').click();
     const v = await axe(tab);
     expect(!v.length, `${pastPaths[1]} at 390 px ${scheme}, the menu open: axe: ${v.join('; ')}`);
     const small = await tab.evaluate(() => [...document.querySelectorAll('.menu-panel a')].filter((a) => a.getBoundingClientRect().height < 44).map((a) => `${a.textContent.trim()} (${a.getBoundingClientRect().height}px)`));
     expect(!small.length, `${pastPaths[1]} at 390 px: phone menu links under 44 px: ${small.join(', ')}`);
     const seen = await tab.evaluate(() => [...document.querySelectorAll('.menu-panel a')].every((a) => { const r = a.getBoundingClientRect(); return r.right <= innerWidth && r.left >= 0; }));
     expect(seen, `${pastPaths[1]} at 390 px: the open menu runs off screen`);
+    // Escape and a click elsewhere close the phone menu too.
+    await tab.keyboard.press('Escape');
+    expect(!(await isOpen(tab, '.menu-panel')), `${pastPaths[1]} at 390 px ${scheme}: Escape doesn't close the menu`);
+    await tab.locator('.menu-btn').click();
+    await tab.mouse.click(195, 820);
+    expect(!(await isOpen(tab, '.menu-panel')), `${pastPaths[1]} at 390 px ${scheme}: a click elsewhere doesn't close the menu`);
     await context.close();
   }
 
@@ -174,7 +198,7 @@ try {
       return {
         panel: [...document.querySelectorAll('.pe-panel [aria-current="page"]')].map((a) => a.getAttribute('href')),
         menu: [...document.querySelectorAll('.menu-pe [aria-current="page"]')].map((a) => a.getAttribute('href')),
-        summary: underlined(document.querySelector('.pe summary')),
+        button: underlined(document.querySelector('.pe-btn')),
         label: underlined(document.querySelector('.menu-pe-label')),
         other: [...document.querySelectorAll('.nav > ul > li > a[aria-current], .menu-panel > ul > li > a[aria-current]:not(.menu-pe-all)')].map((a) => a.textContent.trim()),
         more: more && {
@@ -187,7 +211,7 @@ try {
     const here = path === '/editions/' || pastPaths.includes(path) ? [path] : [];
     expect(m.panel.join() === here.join(), `${path}: the panel marks ${m.panel.join(', ') || 'nothing'} as the current page`);
     expect(m.menu.join() === here.join(), `${path}: the phone menu marks ${m.menu.join(', ') || 'nothing'} as the current page`);
-    expect(m.summary === (here.length > 0), `${path}: "Past Editions" is ${m.summary ? '' : 'not '}underlined`);
+    expect(m.button === (here.length > 0), `${path}: "Past Editions" is ${m.button ? '' : 'not '}underlined`);
     expect(m.label === (here.length > 0), `${path}: the phone menu's "Past Editions" is ${m.label ? '' : 'not '}underlined`);
     expect(!m.other.length || path === '/about/', `${path}: other header links are marked current: ${m.other.join(', ')}`);
     if (pastPaths.includes(path)) {

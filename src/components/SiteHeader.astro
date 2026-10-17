@@ -17,8 +17,10 @@ const links = mainNav.map((l) => ({ ...l, current: isCurrent(l.href, Astro.url.p
 const sponsorCta = cta.label === 'Sponsor' && cta.href === paths.sponsors;
 const wideLinks = sponsorCta ? links.filter((l) => l.href !== paths.sponsors) : links;
 const ctaCurrent = sponsorCta && isCurrent(cta.href, Astro.url.pathname);
-// "Past Editions" is a <details>, like the phone menu: no script. It marks the page you're on, and its summary is
-// underlined through CSS (:has) on a past page and on the Editions page.
+// "Past Editions" and the phone menu are popovers: a button opens each, and the browser closes it on Escape, a click
+// elsewhere or a second click, with no script. "Past Editions" marks the page you're on, and its button is underlined
+// through CSS (:has) on a past page and on the Editions page. A browser without popovers (header.css) shows neither:
+// the wide nav keeps its other links, and the phone header a "Menu" link to the footer's lists.
 const here = (href: string) => (isCurrent(href, Astro.url.pathname) ? 'page' : undefined);
 ---
 
@@ -33,14 +35,12 @@ const here = (href: string) => (isCurrent(href, Astro.url.pathname) ? 'page' : u
     <nav class="nav" aria-label="Main">
       <ul>
         {wideLinks.map((l) => 'menu' in l ? (
-          <li>
-            <details class="pe">
-              <summary>{l.label}<svg class="pe-chevron" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M1.5 4l4.5 4.5L10.5 4" fill="none" stroke="currentColor" stroke-width="2" /></svg></summary>
-              <ul class="pe-panel">
-                {pe.years.map((y) => <li><a href={y.href} aria-current={here(y.href)}><b class="pe-year">{y.year}</b> <span class="pe-line">{y.line}</span></a></li>)}
-                <li><a class="pe-all" href={pe.all.href} aria-current={here(pe.all.href)}>{pe.all.text}<span aria-hidden="true"> →</span></a></li>
-              </ul>
-            </details>
+          <li class="pe">
+            <button class="pe-btn" type="button" popovertarget="pe-panel">{l.label}<svg class="pe-chevron" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M1.5 4l4.5 4.5L10.5 4" fill="none" stroke="currentColor" stroke-width="2" /></svg></button>
+            <ul class="pe-panel" id="pe-panel" popover>
+              {pe.years.map((y) => <li><a href={y.href} aria-current={here(y.href)}><b class="pe-year">{y.year}</b> <span class="pe-line">{y.line}</span></a></li>)}
+              <li><a class="pe-all" href={pe.all.href} aria-current={here(pe.all.href)}>{pe.all.text}<span aria-hidden="true"> →</span></a></li>
+            </ul>
           </li>
         ) : <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
       </ul>
@@ -48,9 +48,10 @@ const here = (href: string) => (isCurrent(href, Astro.url.pathname) ? 'page' : u
     <div class="head-end">
       <a class="btn btn--sm head-cta" href={cta.href} aria-current={ctaCurrent ? 'page' : undefined}>{cta.label}</a>
       <ThemeSwitch />
-      <details class="menu">
-        <summary><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></summary>
-        <nav class="menu-panel" aria-label="Main, phone">
+      <div class="menu">
+        <button class="menu-btn" type="button" popovertarget="menu-panel"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></button>
+        <a class="menu-link" href="#site-footer"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path stroke="currentColor" stroke-width="2.5" d="M3 6h18M3 12h18M3 18h18" /></svg><span class="menu-word">Menu</span></a>
+        <nav class="menu-panel" id="menu-panel" popover aria-label="Main, phone">
           <ul>
             {links.map((l) => 'menu' in l ? (
               <li class="menu-pe">
@@ -63,7 +64,7 @@ const here = (href: string) => (isCurrent(href, Astro.url.pathname) ? 'page' : u
             ) : <li><a href={l.href} aria-current={l.current ? 'page' : undefined}>{l.label}</a></li>)}
           </ul>
         </nav>
-      </details>
+      </div>
     </div>
   </div>
 </header>

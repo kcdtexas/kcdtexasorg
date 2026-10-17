@@ -33,9 +33,9 @@ export async function stateChecks(browser, base, day) {
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       bill: Math.max(slots.getBoundingClientRect().left - Math.min(...used.map((r) => r.left)), Math.max(...used.map((r) => r.right)) - slots.getBoundingClientRect().right),
       cta: { ...box(cta), lines: lines(cta), label: cta.textContent.trim() },
-      navShown: shown(nav) && [...nav.querySelectorAll(':scope > ul > li > a, summary')].every(shown),
-      // The summary's words alone: its chevron sits on the same line, but its box starts higher.
-      navWrapped: [...nav.querySelectorAll(':scope > ul > li > a, summary')].filter((a) => shown(a) && lines(a.matches('summary') ? a.firstChild : a) > 1).map((a) => a.textContent.trim()),
+      navShown: shown(nav) && [...nav.querySelectorAll(':scope > ul > li > a, .pe-btn')].every(shown),
+      // The button's words alone: its chevron sits on the same line, but its box starts higher.
+      navWrapped: [...nav.querySelectorAll(':scope > ul > li > a, .pe-btn')].filter((a) => shown(a) && lines(a.matches('.pe-btn') ? a.firstChild : a) > 1).map((a) => a.textContent.trim()),
       // The lockup, the nav and the button share one row: each one's middle lies inside the others' height.
       row: [document.querySelector('.lockup'), nav, document.querySelector('.head-end')].filter(shown).map(box),
       filled: [...document.querySelectorAll('.hero .btn')].filter(shown).filter((b) => !/rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(b).backgroundColor)).map((b) => b.textContent.trim()),
@@ -97,20 +97,20 @@ export async function stateChecks(browser, base, day) {
       await page.clock.setFixedTime(new Date(`${day}T18:00:00Z`));
       await page.goto(base + '/', { waitUntil: 'networkidle' });
       await page.addStyleTag({ content: '::-webkit-scrollbar { width: 17px; height: 17px; } ::-webkit-scrollbar-thumb { background: #888; }' });
-      await page.locator('.pe summary').click();
+      await page.locator('.pe-btn').click();
       const m = await page.evaluate(() => {
         const cw = document.documentElement.clientWidth;
         const items = ['.lockup', '.nav', '.head-end'].map((s) => document.querySelector(s).getBoundingClientRect());
-        const panel = document.querySelector('.pe[open] .pe-panel')?.getBoundingClientRect();
+        const panel = document.querySelector('.pe-panel:popover-open')?.getBoundingClientRect();
         const theme = document.querySelector('.theme');
         return {
           cw,
           over: document.documentElement.scrollWidth - cw,
           overlap: items.some((a, i) => i > 0 && a.left < items[i - 1].right) || items[2].right > cw,
           panel: panel ? panel.left >= 0 && panel.right <= cw : false,
-          lines: [...document.querySelectorAll('.pe[open] .pe-line')].every((l) => l.getClientRects().length === 1 && l.getBoundingClientRect().right <= panel.right - 2),
+          lines: [...document.querySelectorAll('.pe-panel:popover-open .pe-line')].every((l) => l.getClientRects().length === 1 && l.getBoundingClientRect().right <= panel.right - 2),
           theme: theme.textContent.replace(/\s+/g, ' ').trim(),
-          labels: [...document.querySelectorAll('.nav > ul > li > a, .nav summary, .head-cta')].map((a) => a.textContent.trim()).join(', '),
+          labels: [...document.querySelectorAll('.nav > ul > li > a, .nav .pe-btn, .head-cta')].map((a) => a.textContent.trim()).join(', '),
         };
       });
       const where = `${day} at ${width} px with a 17 px scrollbar (${m.labels})`;

@@ -145,7 +145,7 @@ export function checkSampleBuild(real, made, dist = 'dist') {
   for (const file of pages) {
     // An .ics folds its long lines: unfold them first.
     const raw = readFileSync(file, 'utf8').replace(/\r?\n[ \t]/g, '').replace(/\\([,;\\])/g, '$1');
-    const text = norm(decode(raw.replace(/<footer class="site-footer">[\s\S]*?<\/footer>/, '')).replace(/<[^>]+>/g, ' '));
+    const text = norm(decode(raw.replace(/<footer class="site-footer"[^>]*>[\s\S]*?<\/footer>/, '')).replace(/<[^>]+>/g, ' '));
     for (const [what, s, n] of needles) if (text.includes(n)) failures.push(`${file}: ${what}: ${s}`);
   }
   // Every Speaker and Session page, and every Share Card, is a made-up one's.
