@@ -23,6 +23,19 @@ export interface Credit {
   editions: number;
 }
 
+/** A whole number as English orders it: "2nd", "3rd", "11th", "21st". */
+export const ordinal = (n: number) => {
+  const tens = n % 100;
+  const suffix = tens >= 11 && tens <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${n}${suffix}`;
+};
+
+/**
+ * What a credit prints: the count of Editions, this one included, such as "3rd year". A count stays true when a
+ * Sponsor or person skipped an Edition (in 2024 and 2026 is a "2nd year"), where "since" would claim every year.
+ */
+export const creditText = (credit: Credit) => `${ordinal(credit.editions)} year`;
+
 /** A name for matching: no accents, apostrophes or extra spaces, lower case. */
 export const norm = (name: string) =>
   name.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[’‘']/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -84,7 +97,7 @@ export function mergeHistory(base: readonly EditionHistory[], extra: readonly Ed
 /**
  * The records a kind's credits read: the Editions' own, or in a test build (`test`, the test history) the two joined.
  * The Organizers' credits in a test build read the test history alone: it starts in 2026, so a real Organizer who
- * also organized an earlier Edition would show a wrong "since".
+ * also organized an earlier Edition would show a wrong count.
  */
 export function recordsFor(kind: Kind, history: readonly EditionHistory[], test: readonly EditionHistory[] | null): readonly EditionHistory[] {
   if (!test) return history;
@@ -103,12 +116,12 @@ export interface CreditRule {
 /**
  * The credit for one Organizer, Speaker (their names: the printed one and any confirmed variants) or sponsor (its
  * id) in the current Edition, or null. It prints only when every earlier Edition from `rule.from` has a complete
- * record of the kind, so a missing year can never print a wrong "since"; an incomplete record counts as missing.
+ * record of the kind, so a missing year can never print a wrong count; an incomplete record counts as missing.
  * When the current Edition has a record of the kind, the entry must be on it.
  *
  * Any earlier record that lists the entry proves that year, complete or not, and before `rule.from` too. The credit
  * counts from the first year listed, and only when every Edition from that year on has a complete record. Otherwise
- * the entry gets no credit, as a missing or incomplete record could make its "since" or its count wrong.
+ * the entry gets no credit, as a missing or incomplete record could make its count wrong.
  */
 export function creditFor(history: readonly EditionHistory[], kind: Kind, keys: readonly string[], rule: CreditRule): Credit | null {
   const record = (year: number) => history.find((h) => h.year === year)?.[kind];

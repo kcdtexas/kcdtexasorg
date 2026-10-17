@@ -1,6 +1,7 @@
 // The program's tests (ADR 0009), in tests/run-local.mjs. First the platform's own tests
 // (tests/program-adapter.mjs). Then it builds the site with the program sample and the sample sponsors
-// (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: the Share Cards' "Sample" stamp
+// (scripts/build.sh --program-sample --sponsors-sample) and checks what it builds: made-up names only, with no real
+// Speaker's name, title or tagline on a program page or a Share Card (tests/sample-program.mjs), the Share Cards' "Sample" stamp
 // and their time budget, the test-build marker, the calendar files (RFC 5545, with the America/Chicago zone), the
 // marks on the program's text and the "Sample" labels, the program pages' own styles, the credits from the test
 // history (on About, only its made-up Organizer's), and scripts/check-dist.mjs's rules on the gates and on builds
@@ -26,6 +27,7 @@ import { createRequire } from 'node:module';
 import { join, relative, sep } from 'node:path';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
+import { checkRecords, checkSampleBuild, madeUpRecords, realRecords } from './sample-program.mjs';
 
 const failures = [];
 let checks = 0;
@@ -72,9 +74,12 @@ process.on('exit', () => writeFileSync(ANNOUNCEMENTS, announcementsText));
 // Fields the allowlist drops, from the fixture: none may reach a served file.
 const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/track'];
 
+/** A loyalty credit's words as a screen reader hears them: the tab's, then the hidden role. */
+const CREDIT = /<span class="credit">([^<]+)<span class="sr-only">([^<]+)<\/span><\/span>/;
+const creditWords = (html) => html.match(CREDIT)?.slice(1).join('') ?? null;
 /** Each Organizer on About and their credit's words, or null. */
 const organizerCredits = (html) => Object.fromEntries([...html.matchAll(/<li>\s*<(?:img|svg)[^>]*class="pg-org-photo"[\s\S]*?<\/li>/g)]
-  .map((m) => [m[0].match(/<b>([^<]+)<\/b>/)[1], m[0].match(/<span class="credit">([^<]+)<\/span>/)?.[1] ?? null]));
+  .map((m) => [m[0].match(/<b>([^<]+)<\/b>/)[1], creditWords(m[0])]));
 
 /** A calendar file, as RFC 5545 asks: CRLF lines of at most 75 octets; BEGIN and END nested in one VCALENDAR; one
  *  VTIMEZONE for America/Chicago with its daylight and standard rules; and exactly the expected Sessions, each with
@@ -156,6 +161,26 @@ try {
   if (sample.status !== 0) throw new Error(`the sample build failed:\n${sample.log.slice(-3000)}`);
   expect(!sample.log.includes(marker), 'the sample build log contains the planted marker');
   for (const f of served()) for (const d of DROPPED) expect(!readFileSync(f, 'utf8').includes(d), `${f}: contains a dropped field (${d === marker ? 'the planted marker' : d})`);
+  // Made-up names only: none of the test program's names, titles or taglines is real, and no real Speaker's name,
+  // title or tagline reaches a program page or a Share Card (tests/sample-program.mjs).
+  const realProgram = await realRecords();
+  const madeProgram = await madeUpRecords();
+  for (const f of checkRecords(realProgram, madeProgram)) expect(false, `the test program: ${f}`);
+  for (const f of checkSampleBuild(realProgram, madeProgram)) expect(false, `the sample build: ${f}`);
+  {
+    // The check bites: a real title planted on the Schedule, and a Share Card under a real Speaker's name.
+    const page = 'dist/2027/schedule/index.html';
+    const before = readFileSync(page, 'utf8');
+    const realTitle = realProgram.titles.find((t) => t.includes('’')) ?? realProgram.titles[0];
+    const realName = realProgram.names.find((n) => n.split(' ').length === 2);
+    const planted = `dist/cards/speaker-${realName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
+    writeFileSync(page, before.replace('</main>', `<p>${realTitle.replace(/’/g, '&#8217;')}</p></main>`));
+    writeFileSync(planted, '');
+    const caught = checkSampleBuild(realProgram, madeProgram);
+    writeFileSync(page, before);
+    rmSync(planted);
+    expect(caught.some((f) => f.includes(`a real title: ${realTitle}`)) && caught.some((f) => f.includes(planted)), `tests/sample-program.mjs misses a planted real title or a real Speaker's Share Card: ${caught.join('; ') || 'nothing found'}`);
+  }
 
   const schedule = read('2027/schedule/index.html');
   const sessionPages = readdirSync('dist/2027/sessions').filter((n) => statSync(join('dist/2027/sessions', n)).isDirectory());
@@ -177,13 +202,13 @@ try {
   const speakers = read('2027/speakers/index.html');
   const listed = (speakers.match(/<a class="spk-name" href="\/2027\/speakers\/[a-z0-9-]+\/" data-ugc>/g) ?? []).length;
   expect(listed === speakerPages.length, `the Speakers list links ${listed} Speakers, but ${speakerPages.length} Speaker pages were built`);
-  expect(/Fixture Speaker 1/.test(speakers) && /Speaker since 2026/.test(speakers), 'the Speakers list lacks the fixture or the "Speaker since 2026" credit');
+  expect(/Fixture Speaker 1/.test(speakers) && /Fixture Speaker 4<\/a><span class="credit">2nd year<span class="sr-only"> as a Speaker<\/span><\/span>/.test(speakers), 'the Speakers list lacks the fixture, or the "2nd year" credit right after Fixture Speaker 4’s name');
   const returning = read('2027/speakers/fixture-speaker-4/index.html');
-  expect(/Speaker since 2026/.test(returning), 'Fixture Speaker 4’s page lacks "Speaker since 2026" (the test history)');
-  expect(!/Speaker since/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'a first-time fixture Speaker shows a credit');
+  expect(creditWords(returning) === '2nd year as a Speaker', `Fixture Speaker 4’s page shows ${creditWords(returning)}, not "2nd year as a Speaker" (the test history)`);
+  expect(!/class="credit"/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'a first-time fixture Speaker shows a credit');
   expect(!/\bFixture\b/.test(read('2026/index.html')), 'the test history reaches the 2026 page');
-  const credits = (speakers.match(/Speaker since/g) ?? []).length;
-  expect(credits === 1, `the Speakers list shows ${credits} "Speaker since" credits; only Fixture Speaker 4 should (2026 test data never credits itself)`);
+  const credits = (speakers.match(/class="credit"/g) ?? []).length;
+  expect(credits === 1, `the Speakers list shows ${credits} credits; only Fixture Speaker 4 should (the other names are made up)`);
   expect(/<a href="https:\/\/example\.com\/" data-ugc-attrs>Website<\/a>/.test(read('2027/speakers/fixture-speaker-1/index.html')), 'an allowlisted link is missing');
   // The program's text is marked for check-dist's draft-marker checks (data-ugc): the head's title, description and card
   // text, and the title, the room, the abstract, the Speakers and their taglines; every "Sample" label has data-sample.
@@ -243,14 +268,15 @@ try {
   const sitemap = read('sitemap.xml');
   expect(/\/2027\/speakers\/<\/loc>/.test(sitemap) && /\/2027\/sessions\//.test(sitemap) && /\/2027\/today\/<\/loc>/.test(sitemap), 'the sitemap misses the program pages');
   // The loyalty credits from the test history: About, the walls and a Speaker page. About adds a made-up Organizer,
-  // with initials and no photo, whose made-up history gives "Organizer since 2025"; no real Organizer shows a credit.
+  // with initials and no photo, whose made-up history (2025 to 2027) gives "3rd year"; no real Organizer shows one.
   const about = read('about/index.html');
   const organizers = organizerCredits(about);
-  expect(organizers['Fixture Organizer'] === 'Organizer since 2025' && /<li><svg class="pg-org-photo"[^>]*>[\s\S]*?<\/svg><b>Fixture Organizer<\/b>/.test(about), `About: the made-up Organizer shows ${organizers['Fixture Organizer']}, not "Organizer since 2025", or has no initials`);
+  expect(organizers['Fixture Organizer'] === '3rd year as an Organizer' && /<li><svg class="pg-org-photo"[^>]*>[\s\S]*?<\/svg><b>Fixture Organizer<\/b>/.test(about), `About: the made-up Organizer shows ${organizers['Fixture Organizer']}, not "3rd year as an Organizer", or has no initials`);
   expect(text(about).includes('Sample: this test build adds a made-up Organizer to show the credit.'), 'About lacks the Sample label for the made-up Organizer');
   const credited = Object.entries(organizers).filter(([name, credit]) => name !== 'Fixture Organizer' && credit !== null);
   expect(Object.keys(organizers).length === 13 && !credited.length, `About: real Organizers show credits in a test build: ${credited.map(([name, credit]) => `${name} (${credit})`).join(', ')}`);
-  expect((read('2027/sponsors/index.html').match(/<span class="credit">Since 2026<\/span>/g) ?? []).length === 3, 'the 2027 wall lacks its three sample "Since 2026" credits');
+  // The 2027 wall's three returning sample tiles (the sponsors page also shows the 2026 wall, with its own credits).
+  expect((read('2027/sponsors/index.html').match(/<span class="sp-name" data-sample>Sample (?:Platinum|Gold|Silver) sponsor<\/span><\/div><span class="credit">2nd year<span class="sr-only"> as a sponsor<\/span><\/span>/g) ?? []).length === 3, 'the 2027 wall lacks its three sample "2nd year" credits');
   // check-dist refuses this build without its flag: the labels, the fixture's names, and the program built with the
   // Edition's gates closed.
   const checkDist = (env) => {
@@ -367,9 +393,11 @@ try {
     await ctx.close();
   }
 
-  // A credit sits in the normal flow and never covers what it credits: its box intersects no logo, sponsor name,
-  // photo or person's name, on a desktop and a phone. The past Editions' pages and the home page print their own
-  // credits (tests/credits-pages.mjs); /2024/, the first Edition, has none, but its tier sizes are checked too.
+  // A credit never covers what it credits. A tab on paper (after a name, under a logo, in the bill) intersects no
+  // logo, sponsor name, photo or person's name. A tab on a person's photo (an Organizer's card, a Speaker's page)
+  // sits wholly inside the photo's bottom-left corner, covers at most a sixth of it, and touches no name. On a
+  // desktop and a phone. The past Editions' pages and the home page print their own credits
+  // (tests/credits-pages.mjs); /2024/, the first Edition, has none, but its tier sizes are checked too.
   for (const width of [1280, 390]) {
     const c = await browser.newContext({ viewport: { width, height: 900 } });
     const p = await c.newPage();
@@ -378,19 +406,29 @@ try {
       const found = await p.locator('.credit').evaluateAll((credits) => credits.map((cr) => {
         const box = cr.getBoundingClientRect();
         const holder = cr.closest('li, header');
-        const content = [...holder.querySelectorAll('img, .pg-org-photo, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e));
-        // A link by its words: its tap padding (tests/targets.mjs) is invisible.
+        const photo = cr.closest('.pg-org > li')?.querySelector('.pg-org-photo') ?? (cr.parentElement.matches('.spk-head') ? cr.parentElement.querySelector('.spk-photo') : null);
+        let onPhoto = null;
+        if (photo) {
+          const r = photo.getBoundingClientRect();
+          const inside = box.left >= r.left - 0.5 && box.right <= r.right + 0.5 && box.top >= r.top - 0.5 && box.bottom <= r.bottom + 0.5;
+          const corner = Math.abs(box.left - r.left) < 1 && Math.abs(box.bottom - r.bottom) < 1;
+          const share = (box.width * box.height) / (r.width * r.height);
+          if (!inside || !corner || share > 1 / 6) onPhoto = `${Math.round(box.width)}x${Math.round(box.height)} at ${Math.round(box.left - r.left)},${Math.round(box.bottom - r.bottom)} from the bottom-left corner of a ${Math.round(r.width)}x${Math.round(r.height)} photo`;
+        }
+        const content = [...holder.querySelectorAll('img, .pg-org-photo, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e) && e !== photo && !photo?.contains(e));
+        // A link by its words: its tap padding (tests/targets.mjs) is invisible. Anything else by its boxes: one per
+        // line for an inline element, so a company line that wraps under a name and its tab isn't one big box.
         const shapes = (e) => {
-          if (e.tagName !== 'A') return [e.getBoundingClientRect()];
+          if (e.tagName !== 'A') return [...e.getClientRects()];
           const words = document.createRange();
           words.selectNodeContents(e);
           return [...words.getClientRects()];
         };
         const hit = content.find((e) => shapes(e).some((r) => r.width && r.height && box.left < r.right - 0.5 && r.left < box.right - 0.5 && box.top < r.bottom - 0.5 && r.top < box.bottom - 0.5));
-        return { text: cr.textContent.trim(), hit: hit ? `${hit.tagName.toLowerCase()}.${hit.className} "${(hit.textContent || hit.alt || '').trim().slice(0, 40)}"` : null };
+        return { text: cr.textContent.trim(), hit: hit ? `${hit.tagName.toLowerCase()}.${hit.className} "${(hit.textContent || hit.alt || '').trim().slice(0, 40)}"` : null, onPhoto };
       }));
       expect(found.length > 0 || path === '/2024/', `${path} at ${width}: no credit to check`);
-      for (const f of found) expect(!f.hit, `${path} at ${width}: "${f.text}" overlaps ${f.hit}`);
+      for (const f of found) expect(!f.hit && !f.onPhoto, `${path} at ${width}: "${f.text}" ${f.hit ? `overlaps ${f.hit}` : `sits ${f.onPhoto}`}`);
       // The tier sizes don't change: a tile with a credit is the same size as the others in its tier.
       const sizes = await p.locator('.tier').evaluateAll((tiers) => tiers.map((t) => [...new Set([...t.querySelectorAll('.logos > li:not(.has-credit), .sp-tile')]
         .map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; }))]));
@@ -519,6 +557,7 @@ try {
   const speakersOnly = build(['--program-sample=speakers']);
   if (speakersOnly.status !== 0) throw new Error(`the speakers-only sample build failed:\n${speakersOnly.log.slice(-3000)}`);
   expect(!speakersOnly.log.includes(marker), 'the speakers-only build log contains the planted marker');
+  for (const f of checkSampleBuild(realProgram, madeProgram)) expect(false, `the speakers-only build: ${f}`);
   {
     const sessionDirs = readdirSync('dist/2027/sessions').filter((n) => statSync(join('dist/2027/sessions', n)).isDirectory());
     expect(sessionDirs.length === sessionPages.length && existsSync('dist/2027/speakers/index.html') && existsSync('dist/2027/speakers/fixture-speaker-4/index.html'), 'the speakers-only build lacks Session or Speaker pages');
@@ -537,7 +576,7 @@ try {
     for (const page of ['2027/speakers/index.html', '2027/speakers/fixture-speaker-4/index.html', `2027/sessions/${fx}/index.html`, '2027/schedule/index.html']) {
       const html = read(page);
       expect(!/class="sch-(?:time|room|meta)"|data-start="\d/.test(html), `${page}: shows a time or a room`);
-      expect(text(html).includes('Sample: this test build shows the 2026 Speakers and Sessions, without times or rooms, plus made-up Sessions, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
+      expect(text(html).includes('Sample: this test build shows made-up Speakers and Sessions without times or rooms, not the 2027 program.'), `${page}: lacks the speakers-only Sample label`);
       expect(!/data-star=/.test(html), `${page}: offers the My Schedule star while only the Speakers are public`);
     }
     expect(text(sched).includes('The Speakers are out. The Schedule comes out soon.') && !/together with the Speakers|Session Committee/.test(text(sched))
@@ -578,9 +617,11 @@ try {
     const joined = build([]);
     if (joined.status !== 0) throw new Error(`the build with a test history file failed:\n${joined.log.slice(-3000)}`);
     const credits = organizerCredits(read('about/index.html'));
-    expect(credits['Rich Boyd'] === 'Organizer since 2025', `a new history file does not join: Rich Boyd shows ${credits['Rich Boyd']}`);
-    expect(credits['Joel Hernandez'] === 'Organizer since 2026', `Joel Hernandez shows ${credits['Joel Hernandez']}, not "Organizer since 2026"`);
-    expect(credits['Mars Toktonaliev'] === 'Organizer since 2024', `Mars Toktonaliev shows ${credits['Mars Toktonaliev']}, not "Organizer since 2024" from the 2024 record`);
+    // Rich Boyd: 2025 (the test file), 2026 and 2027. Mars Toktonaliev: 2024 and 2026, as the test file leaves out
+    // 2025, and 2027: the count stays true across the gap.
+    expect(credits['Rich Boyd'] === '3rd year as an Organizer', `a new history file does not join: Rich Boyd shows ${credits['Rich Boyd']}`);
+    expect(credits['Joel Hernandez'] === '2nd year as an Organizer', `Joel Hernandez shows ${credits['Joel Hernandez']}, not "2nd year as an Organizer"`);
+    expect(credits['Mars Toktonaliev'] === '3rd year as an Organizer', `Mars Toktonaliev shows ${credits['Mars Toktonaliev']}, not "3rd year as an Organizer" from the 2024 and 2026 records`);
     expect(credits['Amy Marrich'] === null && credits['Myroslav Mishov'] === null, 'a first-time Organizer shows a credit in a normal build');
     expect(!/\bSample\b/.test(text(read('about/index.html'))), 'a normal build labels its credits "Sample"');
     writeFileSync(historyFile, "export default { year: 2025, speakers: { names: 'Rich Boyd', complete: true, source: 'https://example.com/' } };\n");

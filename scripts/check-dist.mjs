@@ -75,9 +75,11 @@ const sampleLabels = (html) => [...html.matchAll(TAG)].filter(([, end, , text]) 
 // A test build (scripts/build.sh --tickets-day, --program-public, --sponsors-sample, --program-sample) labels every
 // sample "Sample"; no other build may show one.
 const sampleBuild = Boolean(process.env.KCD_TICKETS_DAY || process.env.KCD_PROGRAM_PUBLIC || process.env.KCD_SPONSORS_SAMPLE || process.env.KCD_PROGRAM_SAMPLE);
-/** The made-up names of the test program (src/data/program-fixture.ts) and the test history's Organizer
- *  (src/data/history-test.ts). Only --program-sample builds show them. */
-const FIXTURE_NAMES = /\bFixture (?:Speaker|Session|Room|Company|Organizer)\b/;
+/** The made-up names of the test program (src/data/program-fixture.ts and its sample Schedule,
+ *  src/data/program-sample-schedule.ts) and the test history's Organizer (src/data/history-test.ts). Only
+ *  --program-sample builds show them. */
+const sampleNames = (await importTs(new URL('../src/data/program-sample-schedule.ts', import.meta.url))).sampleSpeakers.map((s) => s.name);
+const FIXTURE_NAMES = new RegExp(`\\bFixture (?:Speaker|Session|Room|Company|Organizer)\\b|${sampleNames.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')}`);
 
 // Text that marks an unfinished draft and must never ship: "[TBD", "TODO", or a template placeholder left unfilled
 // such as "{cfpOpens}"; and outside the test builds that show them, "Sample" and the fixture's names. Checked against
@@ -309,7 +311,8 @@ async function check() {
     if (/\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(file) && readFileSync(file, 'utf8').includes(marker)) failures.push(`${file}: contains the planted marker`);
   }
 
-  // The fixture's made-up names, its earlier-Edition entry included, never reach the 2026 page, in any build.
+  // The test program's made-up names, the fixture's earlier-Edition entry included, never reach the 2026 page, in
+  // any build.
   for (const file of walk(join(DIST, '2026')).filter((f) => extname(f) === '.html')) {
     if (FIXTURE_NAMES.test(readFileSync(file, 'utf8'))) failures.push(`${file}: contains a fixture name`);
   }

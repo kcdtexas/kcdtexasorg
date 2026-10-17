@@ -296,16 +296,17 @@ try {
         }
       }
       if (width === 390) {
-        const summary = tab.locator('.menu summary');
+        const button = tab.locator('.menu-btn');
+        const isOpen = () => tab.evaluate(() => document.querySelector('.menu-panel').matches(':popover-open'));
         const expanded = async () => {
           const { nodes } = await cdp.send('Accessibility.getFullAXTree');
-          const n = nodes.find((x) => !x.ignored && x.role?.value === 'DisclosureTriangle');
+          const n = nodes.find((x) => !x.ignored && x.role?.value === 'button' && x.name?.value === 'Menu');
           return n?.properties?.find((p) => p.name === 'expanded')?.value?.value;
         };
-        await summary.focus();
+        await button.focus();
         expect((await expanded()) === false, `${where}: the closed menu isn't announced as collapsed`);
         await tab.keyboard.press('Enter');
-        const open = await tab.evaluate(() => document.querySelector('.menu').open);
+        const open = await isOpen();
         expect(open && (await expanded()) === true, `${where}: Enter doesn't open the menu, or it isn't announced as expanded`);
         const menuLinks = await tab.evaluate(() => [...document.querySelectorAll('.menu-panel a')].map((a) => a.textContent.trim()));
         const reached = [];
@@ -313,14 +314,14 @@ try {
         expect(reached.join() === menuLinks.join(), `${where}: Tab after the open menu reaches ${reached.join(', ')}, not ${menuLinks.join(', ')}`);
         const seen = await tab.evaluate(() => [...document.querySelectorAll('.menu-panel a')].every((a) => { const r = a.getBoundingClientRect(); return r.bottom <= innerHeight && r.right <= innerWidth && r.left >= 0; }));
         expect(seen, `${where}: the open menu runs off screen`);
-        await summary.focus();
+        await button.focus();
         await tab.keyboard.press('Enter');
-        expect(!(await tab.evaluate(() => document.querySelector('.menu').open)) && (await expanded()) === false, `${where}: Enter doesn't close the menu`);
-        if (path === '/') {
-          await tab.keyboard.press('Enter');
-          await tab.keyboard.press('Escape');
-          notes.add(`phone menu: Escape ${(await tab.evaluate(() => document.querySelector('.menu').open)) ? 'leaves it open (native details; Enter closes it)' : 'closes it'}`);
-        }
+        expect(!(await isOpen()) && (await expanded()) === false, `${where}: Enter doesn't close the menu`);
+        // Escape from a link inside closes it and gives the focus back to the button.
+        await tab.keyboard.press('Enter');
+        await tab.keyboard.press('Tab');
+        await tab.keyboard.press('Escape');
+        expect(!(await isOpen()) && (await tab.evaluate(() => document.activeElement?.matches('.menu-btn'))), `${where}: Escape doesn't close the menu, or doesn't give the focus back to its button`);
       }
       await context.close();
     }

@@ -1,7 +1,8 @@
-// The 2026 Schedule as test data: from the public KCD Texas 2026 Schedule (May 15, 2026), only the Session
+// The 2026 Schedule as a record: from the public KCD Texas 2026 Schedule (May 15, 2026), only the Session
 // titles, the Speaker names, the times (Central), the rooms and the formats. No bios, photos or abstracts. The names
 // are written as /2026/ prints them (program-2026.ts), where Sessionize spelled two differently.
-// Affiliations come from program-2026.ts's printed lines, matched by name, in src/lib/program.ts.
+// No build reads it. The test builds' made-up sample Schedule (program-sample-schedule.ts) copies its shape, and
+// tests/sample-program.mjs checks that none of its names or titles reaches a test build.
 
 export type Format2026 = 'keynote' | 'talk' | 'workshop' | 'panel';
 

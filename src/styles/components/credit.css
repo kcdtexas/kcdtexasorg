@@ -1,6 +1,16 @@
-/* The loyalty credits (src/lib/loyalty.ts): a short line under a name or a logo, on About, the sponsor walls and the
-   program pages. */
+/* The loyalty credits (src/lib/loyalty.ts): a small tab with the count of Editions, "3rd year", in the display
+   figures. Outlined on paper: after a Speaker's name, under a sponsor's logo (wall.css) and at the start of a line
+   under the 2026 bill (stage.css), so a logo stays the loudest thing in its tile. Filled on a person's photo, here on
+   an Organizer's card and on a Speaker's page (schedule.css): ink with a white edge in both themes, so it holds on
+   light and dark photos. */
 @layer components {
-  .credit { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 700; font-size: 14px; line-height: 1.3; color: var(--fg); }
-  .credit::before { content: ""; flex: none; width: 8px; height: 8px; background: var(--signal); box-shadow: 0 0 0 1px var(--signal-edge, transparent); }
+  .credit { display: inline-block; padding: 3px 6px 2px; border: 1px solid var(--fg); font-stretch: 62%; font-weight: 800; font-size: 14px; line-height: 1; color: var(--fg); white-space: nowrap; }
+  /* On the bottom-left corner of an Organizer's 120 px photo (program.css), out of the flow: the card gets no extra
+     line, and every tab in a row sits at the same height. */
+  .pg-org .credit { position: absolute; top: 120px; left: 0; translate: 0 -100%; border-color: var(--photo-tab-fg); background: var(--photo-tab); color: var(--photo-tab-fg); }
+  /* After a Speaker's name: in a program list's line, and in a keynote's name. */
+  .pg-who .credit, .pg-people .credit { margin: 0 2px 0 8px; font-size: 13px; vertical-align: 1px; }
+  .pg-kn-name .credit { margin-left: 10px; vertical-align: 5px; }
+  /* The 2026 stage's names are too large for a tab beside them: it goes under the affiliation. */
+  .kn .credit { display: table; margin-top: 8px; }
 }
