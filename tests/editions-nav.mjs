@@ -52,6 +52,22 @@ async function axe(tab) {
   });
 }
 const isOpen = (tab, panel = '.pe-panel') => tab.evaluate((p) => document.querySelector(p).matches(':popover-open'), panel);
+// A click on the page itself, to close an open menu: a point in the main content below the panel, on nothing that
+// reacts to a click, and clear of the screen's bottom edge, where a preview host may lay its own toolbar (Netlify's
+// deploy previews do, in a frame that a click can't close the menu through). Returns the point, or null if none.
+const clickPage = async (tab) => {
+  const at = await tab.evaluate(() => {
+    const below = document.querySelector('[popover]:popover-open')?.getBoundingClientRect().bottom ?? 0;
+    const x = Math.round(innerWidth / 2);
+    for (let y = Math.round(below + 40); y < innerHeight - 120; y += 20) {
+      const e = document.elementFromPoint(x, y);
+      if (e?.closest('main') && !e.closest('a, button, summary, input, select, textarea, [tabindex], [popover]')) return { x, y };
+    }
+    return null;
+  });
+  if (at) await tab.mouse.click(at.x, at.y);
+  return at;
+};
 
 try {
   // Contents, on every built page: the panel's rows, the phone menu's years, and no "2026 talks" in either list.
@@ -115,8 +131,8 @@ try {
     await tab.keyboard.press('Escape');
     expect(!(await isOpen(tab)) && (await tab.evaluate(() => document.activeElement?.matches('.pe-btn'))), 'Escape doesn\'t close "Past Editions", or doesn\'t give the focus back to its button');
     await tab.locator('.pe-btn').click();
-    await tab.mouse.click(640, 850);
-    expect(!(await isOpen(tab)), 'a click elsewhere doesn\'t close "Past Editions"');
+    const spot = await clickPage(tab);
+    expect(spot && !(await isOpen(tab)), spot ? 'a click elsewhere doesn\'t close "Past Editions"' : 'no plain spot on the page to click below "Past Editions"');
     // Picking a year opens its page, with the menu closed.
     if (!(await isOpen(tab))) await tab.locator('.pe-btn').click();
     await Promise.all([tab.waitForURL(`**${pastPaths[1]}`), tab.locator(`.pe-panel a[href="${pastPaths[1]}"]`).click()]);
@@ -184,8 +200,8 @@ try {
     await tab.keyboard.press('Escape');
     expect(!(await isOpen(tab, '.menu-panel')), `${pastPaths[1]} at 390 px ${scheme}: Escape doesn't close the menu`);
     await tab.locator('.menu-btn').click();
-    await tab.mouse.click(195, 820);
-    expect(!(await isOpen(tab, '.menu-panel')), `${pastPaths[1]} at 390 px ${scheme}: a click elsewhere doesn't close the menu`);
+    const spot = await clickPage(tab);
+    expect(spot && !(await isOpen(tab, '.menu-panel')), `${pastPaths[1]} at 390 px ${scheme}: ${spot ? 'a click elsewhere doesn\'t close the menu' : 'no plain spot on the page to click below the menu'}`);
     await context.close();
   }
 
