@@ -1,5 +1,6 @@
 ---
-// The footer: about, contact, community, past Editions, sources, the current Organizers and the privacy line.
+// The footer: about, contact, community, past Editions, sources, the current Organizers, the privacy line and the
+// "powered by Netlify" credit (Netlify's Open Source plan asks for it).
 import { Image } from 'astro:assets';
 import { edition2026, dallasMetro, drives, pastEditions } from '../data/edition-2026';
 import { contact, currentEdition, legal, privacyLine } from '../data/site';
@@ -94,6 +95,7 @@ const sources = [
     <div class="foot-base">
       <p>{privacyLine}</p>
       <p>Kubernetes and CNCF are trademarks of The Linux Foundation. <a href={legal.lfTrademarksUrl}>Trademark usage</a></p>
+      <p><a href={legal.netlifyUrl}>This site is powered by Netlify</a></p>
     </div>
   </div>
 </footer>
