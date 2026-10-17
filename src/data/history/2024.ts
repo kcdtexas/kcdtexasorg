@@ -1,4 +1,4 @@
-// The 2024 Edition's record for the "since" credits (src/lib/loyalty.ts), derived from edition-2024.ts and
+// The 2024 Edition's record for the loyalty credits (src/lib/loyalty.ts), derived from edition-2024.ts and
 // program-2024.ts. `complete` says whether the source lists the whole set for that kind.
 import { edition2024 } from '../edition-2024';
 import { speakers2024, sources2024 } from '../program-2024';

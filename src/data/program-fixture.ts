@@ -18,7 +18,7 @@ export const fixtureSpeakers: readonly RawSpeaker[] = [
   { id: 'fx-1', name: 'Fixture Speaker 1', tagline: 'Platform Engineer, Fixture Company', bio: 'Fixture Speaker 1 is made up for tests. A real bio goes here, as the Speaker wrote it.', links: [{ kind: 'site', url: 'https://example.com/' }, { kind: 'tracker', url: 'https://example.com/track' }], email: 'speaker1@example.com', notes: plantedMarker },
   { id: 'fx-2', name: 'Fixture Speaker 2', tagline: 'Site Reliability Engineer', phone: '+1 555 0100', notes: plantedMarker },
   { id: 'fx-3', name: 'Fixture Speaker 3', tagline: null, notes: plantedMarker },
-  // A Returning Speaker in the test history: shows "Speaker since 2026".
+  // A Returning Speaker in the test history (2026): shows "2nd year".
   { id: 'fx-4', name: 'Fixture Speaker 4', tagline: 'Developer Advocate, Fixture Company', notes: plantedMarker },
 ];
 

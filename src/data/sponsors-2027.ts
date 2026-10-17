@@ -25,7 +25,7 @@ export const announcedSponsors2027: Sponsor2027[] = [];
 
 // build.sh --sponsors-sample: plain text tiles, one row per tier, to see the 2027 wall in tests and design reviews.
 // No logos and no company names, real or made up; check-dist blocks "Sample" in any other build. The first tile of
-// each tier returns from 2026 (it takes a 2026 sponsor's id, never its name or logo), to show the "since" credit.
+// each tier returns from 2026 (it takes a 2026 sponsor's id, never its name or logo), to show the "2nd year" credit.
 const sample = (tier: Tier2027, name: string, n: number, returning: string): Sponsor2027[] =>
   Array.from({ length: n }, (_, i) => ({ id: i === 0 ? returning : `sample-${tier}-${i + 1}`, name: `Sample ${name} sponsor`, tier, logo: null, link: '', alt: '', sample: true }));
 

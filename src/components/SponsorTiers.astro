@@ -27,7 +27,7 @@ type Props =
   };
 const { tierPrefix, edition = 2026 } = Astro.props;
 
-// `credit`: "Since 2025" for a sponsor that backed an Edition before this one (src/lib/loyalty.ts), shown under its
+// `credit`: "2nd year" for a sponsor that backed an Edition before this one (src/lib/loyalty.ts), shown under its
 // tile.
 type Entry = { id: string | null; name: string; link?: string; credit?: CreditData | null; sample?: boolean };
 type Tier = { class: string; name: string; sponsors: readonly Entry[] };

@@ -1,14 +1,16 @@
 ---
-// A loyalty credit (src/lib/loyalty.ts): "Speaker since 2026", "Organizer since 2026", or "Since 2026" under a
-// sponsor's logo. Nothing for a first Edition.
-import type { Credit } from '../../lib/loyalty';
+// A loyalty credit (src/lib/loyalty.ts): a tab with the count of Editions, "3rd year", which screen readers hear as
+// "3rd year as an Organizer". Nothing for a first Edition. credit.css sets where it sits: on a person's photo, after
+// a Speaker's name, under a sponsor's logo or at the start of a line in the 2026 bill.
+import { creditText, type Credit } from '../../lib/loyalty';
 
 interface Props {
   credit: Credit | null;
-  /** "Speaker" or "Organizer"; none for a sponsor tile. */
-  role?: string;
+  /** "Speaker" or "Organizer"; none for a sponsor. */
+  role?: 'Speaker' | 'Organizer';
 }
 const { credit, role } = Astro.props;
+const as = role === 'Organizer' ? ' as an Organizer' : role === 'Speaker' ? ' as a Speaker' : ' as a sponsor';
 ---
 
-{credit && <span class="credit">{role ? `${role} since ${credit.since}` : `Since ${credit.since}`}</span>}
+{credit && <span class="credit">{creditText(credit)}<span class="sr-only">{as}</span></span>}

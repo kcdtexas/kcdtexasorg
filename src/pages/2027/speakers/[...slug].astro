@@ -34,9 +34,8 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
             <li class="spk-card">
               <SpeakerPhoto speaker={s} />
               <div class="spk-text">
-                <a class="spk-name" href={`${paths.speakers}${s.slug}/`} data-ugc>{s.name}</a>
+                <span class="spk-who"><a class="spk-name" href={`${paths.speakers}${s.slug}/`} data-ugc>{s.name}</a><Credit credit={s.credit} role="Speaker" /></span>
                 {s.tagline && <span class="spk-tag" data-ugc>{s.tagline}</span>}
-                <Credit credit={s.credit} role="Speaker" />
                 <span class="spk-ses" data-ugc>{sessionsOf(s).map((x) => x.title).join(' · ')}</span>
               </div>
             </li>
@@ -54,8 +53,8 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
           <p class="kicker"><a href={paths.speakers}>{w.kicker}</a></p>
           <h1 class="page-title" data-ugc>{p.name}</h1>
           {p.tagline && <p class="lead spk-tagline" data-ugc>{p.tagline}</p>}
-          <Credit credit={p.credit} role="Speaker" />
         </div>
+        <Credit credit={p.credit} role="Speaker" />
       </header>
       {program!.sample && <p class="page-soon" data-sample>{programPages.sample}</p>}
 

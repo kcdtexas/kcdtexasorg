@@ -55,9 +55,8 @@ const up = program!.schedulePublic ? { href: paths.schedule, kicker: w.kicker, b
           <li class="spk-card">
             <SpeakerPhoto speaker={p} size="sm" />
             <div class="spk-text">
-              <a class="spk-name" href={`${paths.speakers}${p.slug}/`} data-ugc>{p.name}</a>
+              <span class="spk-who"><a class="spk-name" href={`${paths.speakers}${p.slug}/`} data-ugc>{p.name}</a><Credit credit={p.credit} role="Speaker" /></span>
               {p.tagline && <span class="spk-tag" data-ugc>{p.tagline}</span>}
-              <Credit credit={p.credit} role="Speaker" />
             </div>
           </li>
         ))}

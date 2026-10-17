@@ -4,7 +4,8 @@
   .pg-aff { color: var(--muted); }
   /* The 2026 Organizers: square photos, as printed on the Event Page. */
   .pg-org { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 28px var(--gutter); margin-top: 16px; font-size: 15px; line-height: 1.35; }
-  .pg-org > li { display: flex; flex-direction: column; gap: 4px; }
+  /* Relative: a returning Organizer's credit sits on the photo's corner (credit.css). */
+  .pg-org > li { position: relative; display: flex; flex-direction: column; gap: 4px; }
   .pg-org-photo { width: 120px; height: 120px; object-fit: cover; display: block; margin-bottom: 8px; }
   /* Initials in a photo's place, grey on the surface tone, as a Speaker's (.spk-photo in schedule.css). */
   svg.pg-org-photo { background: var(--surface); color: var(--muted); font-stretch: 62%; }

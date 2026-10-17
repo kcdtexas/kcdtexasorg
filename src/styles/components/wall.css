@@ -48,12 +48,12 @@
 
   /* A 2027 sponsor without its logo yet (and the --sponsors-sample tiles): the name, centered in its cell. */
   .sp-name { display: block; font-weight: 700; font-size: 15px; line-height: 1.2; text-align: center; color: var(--tile-fg); text-wrap: balance; }
-  /* A returning sponsor's credit, "Since 2026", in the normal flow under its tile (src/lib/loyalty.ts). The tile
+  /* A returning sponsor's credit, "2nd year", in the normal flow under its tile (src/lib/loyalty.ts). The tile
      keeps the tier's size, so the logos and names in a tier stay in line; the credit never covers them. Half a cell
      of space under the credit keeps the next row (or tier) farther from it than its own logo or name is. */
   .logos > li.has-credit { flex-direction: column; justify-content: flex-start; gap: 6px; height: auto; margin-bottom: calc(var(--cell-h) / 2); padding: 0; background: none; }
   .sp-tile { display: flex; align-items: center; justify-content: center; width: 100%; height: var(--cell-h); padding: 0 12px; background: var(--tile); }
-  .logos .credit { justify-content: center; margin: 0; font-size: 13px; color: var(--fg); }
+  .logos .credit { align-self: center; margin: 0; }
   .sp-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--tile-fg); text-decoration: none; }
   /* The CFP Phase's double wall: the 2026 sponsors under the 2027 ones, as thanks and proof. */
   .wall-past { margin-top: 44px; }

@@ -11,7 +11,7 @@ import OrganizerCard from './OrganizerCard.astro';
 import Credit from './program/Credit.astro';
 import MoreEditions from './MoreEditions.astro';
 import { youtube } from '../data/edition-2026';
-import { printedLine, type PastSession } from '../data/past-program';
+import { printedLine } from '../data/past-program';
 import type { PastPage } from '../data/past-page';
 import { organizerPhotos, photoOf } from '../lib/images';
 import { organizerCredit, speakerCredit } from '../lib/loyalty';
@@ -20,7 +20,6 @@ interface Props {
   p: PastPage;
 }
 const { p } = Astro.props;
-const names = (s: PastSession) => s.speakers.map((x) => x.name).join(', ');
 const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i === 0 ? '' : i === list.length - 1 ? ' and ' : ', ' }));
 ---
 
@@ -37,9 +36,8 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
       <ul class="pg-keynotes pg-keynotes--text">
         {p.keynotes.sessions.map((k) => (
           <li>
-            <h3 class="pg-kn-name">{names(k)}</h3>
+            <h3 class="pg-kn-name">{k.speakers.map((x, i) => <>{i > 0 && ', '}{x.name}<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" /></>)}</h3>
             <p class="pg-aff">{k.speakers.map(printedLine).join('; ')}</p>
-            {k.speakers.map((x) => <Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />)}
             <p class="pg-title">{k.title}</p>
             {k.youtube ? <a class="watch" href={youtube(k.youtube)}>{p.program.watch}<span class="sr-only">: {k.title}</span></a> : <p class="pg-none">{p.keynotes.noRecording}</p>}
           </li>
@@ -57,7 +55,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
             {p.program.recorded.map((s) => (
               <li>
                 <p class="pg-title">{s.title}</p>
-                {s.speakers.map((x) => <><p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>{<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />}</>)}
+                {s.speakers.map((x) => <p class="pg-who"><b>{x.name}</b><Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>)}
                 <a class="watch" href={youtube(s.youtube!)}>{p.program.watch}<span class="sr-only">: {s.title}</span></a>
               </li>
             ))}
@@ -72,7 +70,7 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
             {p.program.others.map((s) => (
               <li>
                 <p class="pg-title">{s.title}</p>
-                {s.speakers.map((x) => <><p class="pg-who"><b>{x.name}</b>{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>{<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />}</>)}
+                {s.speakers.map((x) => <p class="pg-who"><b>{x.name}</b><Credit credit={speakerCredit(x.name, p.year)} role="Speaker" />{x.printed.length > 0 && <span class="pg-aff">{printedLine(x)}</span>}</p>)}
               </li>
             ))}
           </ul>

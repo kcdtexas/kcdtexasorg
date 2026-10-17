@@ -68,7 +68,7 @@ export interface Speaker {
    *  placeholder (the test data has none). */
   photo: { small: string; large: string } | null;
   links: { kind: LinkKind; url: string }[];
-  /** "Speaker since": a Returning Speaker (CONTEXT.md), from src/lib/loyalty.ts. */
+  /** A Returning Speaker's credit (CONTEXT.md), "2nd year", from src/lib/loyalty.ts. */
   credit: Credit | null;
 }
 
