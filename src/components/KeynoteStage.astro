@@ -1,5 +1,6 @@
 ---
-// The 2026 stage: the three keynotes, the 2026 bill, the open 2027 slot and a link to the full program on /2026/.
+// The 2026 stage: the three keynotes, the 2026 bill, the recap video with a link to the full program on /2026/, and
+// the open 2027 slot.
 // The slot asks for End-User Stories in the CFP Phase, then points to the 2027 keynotes, or to the Speakers while
 // only they are public.
 import { Image } from 'astro:assets';
@@ -9,7 +10,7 @@ import { home } from '../data/home';
 import { edition2026, youtube } from '../data/edition-2026';
 import { cfpPath, paths } from '../data/nav';
 import { edition2027, phase, programState } from '../data/edition-2027';
-import { keynotePhotos } from '../lib/images';
+import { keynotePhotos, recapPoster } from '../lib/images';
 import { speakerCredit } from '../lib/loyalty';
 
 const st = home.stage;
@@ -37,10 +38,23 @@ const st = home.stage;
     </ul>
     <p class="as-printed">{st.asPrinted}</p>
     <Bill2026 />
+    {/* The recap video: its title plays it in the site's player (/watch.js). The poster is a second way in for the
+        mouse, so screen readers and the Tab key skip it; its hidden words name the player. */}
+    <div class="recap-row">
+      <a data-watch class="recap-poster" href={edition2026.recapUrl} tabindex="-1" aria-hidden="true">
+        <Image src={recapPoster} quality={70} widths={[640, 1200]} sizes="(min-width: 600px) 400px, 44vw" alt="" />
+        <span class="play"></span>
+        <span class="sr-only">{st.recap}</span>
+      </a>
+      <div class="recap-body">
+        <p class="recap-kicker">{st.recapKicker}</p>
+        <a data-watch class="recap-title" href={edition2026.recapUrl}>{st.recap}</a>
+        <p class="more"><a href={`${paths.edition2026}#program`}>{st.programLink}</a></p>
+      </div>
+    </div>
     {/* The open 2027 slot: an End-User Story in the CFP Phase; from Feb 1, the 2027 keynotes, by the program's gate. */}
     {phase === 'cfp'
       ? <a class="slot slot--end" href={cfpPath}><span class="slot-year">{edition2027.year}</span><span class="slot-label">Your End-User Story here</span><span class="arrow" aria-hidden="true">→</span></a>
       : <a class="slot slot--end" href={programState() === 'speakers' ? paths.speakers : paths.schedule}><span class="slot-year">{edition2027.year}</span><span class="slot-label">{st.slot2027}</span><span class="arrow" aria-hidden="true">→</span></a>}
-    <p class="more stage-more"><a href={`${paths.edition2026}#program`}>{st.programLink}</a></p>
   </div>
 </section>

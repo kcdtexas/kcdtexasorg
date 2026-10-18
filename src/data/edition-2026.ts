@@ -18,6 +18,8 @@ export const edition2026 = {
   eventPageUrl: 'https://community2.cncf.io/events/details/cncf-kcd-texas-presents-kcd-texas-2026/',
   talksUrl: 'https://www.youtube.com/playlist?list=PL4UW_RgvzVcgZfg1SBz6_J6L8jchHvoX7',
   recapUrl: 'https://www.youtube.com/watch?v=yg6AS9W7bzE',
+  // The recap's length: 167 seconds, per its YouTube page (checked 2026-10-18).
+  recapLength: '2:47',
   photosUrl: 'https://photos.kcdtexas.org/',
   // The raw file, 23 MB. A compressed copy on kcdtexas.org replaces it later.
   // A compressed copy of the public 2026 prospectus (github.com/kcdtexas/sponsor-prospectus, 23.9 MB), served
