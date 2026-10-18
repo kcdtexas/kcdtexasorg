@@ -2,7 +2,8 @@
 // exactly the credits its history gives as of that Edition, for its Organizers, Speakers and sponsors, each right
 // after the name it credits ("3rd year", and the role for screen readers); the first Edition prints none; the home
 // page's 2026 wall matches /2026/'s, and its bill groups the returning Speakers by their credit; no credit is typed
-// by hand in src/; and every Organizer card has a photo or initials. The home page's Organizers match About's.
+// by hand in src/; and every Organizer card has a photo or initials. The home page's Organizers match About's, and
+// each current Organizer's card there has a title and an employer, written in one style.
 // tests/run-local.mjs runs it; tests/run-program.mjs checks the credits' layout and the tier sizes in a browser.
 // Usage: node tests/credits-pages.mjs
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -149,6 +150,25 @@ for (const year of [2024, 2025]) expect(!/class="pg-aff"/.test(section(read(`${y
 // 6. The home page's Organizers are About's, with the same credits.
 const team = (html) => cards(html).map((c) => `${c.match(/<b>([^<]+)<\/b>/)[1]}: ${c.match(new RegExp(CREDIT))?.slice(1).join('') ?? '-'}`).join('; ');
 expect(team(read('index.html')) === team(read('about/index.html')), `the home page's Organizers differ from About's:\n  ${team(read('index.html'))}\n  ${team(read('about/index.html'))}`);
+
+// 6b. Each current Organizer's card, on the home page and About, has the same lines: the name, the title and the
+// employer (src/data/about.ts), the title in title case and in full: no "Sr.", no "&" or "|", and no employer inside
+// it ("at KGPCo"). Until the current team is in, the home page shows the last Edition's cards as printed.
+{
+  const small = /^(?:and|of|the|for|to|in|on)$/;
+  for (const path of ['index.html', 'about/index.html']) {
+    const html = read(path);
+    if (/class="organizers-later"/.test(html)) continue;
+    for (const c of cards(html)) {
+      const name = c.match(/<b>([^<]+)<\/b>/)?.[1];
+      const title = decode(c.match(/<span class="pg-org-title">([^<]+)<\/span>/)?.[1] ?? '');
+      const employer = decode(c.match(/<span class="pg-aff">([^<]+)<\/span>/)?.[1] ?? '');
+      const where = `/${path.replace(/index\.html$/, '')}: ${name}`;
+      expect(title !== '' && employer !== '', `${where}'s card has ${title ? '' : 'no title'}${title || employer ? '' : ' and '}${employer ? '' : 'no employer'}`);
+      expect(!/\bSr\.|[&|]|\sat\s/.test(title) && title.split(/\s+/).every((w) => small.test(w) || /^[A-Z0-9]/.test(w)), `${where}'s title "${title}" isn't in title case and in full`);
+    }
+  }
+}
 
 // 7. The home page's bill: the returning Speakers of 2026's bill, grouped by their credit, most Editions first.
 {

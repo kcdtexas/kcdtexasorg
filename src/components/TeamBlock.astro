@@ -14,7 +14,7 @@ import { organizerCredit } from '../lib/loyalty';
 const now = about.organizers2027.length > 0;
 const year = now ? edition2027.year : edition2026.year;
 const cards = now
-  ? about.organizers2027.map((o) => ({ name: o.name, photo: photoOf(organizerPhotos2027, o.photo, o.name), line: [o.employer, o.title].filter(Boolean).join(' · ') }))
+  ? about.organizers2027.map((o) => ({ name: o.name, photo: photoOf(organizerPhotos2027, o.photo, o.name), title: o.title, company: o.employer }))
   : edition2026.organizers.map((o) => ({ name: o.name, photo: photoOf(organizerPhotos, o.photo, o.name), line: [o.company, o.title].filter(Boolean).join(' · ') }));
 ---
 
@@ -23,7 +23,7 @@ const cards = now
     <h2 id="team-title" class="h2">{home.team.title(year)}</h2>
     {!now && <p class="organizers-later">{home.team.later}</p>}
     <ul class="pg-org">
-      {cards.map((c) => <OrganizerCard name={c.name} photo={c.photo} line={c.line} credit={organizerCredit(c.name, year)} />)}
+      {cards.map((c) => <OrganizerCard {...c} credit={organizerCredit(c.name, year)} />)}
     </ul>
     <p class="more"><a href={paths.about}>{home.team.link}</a></p>
   </div>

@@ -52,7 +52,7 @@ const organizers: { name: string; employer: string; title: string; photo?: strin
       ) : (
         <>
           <ul class="pg-org">
-            {organizers.map((o) => <OrganizerCard name={o.name} photo={photoOf(organizerPhotos2027, o.photo, o.name)} line={[o.employer, o.title].filter(Boolean).join(' · ')} credit={organizerCredit(o.name)} />)}
+            {organizers.map((o) => <OrganizerCard name={o.name} photo={photoOf(organizerPhotos2027, o.photo, o.name)} title={o.title} company={o.employer} credit={organizerCredit(o.name)} />)}
           </ul>
           <p>{a.organizers.pastTeams.before} {a.organizers.pastTeams.years.map((y, i, all) => <>{i === 0 ? '' : i === all.length - 1 ? ' and ' : ', '}<a href={`/${y}/#organizers`}>{y}</a></>)}.</p>
         </>

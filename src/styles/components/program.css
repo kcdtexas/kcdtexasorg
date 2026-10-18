@@ -10,6 +10,9 @@
   /* Initials in a photo's place, grey on the surface tone, as a Speaker's (.spk-photo in schedule.css). */
   svg.pg-org-photo { background: var(--surface); color: var(--muted); font-stretch: 62%; }
   .pg-org b { font-weight: 700; }
+  /* A 2027 Organizer's title, in the text tone, its lines balanced so no word is left alone ("II"); their employer
+     follows in the muted one (.pg-aff). */
+  .pg-org-title { color: var(--fg); text-wrap: balance; }
   .pg-title { font-weight: 700; font-size: 18px; line-height: 1.3; text-wrap: pretty; }
   .pg-none, .pg-note { color: var(--muted); }
   .pg-none { font-size: 15px; }

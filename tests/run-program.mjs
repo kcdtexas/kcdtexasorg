@@ -415,7 +415,7 @@ try {
           const share = (box.width * box.height) / (r.width * r.height);
           if (!inside || !corner || share > 1 / 6) onPhoto = `${Math.round(box.width)}x${Math.round(box.height)} at ${Math.round(box.left - r.left)},${Math.round(box.bottom - r.bottom)} from the bottom-left corner of a ${Math.round(r.width)}x${Math.round(r.height)} photo`;
         }
-        const content = [...holder.querySelectorAll('img, .pg-org-photo, .sp-name, .spk-photo, b, h1, .spk-name, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e) && e !== photo && !photo?.contains(e));
+        const content = [...holder.querySelectorAll('img, .pg-org-photo, .sp-name, .spk-photo, b, h1, .spk-name, .pg-org-title, .pg-aff, .spk-tag, .spk-ses')].filter((e) => !cr.contains(e) && e !== photo && !photo?.contains(e));
         // A link by its words: its tap padding (tests/targets.mjs) is invisible. Anything else by its boxes: one per
         // line for an inline element, so a company line that wraps under a name and its tab isn't one big box.
         const shapes = (e) => {
