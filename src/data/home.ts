@@ -145,7 +145,6 @@ export const home = {
       { term: 'Dates', text: `Opens ${shortDateYear(e.cfp.opens)}; closes ${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
       { term: 'Formats', text: 'Talks and hands-on workshops' },
       { term: 'Video', text: `${edition2026.recordings} talks from 2026 are on YouTube`, href: edition2026.talksUrl },
-      { term: 'First time', text: 'First time speaking? Ask for a mentor when you submit.' },
       { term: 'Proposals', text: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.` },
     ],
     photoAlt: 'Tyler Auerbeck speaks during his afternoon talk at KCD Texas 2026, a microphone clipped to his shirt.',

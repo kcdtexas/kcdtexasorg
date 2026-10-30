@@ -37,17 +37,11 @@ const canSubmit = status === 'Open now' && cfp.submitUrl !== '';
       <ul class="page-list">{cfp.lookFor.points.map((p) => <li>{p}</li>)}</ul>
     </section>
 
-    <div class="page-sec cfp-pair">
-      <section aria-labelledby="end-user">
-        <h2 id="end-user" class="page-h2">{cfp.endUser.title}</h2>
-        <p>{cfp.endUser.text}</p>
-        <p class="cfp-employer">{cfp.endUser.employer}</p>
-      </section>
-      <section class="cfp-first" aria-labelledby="first-time">
-        <h2 id="first-time" class="page-h2">{cfp.firstTime.title}</h2>
-        <p class="cfp-first-text">{cfp.firstTime.text}</p>
-      </section>
-    </div>
+    <section class="page-sec cfp-end-user" aria-labelledby="end-user">
+      <h2 id="end-user" class="page-h2">{cfp.endUser.title}</h2>
+      <p>{cfp.endUser.text}</p>
+      <p class="cfp-employer">{cfp.endUser.employer}</p>
+    </section>
 
     <section class="page-sec" aria-labelledby="writing">
       <h2 id="writing" class="page-h2">{cfp.writing.title}</h2>

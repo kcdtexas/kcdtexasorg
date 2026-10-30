@@ -52,10 +52,6 @@ export const cfp = {
     // One line on the call-for-proposals social card.
     cardLine: 'Run cloud native for your own business? Tell us your End-User Story.',
   },
-  firstTime: {
-    title: 'First-time Speakers',
-    text: 'First time speaking? Ask for a mentor when you submit.',
-  },
   writing: {
     title: 'Writing a strong proposal',
     points: [
