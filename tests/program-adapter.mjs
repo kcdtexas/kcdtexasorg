@@ -4,7 +4,7 @@
 //      validation failures, the allowlist (the planted marker never reaches the model) and the program version.
 //   2. The CSV fallback on tests/fixtures/program.csv.
 //   3. The rules: which builds read the platform, the redaction of the endpoint ID and the CSV address in every
-//      error, the test-only addresses refused on Netlify and in GitHub Actions, and the photos.
+//      error, the test-only addresses refused on Cloudflare Pages, Netlify and in GitHub Actions, and the photos.
 //   4. scripts/program-check.mjs.
 //   5. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
 //      run and restored after: production from the local Sessionize and the CSV, a program with more Share Cards
@@ -22,6 +22,7 @@ import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
 import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
+import { buildKind, isProductionBuild } from '../src/lib/build-context.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
 import { fetchable, fetchBytes, redact, sessionizeBase, sessionizePhoto } from '../src/lib/program-source/remote.mjs';
 import { adaptSessionize, validateAll } from '../src/lib/program-source/sessionize.mjs';
@@ -41,7 +42,7 @@ const CSV_SECRET = 'csv-token-fx9';
 const both = { speakersPublic: true, schedulePublic: true };
 const speakersOnly = { speakersPublic: true, schedulePublic: false };
 const closed = { speakersPublic: false, schedulePublic: false };
-const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
+const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|CF_PAGES|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
 
 // The local stand-in for every remote address. The Sessionize fixture's photos on Sessionize's host, and the CSV's
 // on any host, come from here; Fixture Person D's photo, on another host, stays where it is, so a request for it
@@ -278,6 +279,29 @@ try {
       expect(!w.read.has('SESSIONIZE_ENDPOINT_ID') && !w.read.has('PROGRAM_CSV_URL'), `CONTEXT=${context} reads the platform variables`);
     }
   }
+  // Cloudflare Pages (ADR 0012): production only when Pages builds `main`; Pages sets CF_PAGES and the branch itself,
+  // and on Pages, CONTEXT counts for nothing.
+  for (const [pages, want] of [
+    [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }, 'sessionize'],
+    [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'cloudflare' }, 'test'],
+    [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'main-copy' }, 'test'],
+    [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'feature', CONTEXT: 'production' }, 'test'],
+    [{ CF_PAGES: '1', CONTEXT: 'production' }, 'test'],
+    [{ CF_PAGES: 'true', CF_PAGES_BRANCH: 'main' }, 'test'],
+  ]) {
+    for (const gates of [both, speakersOnly]) {
+      const w = watched({ ...pages, SESSIONIZE_ENDPOINT_ID: ID, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+      const kind = chooseSource(gates, w.env).kind;
+      expect(kind === want, `Pages ${JSON.stringify(pages)} with a gate open reads ${kind}, not ${want}`);
+      if (want === 'test') expect(!w.read.has('SESSIONIZE_ENDPOINT_ID') && !w.read.has('PROGRAM_CSV_URL'), `Pages ${JSON.stringify(pages)} reads the platform variables`);
+    }
+  }
+  for (const env of [{}, { CONTEXT: 'deploy-preview' }, { NETLIFY: 'true', CONTEXT: 'deploy-preview' }, { CF_PAGES: '1', CF_PAGES_BRANCH: 'x' }]) {
+    expect(!isProductionBuild(env) && buildKind(env) === (Object.keys(env).length ? 'preview' : 'local'), `${JSON.stringify(env)} counts as a production build, or as the wrong kind`);
+  }
+  for (const env of [{ CONTEXT: 'production' }, { NETLIFY: 'true', CONTEXT: 'production' }, { CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }]) {
+    expect(isProductionBuild(env) && buildKind(env) === 'production', `${JSON.stringify(env)} doesn't count as a production build`);
+  }
   for (const context of [undefined, 'production']) {
     const w = watched({ CONTEXT: context, SESSIONIZE_ENDPOINT_ID: ID });
     expect(chooseSource(closed, w.env).kind === 'none' && !w.read.has('SESSIONIZE_ENDPOINT_ID'), `closed gates read a source (CONTEXT=${context})`);
@@ -289,10 +313,10 @@ try {
   await rejects(() => chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: 'bad/id?x' }), (m) => /not a Sessionize endpoint ID/.test(m) && !m.includes('bad/id'), 'a malformed endpoint ID');
   await rejects(() => chooseSource(both, { CONTEXT: 'production', NETLIFY: 'true', PROGRAM_CSV_URL: `http://127.0.0.1/${CSV_SECRET}` }), (m) => /must be an https address/.test(m) && !m.includes(CSV_SECRET), 'a plain-http CSV address on Netlify');
 
-  // The test addresses: this machine only, and never on Netlify or in GitHub Actions.
+  // The test addresses: this machine only, and never on Cloudflare Pages, Netlify or in GitHub Actions.
   expect(sessionizeBase({}) === 'https://sessionize.com/api/v2' && sessionizeBase(testEnv) === `${origin}/api/v2`, 'the Sessionize base is wrong');
-  for (const extra of [{ NETLIFY: 'true' }, { GITHUB_ACTIONS: 'true' }]) {
-    await rejects(() => sessionizeBase({ ...testEnv, ...extra }), (m) => /refused on Netlify and in GitHub Actions/.test(m), `KCD_PROGRAM_TEST_BASE with ${Object.keys(extra)[0]}`);
+  for (const extra of [{ CF_PAGES: '1' }, { NETLIFY: 'true' }, { GITHUB_ACTIONS: 'true' }]) {
+    await rejects(() => sessionizeBase({ ...testEnv, ...extra }), (m) => /refused on Cloudflare Pages, Netlify and in GitHub Actions/.test(m), `KCD_PROGRAM_TEST_BASE with ${Object.keys(extra)[0]}`);
     expect(!fetchable(`${origin}/photos/a.jpg`, extra), `a plain-http photo is allowed with ${Object.keys(extra)[0]}`);
   }
   await rejects(() => sessionizeBase({ KCD_PROGRAM_TEST_BASE: 'https://evil.example/api' }), (m) => /a server on this machine/.test(m), 'a remote KCD_PROGRAM_TEST_BASE');
@@ -381,7 +405,7 @@ try {
     for (const [label, env, pattern] of [
       ['no variable', { ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined }, /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL/],
       ['a failing platform', checkEnv, /HTTP 500/],
-      ['GitHub Actions with a test address', { ...checkEnv, GITHUB_ACTIONS: 'true' }, /refused on Netlify and in GitHub Actions/],
+      ['GitHub Actions with a test address', { ...checkEnv, GITHUB_ACTIONS: 'true' }, /refused on Cloudflare Pages, Netlify and in GitHub Actions/],
     ]) {
       state.mode = label === 'a failing platform' ? '500' : 'ok';
       res = await check(env);
@@ -498,16 +522,17 @@ try {
       expect(stepsOk && readFileSync('dist/2027/today/index.html', 'utf8').includes(`<li><time datetime="${EVENT_DAY}T09:00">9:00 a.m.</time> <span data-ugc>${said}.</span></li>`),
         `production on Event Day fails on the Speakers' and Organizers' own words, or lacks the announcement:\n${steps.slice(-2500)}`);
 
-      // A deploy preview and a branch deploy with the gates open and both variables set to this server: the test
-      // data, labeled "Sample" and marked as a test build, and no request to the platform.
-      for (const context of ['deploy-preview', 'branch-deploy']) {
+      // A deploy preview, a branch deploy and a Cloudflare Pages preview with the gates open and both variables set
+      // to this server: the test data, labeled "Sample" and marked as a test build, and no request to the platform.
+      for (const [context, hostEnv] of [['deploy-preview', { CONTEXT: 'deploy-preview' }], ['branch-deploy', { CONTEXT: 'branch-deploy' }],
+        ['Pages preview', { CF_PAGES: '1', CF_PAGES_BRANCH: 'cloudflare' }]]) {
         state.requests.length = 0;
-        b = await build({ ...prodSessionize, ...prodCsv, CONTEXT: context });
+        b = await build({ ...prodSessionize, ...prodCsv, ...hostEnv });
         expect(b.status === 0 && state.requests.length === 0, `the ${context} build fails or reads the platform (${state.requests.length} requests):\n${b.log.slice(-1500)}`);
         expect(b.status === 0 && /using the test program/.test(b.log) && /\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')) && !existsSync('dist/2027/speakers/fixture-person-a')
           && /KCD_PROGRAM_SAMPLE/.test(readFileSync('dist/.test-build', 'utf8')), `the ${context} build does not use the labeled test data`);
         // It warns that each variable is set where it shouldn't be, naming it, never its value.
-        expect(['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL'].every((v) => b.log.includes(`Warning: ${v} is set in a ${context} build. Scope it to the Production deploy context only`))
+        expect(['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL'].every((v) => b.log.includes(`Warning: ${v} is set in a preview build. Set it for production only`))
           && !b.log.includes(ID) && !b.log.includes(CSV_SECRET), `the ${context} build doesn't warn about the platform's variables, or prints a value:\n${b.log.slice(0, 1500)}`);
       }
 

@@ -1,11 +1,13 @@
 // Where the program comes from, and reading it. The rules (ADR 0009, docs/program-csv.md):
 //   - a closed gate reads nothing;
-//   - real data only in a Netlify production build (CONTEXT=production) with a gate open: from Sessionize when
+//   - real data only in a production build (src/lib/build-context.mjs: Cloudflare Pages building `main`, or a
+//     Netlify production deploy) with a gate open: from Sessionize when
 //     SESSIONIZE_ENDPOINT_ID is set, else from the CSV at PROGRAM_CSV_URL, and the build fails when neither is;
 //   - every other build (deploy previews, branch deploys, local builds) uses the test data and never looks at
 //     those variables;
 //   - a failed fetch or data that doesn't validate fails the build, so the host keeps the last good deploy.
 // Every error message is redacted: it names the variables, never their values.
+import { isProductionBuild } from '../build-context.mjs';
 import { adaptCsv } from './csv.mjs';
 import { publicProgram, programVersion } from './model.mjs';
 import { fetchable, fetchBytes, ProgramSourceError, redact, sessionizeBase, sessionizePhoto } from './remote.mjs';
@@ -26,7 +28,7 @@ export const gatesOpen = (gates) => Boolean(gates.speakersPublic || gates.schedu
  */
 export function chooseSource(gates, env) {
   if (!gatesOpen(gates)) return { kind: 'none' };
-  if (env.CONTEXT !== 'production') return { kind: 'test' };
+  if (!isProductionBuild(env)) return { kind: 'test' };
   if (env.SESSIONIZE_ENDPOINT_ID) {
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(env.SESSIONIZE_ENDPOINT_ID)) throw new ProgramSourceError('SESSIONIZE_ENDPOINT_ID is not a Sessionize endpoint ID (letters, digits, "-" and "_").', env);
     return { kind: 'sessionize' };

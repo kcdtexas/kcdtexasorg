@@ -10,6 +10,7 @@ import { join, extname, relative, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { parse } from 'yaml';
 import { importTs } from './lib/import-ts.mjs';
+import { buildKind, isProductionBuild } from '../src/lib/build-context.mjs';
 
 // Pages that must be built, as URL paths: a path ending in "/" is that folder's index.html,
 // anything else is the file itself. tests/smoke.mjs treats a link to a v1 page that isn't
@@ -179,9 +180,9 @@ function programGates({ edition2027 }, walk) {
   if (has('2027/program-version.txt') && !/^[0-9a-f]{64}\n$/.test(readFileSync(join(DIST, '2027/program-version.txt'), 'utf8'))) failures.push('dist/2027/program-version.txt is not one SHA-256 line');
 
   // The preview rule.
-  if (process.env.CONTEXT !== 'production') {
+  if (!isProductionBuild(process.env)) {
     for (const v of ['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL']) {
-      if (process.env[v] !== undefined) failures.push(`${v} reaches a build that isn't a production build (CONTEXT=${process.env.CONTEXT ?? 'unset'}); scripts/build.sh unsets it there`);
+      if (process.env[v] !== undefined) failures.push(`${v} reaches a build that isn't a production build (a ${buildKind(process.env)} build); scripts/build.sh unsets it there`);
     }
     if (open) {
       if (!sample) failures.push('a program gate is open outside a production build, but the build has no test program (scripts/build.sh sets KCD_PROGRAM_SAMPLE)');
@@ -215,8 +216,8 @@ async function check() {
   }
 
   // A test-flag build (scripts/build.sh writes the marker) never ships from a production build.
-  if (process.env.CONTEXT === 'production' && existsSync(join(DIST, TEST_BUILD_MARKER))) {
-    failures.push(`dist/${TEST_BUILD_MARKER}: this is a test build, and CONTEXT is production`);
+  if (isProductionBuild(process.env) && existsSync(join(DIST, TEST_BUILD_MARKER))) {
+    failures.push(`dist/${TEST_BUILD_MARKER}: this is a test build, and this is a production build`);
   }
 
   // Every Short Link from the data file is served, and there is no catch-all.

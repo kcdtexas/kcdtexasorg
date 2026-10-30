@@ -10,7 +10,7 @@
 // the made-up sample Schedule (src/data/program-sample-schedule.ts, in the 2026 Schedule's shape) and the made-up
 // fixture (src/data/program-fixture.ts). No real name reaches a test build. The pages label it "Sample".
 // Real data comes from Sessionize or the CSV fallback (src/lib/program-source/), read only in a production build
-// (CONTEXT=production) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
+// (src/lib/build-context.mjs) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
 // Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007), and the
 // public model's hash is published at /2027/program-version.txt for the refresh check (scripts/program-check.mjs).
 import { asOfDay, edition2027, programDataSample, programSampleGates } from '../data/edition-2027';

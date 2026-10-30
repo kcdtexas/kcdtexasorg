@@ -4,14 +4,15 @@
 //
 // Addresses must be https. The one exception is for tests: a plain-http server on this machine (127.0.0.1,
 // localhost or [::1]) stands in for the platform and the photo host, and KCD_PROGRAM_TEST_BASE points the
-// Sessionize reader at it. Both are refused on Netlify and in GitHub Actions (NETLIFY or GITHUB_ACTIONS set), so
-// a real production build can't be redirected, and even elsewhere they reach only this machine.
+// Sessionize reader at it. Both are refused on the hosts and in GitHub Actions (CF_PAGES, NETLIFY or
+// GITHUB_ACTIONS set), so a real production build can't be redirected, and even elsewhere they reach only this
+// machine.
 import { sessionize } from './config.mjs';
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
 
-/** True where tests may use local plain-http servers: never on Netlify or in GitHub Actions. */
-export const localTestsAllowed = (env) => !env.NETLIFY && !env.GITHUB_ACTIONS;
+/** True where tests may use local plain-http servers: never on Cloudflare Pages, Netlify or in GitHub Actions. */
+export const localTestsAllowed = (env) => !env.CF_PAGES && !env.NETLIFY && !env.GITHUB_ACTIONS;
 
 /** The message with every secret value (as is and URL-encoded) replaced by its variable's name. */
 export function redact(message, env) {
@@ -52,7 +53,7 @@ export function sessionizePhoto(raw, env) {
 export function localTestUrl(name, env) {
   const test = env[name];
   if (!test) return null;
-  if (!localTestsAllowed(env)) throw new ProgramSourceError(`${name} is for tests only and is refused on Netlify and in GitHub Actions. Remove it from the environment.`, env);
+  if (!localTestsAllowed(env)) throw new ProgramSourceError(`${name} is for tests only and is refused on Cloudflare Pages, Netlify and in GitHub Actions. Remove it from the environment.`, env);
   let url;
   try { url = new URL(test); } catch { url = null; }
   if (!url || !/^https?:$/.test(url.protocol) || !LOOPBACK.has(url.hostname)) throw new ProgramSourceError(`${name} must be a server on this machine (127.0.0.1, localhost or [::1]).`, env);
