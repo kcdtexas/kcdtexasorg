@@ -25,7 +25,7 @@ import { parse } from 'yaml';
 import { importTs } from '../scripts/lib/import-ts.mjs';
 import { rebuildDates } from '../scripts/rebuild-dates.mjs';
 import { HOOK_STEP, PROGRAM_DEPLOY_JOB, deployedIn, hookedIn, lastBuildHook, lastProgramDeploy } from '../scripts/last-program-deploy.mjs';
-import { DEPLOY_BUDGET, MORNING_CRON, RETRY_CRONS, centralClock, eventDayCrons, refreshPolicy } from '../scripts/refresh-policy.mjs';
+import { DEPLOY_BUDGET, MORNING_CRON, PAGES_BUILD_CAP, PAGES_BUILDS_PER_MONTH, RETRY_CRONS, centralClock, eventDayCrons, refreshPolicy } from '../scripts/refresh-policy.mjs';
 import { LIVE_DAY_URL, centralDay, liveBuildDay, rebuildToday } from '../scripts/rebuild-today.mjs';
 import { liveVersionUrl } from '../src/lib/program-source/config.mjs';
 import { DAYS } from './time-machine.mjs';
@@ -104,7 +104,7 @@ expect(wf.on?.workflow_dispatch?.inputs?.force?.type === 'boolean', 'no workflow
 expect(JSON.stringify(wf.permissions) === '{}', 'the workflow-level permissions are not {}');
 const allowed = { check: { contents: 'read', actions: 'read' }, program: { contents: 'read' }, rebuild: {}, keepalive: { actions: 'write' } };
 // The secrets each job may read, all from the production environment.
-const secretsOf = { program: ['PROGRAM_CSV_URL', 'SESSIONIZE_ENDPOINT_ID'], rebuild: ['NETLIFY_BUILD_HOOK'] };
+const secretsOf = { program: ['PROGRAM_CSV_URL', 'SESSIONIZE_ENDPOINT_ID'], rebuild: ['CLOUDFLARE_DEPLOY_HOOK'] };
 for (const [name, job] of Object.entries(wf.jobs)) {
   expect(name in allowed, `job "${name}" is not checked here`);
   expect(JSON.stringify(job.permissions) === JSON.stringify(allowed[name]), `job "${name}" has permissions ${JSON.stringify(job.permissions)}, not ${JSON.stringify(allowed[name])}`);
@@ -130,7 +130,7 @@ expect(/needs\.program\.outputs\.changed == 'true'/.test(wf.jobs.rebuild?.if ?? 
 expect(wf.jobs.rebuild?.environment === 'production', 'the rebuild job does not name the production environment');
 // The deploy budget finds program deploys by the rebuild job's name and its build hook step (scripts/last-program-deploy.mjs).
 expect(wf.jobs.rebuild?.name === `\${{ (needs.check.outputs.forced == 'true' || (needs.program.outputs.changed == 'true' && needs.check.outputs.rebuild != 'true')) && '${PROGRAM_DEPLOY_JOB}' || 'Scheduled rebuild' }}`, `the rebuild job's name ${JSON.stringify(wf.jobs.rebuild?.name)} doesn't mark a forced run or a program change as "${PROGRAM_DEPLOY_JOB}"`);
-expect((wf.jobs.rebuild?.steps ?? []).filter((st) => st.name === HOOK_STEP).length === 1 && /secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify((wf.jobs.rebuild?.steps ?? []).find((st) => st.name === HOOK_STEP))), `no step named "${HOOK_STEP}" calls the build hook`);
+expect((wf.jobs.rebuild?.steps ?? []).filter((st) => st.name === HOOK_STEP).length === 1 && /secrets\.CLOUDFLARE_DEPLOY_HOOK/.test(JSON.stringify((wf.jobs.rebuild?.steps ?? []).find((st) => st.name === HOOK_STEP))), `no step named "${HOOK_STEP}" calls the build hook`);
 expect(wf.jobs.check?.outputs?.forced === '${{ steps.today.outputs.forced }}', 'the check job does not pass on forced=');
 // The catch-up decides in scripts/rebuild-today.mjs alone: the check job passes its rebuild= on as it is.
 expect(wf.jobs.check?.outputs?.rebuild === '${{ steps.today.outputs.rebuild }}', 'the check job does not pass on the script\'s rebuild= as it is');
@@ -141,26 +141,26 @@ const dayWait = (wf.jobs.rebuild?.steps ?? []).find((st) => /build\.txt/.test(JS
 const dayLoop = dayWait?.run ?? '';
 expect(dayWait && (wf.jobs.rebuild.steps.indexOf(dayWait) > hookIndex()) && dayWait.if === "needs.check.outputs.rebuild == 'true'", `the rebuild job doesn't wait for the new day after the build hook on a rebuild: ${JSON.stringify(dayWait?.if)}`);
 expect(dayWait?.env?.LIVE === LIVE_DAY_URL && dayWait?.env?.DAY === '${{ needs.check.outputs.day }}', `the day wait reads ${JSON.stringify(dayWait?.env)}, not ${LIVE_DAY_URL} and the check job's day`);
-expect(Number(dayLoop.match(/SECONDS \+ (\d+)\)/)?.[1]) <= 600 && Number(dayLoop.match(/\bsleep (\d+)\b/)?.[1]) >= 10 && /::error::[^\n]*Netlify[^\n]*deploy log/.test(dayLoop) && /\bexit 1\s*$/.test(dayLoop), 'the day wait does not check every 10 s or more for at most 10 minutes, then fail with a pointer to Netlify');
+expect(Number(dayLoop.match(/SECONDS \+ (\d+)\)/)?.[1]) <= 600 && Number(dayLoop.match(/\bsleep (\d+)\b/)?.[1]) >= 10 && /::error::[^\n]*Cloudflare[^\n]*build log/.test(dayLoop) && /\bexit 1\s*$/.test(dayLoop), 'the day wait does not check every 10 s or more for at most 10 minutes, then fail with a pointer to Cloudflare');
 expect(/\[\[ "\$built" =~ \^\[0-9\]\{4\}-\[0-9\]\{2\}-\[0-9\]\{2\}\$ \]\] && \[\[ ! "\$built" < "\$DAY" \]\]/.test(dayLoop), 'the day wait could end on a missing or older live day');
 // A re-run reuses the check's old answer, so only a forced run's re-run reaches the hook; the POST has a time limit
-// and doesn't retry every error, since Netlify may have started a build before it failed to answer.
+// and doesn't retry every error, since Cloudflare may have started a build before it failed to answer.
 expect(/&& \(github\.run_attempt == 1 \|\| needs\.check\.outputs\.forced == 'true'\) \}\}$/.test(wf.jobs.rebuild?.if ?? ''), `the rebuild job runs on a re-run: ${wf.jobs.rebuild?.if}`);
 const hookRun = (wf.jobs.rebuild?.steps ?? [])[hookIndex()]?.run ?? '';
 expect(/--max-time \d+/.test(hookRun) && !/--retry-all-errors/.test(hookRun), 'the build hook has no time limit, or retries every error');
 function hookIndex() { return (wf.jobs.rebuild?.steps ?? []).findIndex((st) => st.name === HOOK_STEP); }
 const todayStep = (wf.jobs.check?.steps ?? []).find((st) => st.id === 'today');
 expect(todayStep?.env?.GH_TOKEN === '${{ github.token }}' && wf.jobs.check?.permissions?.actions === 'read', "the check job can't read the last program deploy: no GH_TOKEN or no actions: read");
-expect(/secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(wf.jobs.rebuild?.steps)), 'the rebuild job does not use NETLIFY_BUILD_HOOK');
+expect(/secrets\.CLOUDFLARE_DEPLOY_HOOK/.test(JSON.stringify(wf.jobs.rebuild?.steps)), 'the rebuild job does not use CLOUDFLARE_DEPLOY_HOOK');
 // No second deploy of one program change. After a program change (a rebuild day or a forced run doesn't wait), the
 // rebuild job notes the live program version just before the build hook, in a file on the runner, with the HTTP
 // status: a 404 leaves the note empty (no program is live yet), and any other failure stops the job before the
 // hook, since an empty note would let the wait take the old version for the new one. After the hook it waits until
 // the live version differs from the note (or appears, if there was none), checking every 20 seconds or so for at
-// most 10 minutes; it fails with a pointer to Netlify's deploy log. No job passes a version on, no step's
+// most 10 minutes; it fails with a pointer to the build log on Cloudflare. No job passes a version on, no step's
 // environment holds one, and no command prints one. Runs queue in one group, so the next run sees the new live site.
 const rebuildSteps = wf.jobs.rebuild?.steps ?? [];
-const hookAt = rebuildSteps.findIndex((s) => /secrets\.NETLIFY_BUILD_HOOK/.test(JSON.stringify(s)));
+const hookAt = rebuildSteps.findIndex((s) => /secrets\.CLOUDFLARE_DEPLOY_HOOK/.test(JSON.stringify(s)));
 const readsLive = (s) => /program-version\.txt/.test(JSON.stringify(s));
 const noteAt = rebuildSteps.findIndex(readsLive);
 const waitAt = rebuildSteps.findLastIndex(readsLive);
@@ -180,7 +180,7 @@ const deadline = Number(loop.match(/SECONDS \+ (\d+)\)/)?.[1]);
 const every = Number(loop.match(/\bsleep (\d+)\b/)?.[1]);
 expect(deadline > 0 && deadline <= 600 && every >= 10 && every <= 30, `the wait checks every ${every} s for ${deadline} s, not every 10 to 30 s for at most 10 minutes`);
 expect(wf.jobs.rebuild?.['timeout-minutes'] * 60 >= deadline + 120, `the rebuild job's ${wf.jobs.rebuild?.['timeout-minutes']}-minute timeout ends before the wait's own message`);
-expect(/::error::[^\n]*Netlify[^\n]*deploy log/.test(loop) && /\bexit 1\s*$/.test(loop), 'the wait does not fail with a message that points to the deploy log in Netlify');
+expect(/::error::[^\n]*Cloudflare[^\n]*build log/.test(loop) && /\bexit 1\s*$/.test(loop), 'the wait does not fail with a message that points to the build log on Cloudflare');
 expect(/\[ -n "\$got" \] && \[ "\$got" != "\$before" \]/.test(loop), 'the wait could end on a missing live file, or on the version it noted');
 // A command may write a version to the note's file, and nowhere else: not to the log, and not to $GITHUB_ENV or
 // $GITHUB_OUTPUT, whose values show in later steps' logs.
@@ -305,7 +305,7 @@ for (const day of ['2026-11-01', '2026-11-02', '2027-01-15', '2027-03-13', '2027
 }
 
 // Every run GitHub would start from one day to another: the daily runs and Event Day's, each `delay` minutes late,
-// unless `drop(run)` drops it. `mark(run)` adds hookFails (the hook isn't accepted) or unpublished (Netlify takes
+// unless `drop(run)` drops it. `mark(run)` adds hookFails (the hook isn't accepted) or unpublished (Cloudflare takes
 // it, but the live site doesn't change).
 function runsOf(fromDay, toDay, { delay = 0, drop = () => false, mark = () => ({}) } = {}) {
   const runs = [];
@@ -369,41 +369,49 @@ const deploys = allDeploys.filter((d) => d.program).map((d) => d.at);
 const spaced = deploys.filter((at) => dayOf(at) < eve);
 const perMonth = (m) => spaced.filter((at) => dayOf(at).startsWith(m)).length;
 const onEventDay = deploys.filter((at) => dayOf(at) === calendar.eventDay);
-expect(perMonth('2027-03') <= 8 && perMonth('2027-04') <= 8, `with a change every day, March and April before the eve make ${perMonth('2027-03')} and ${perMonth('2027-04')} program deploys, more than 8 a month`);
-expect(perMonth('2027-03') === 8, `with a change every day, March makes ${perMonth('2027-03')} program deploys, not 8`);
+// At most one a day before the eve: March 2 to 31 (Mar 1 is a rebuild day, whose rebuild has the program), and
+// April 1 to 21.
+expect(perMonth('2027-03') === 30 && perMonth('2027-04') === 21, `with a change every day, March and April before the eve make ${perMonth('2027-03')} and ${perMonth('2027-04')} program deploys, not 30 and 21`);
 expect(spaced.every((at, i) => i === 0 || daysBetween(dayOf(spaced[i - 1]), dayOf(at)) >= DEPLOY_BUDGET.everyDays), `program deploys before the eve come less than ${DEPLOY_BUDGET.everyDays} Central days apart: ${spaced.map(dayOf).join(', ')}`);
 expect(deploys.filter((at) => dayOf(at) === eve).length === 1, `the eve of Event Day makes ${deploys.filter((at) => dayOf(at) === eve).length} program deploys, not 1`);
-expect(onEventDay.length === 6, `Event Day makes ${onEventDay.length} program deploys, not 6: ${onEventDay.map(hm).join(', ')}`);
+expect(onEventDay.length === 144, `Event Day makes ${onEventDay.length} program deploys, not 144, one per 5-minute run from 7 a.m. to 7 p.m. (ADR 0008): ${onEventDay.map(hm).join(', ')}`);
 expect(onEventDay.every((at, i) => i === 0 || at - onEventDay[i - 1] >= DEPLOY_BUDGET.eventDayEveryMinutes * 60_000) && onEventDay.every((at) => hm(at) >= '07:00' && hm(at) < '19:00'), `Event Day's program deploys are ${onEventDay.map(hm).join(', ')} Central`);
 expect(deploys.every((at) => dayOf(at) <= calendar.eventDay), 'a program change deploys after Event Day');
 expect(JSON.stringify(allDeploys.filter((d) => !d.program).map((d) => d.day)) === JSON.stringify(wantBudget), `with a change every day, the rebuild days deploy on ${allDeploys.filter((d) => !d.program).map((d) => d.day).join(', ')}, not once on each of ${wantBudget.join(', ')}`);
 const productionDeploys = Object.fromEntries(['2027-03', '2027-04'].map((m) => [m, allDeploys.filter((d) => d.day.startsWith(m)).length]));
-// The same counts as release 6's: 9 production deploys in March and 14 in April (docs/rebuilds.md).
-expect(productionDeploys['2027-03'] === 9 && productionDeploys['2027-04'] === 14, `with a change every day, ${productionDeploys['2027-03']} and ${productionDeploys['2027-04']} production deploys in March and April, not 9 and 14`);
+// With a change before every run, the schedule's production builds stay under PAGES_BUILD_CAP a month, which leaves
+// room for merges and previews within Pages' 500 (docs/rebuilds.md, "The build budget").
+expect(productionDeploys['2027-03'] === 31 && productionDeploys['2027-04'] === 168, `with a change every day, ${productionDeploys['2027-03']} and ${productionDeploys['2027-04']} production deploys in March and April, not 31 and 168`);
+expect(PAGES_BUILD_CAP < PAGES_BUILDS_PER_MONTH && Object.values(productionDeploys).every((n) => n <= PAGES_BUILD_CAP), `the schedule's production builds (${JSON.stringify(productionDeploys)}) exceed PAGES_BUILD_CAP, ${PAGES_BUILD_CAP} a month`);
 
-// Across DST (2 a.m. CST on Mar 14, 2027): the spacing counts Central days, not UTC days or hours.
+// Across DST (2 a.m. CST on Mar 14, 2027): the spacing counts Central days, not UTC days or hours. A manual run
+// later on the deploy's Central day doesn't deploy; the next Central day's morning run does.
+const unforced = { event: 'workflow_dispatch', force: false };
 for (const [last, no, yes] of [
-  ['2027-03-12T03:00:00Z', '2027-03-14', '2027-03-15'], // 9 p.m. CST on Mar 11, already Mar 12 in UTC
-  ['2027-03-13T05:30:00Z', '2027-03-15', '2027-03-16'], // 11:30 p.m. CST on Mar 12
-  ['2027-03-14T07:30:00Z', '2027-03-17', '2027-03-18'], // 1:30 a.m. CST on Mar 14, just before the change
-  ['2027-03-14T08:30:00Z', '2027-03-17', '2027-03-18'], // 3:30 a.m. CDT on Mar 14, just after
+  ['2027-03-12T03:00:00Z', '2027-03-12T05:00:00Z', '2027-03-12'], // 9 p.m. CST on Mar 11, already Mar 12 in UTC
+  ['2027-03-13T05:30:00Z', '2027-03-13T05:50:00Z', '2027-03-13'], // 11:30 p.m. CST on Mar 12
+  ['2027-03-14T07:30:00Z', '2027-03-14T09:00:00Z', '2027-03-15'], // 1:30 a.m. CST on Mar 14, just before the change
+  ['2027-03-14T08:30:00Z', '2027-03-15T04:30:00Z', '2027-03-15'], // 3:30 a.m. CDT on Mar 14, just after
 ]) {
-  const at = (d) => utc(d, '07:17');
-  const a = policy({ at: at(no), trigger: morning, calendar, gates: GATES.both, changed: true, lastDeploy: new Date(last) });
-  const b = policy({ at: at(yes), trigger: morning, calendar, gates: GATES.both, changed: true, lastDeploy: new Date(last) });
-  expect(!a.check && !a.rebuild && b.check && b.rebuild, `after a program deploy at ${last}, ${no} ${a.rebuild ? 'deploys' : "doesn't deploy"} and ${yes} ${b.rebuild ? 'deploys' : "doesn't deploy"}`);
+  const a = policy({ at: new Date(no), trigger: unforced, calendar, gates: GATES.both, changed: true, lastDeploy: new Date(last) });
+  const b = policy({ at: utc(yes, '07:17'), trigger: morning, calendar, gates: GATES.both, changed: true, lastDeploy: new Date(last) });
+  expect(!a.check && !a.rebuild && b.check && b.rebuild, `after a program deploy at ${last}, a run at ${no} ${a.rebuild ? 'deploys' : "doesn't deploy"} and ${yes}'s morning run ${b.rebuild ? 'deploys' : "doesn't deploy"}`);
 }
-// Only a deploy since midnight Central 3 days earlier counts, in CST and in CDT.
-for (const [day, since] of [['2027-03-16', '2027-03-13T06:00:00Z'], ['2027-03-17', '2027-03-14T06:00:00Z'], ['2027-03-18', '2027-03-15T05:00:00Z']]) {
+// Only a deploy since midnight Central that day counts, in CST, on the change day and in CDT.
+for (const [day, since] of [['2027-03-13', '2027-03-13T06:00:00Z'], ['2027-03-14', '2027-03-14T06:00:00Z'], ['2027-03-16', '2027-03-16T05:00:00Z']]) {
   const p = policy({ at: utc(day, '07:17'), trigger: morning, calendar, gates: GATES.both, lastDeploy: null });
   expect(p.since?.toISOString() === new Date(since).toISOString(), `${day}: the morning run reads program deploys since ${p.since?.toISOString()}, not ${since}`);
 }
 
 // A forced run deploys and resets the spacing, before the eve and on Event Day.
+// Before the eve: one a day, and the forced run on Mar 8 deploys too, after that day's morning deploy.
 const forcedMarch = simulate('2027-03-02', '2027-03-20', [utc('2027-03-08', '15:00')]).map(dayOf);
-expect(JSON.stringify(forcedMarch) === JSON.stringify(['2027-03-02', '2027-03-06', '2027-03-08', '2027-03-12', '2027-03-16', '2027-03-20']), `with a forced run on Mar 8, the program deploys are ${forcedMarch.join(', ')}`);
+const marchDays = Array.from({ length: 19 }, (_, i) => shift('2027-03-02', i));
+expect(JSON.stringify(forcedMarch) === JSON.stringify([...marchDays.slice(0, 7), '2027-03-08', ...marchDays.slice(7)]), `with a forced run on Mar 8, the program deploys are ${forcedMarch.join(', ')}`);
+// On Event Day: every 5-minute run, and the forced run at 10:30 moves the next one from 10:32 to 10:37.
 const forcedEventDay = simulate(calendar.eventDay, calendar.eventDay, [utc(calendar.eventDay, '15:30')]).map(hm);
-expect(JSON.stringify(forcedEventDay) === JSON.stringify(['07:02', '09:02', '10:30', '12:32', '14:32', '16:32', '18:32']), `with a forced run at 10:30 a.m. on Event Day, the program deploys are ${forcedEventDay.join(', ')} Central`);
+const slots = Array.from({ length: 144 }, (_, i) => `${String(7 + Math.floor((2 + 5 * i) / 60)).padStart(2, '0')}:${String((2 + 5 * i) % 60).padStart(2, '0')}`);
+expect(JSON.stringify(forcedEventDay) === JSON.stringify(slots.flatMap((t) => (t === '10:32' ? [] : t === '10:27' ? [t, '10:30'] : [t]))), `with a forced run at 10:30 a.m. on Event Day, the program deploys are ${forcedEventDay.join(', ')} Central`);
 
 // Catch-up. Nov 1, 2026 is a rebuild day (the call for proposals opens) and the day DST ends; the live build is from
 // Oct 31. Whatever GitHub starts late, drops or fails, the first run that gets through deploys, once, and no later
@@ -430,16 +438,16 @@ for (const delay of [0, 565]) {
 // The build hook fails: the next run tries again. Every Nov 1 hook fails: Nov 2's morning run catches up.
 once('the morning hook fails', playNov(nov({ mark: (r) => ({ hookFails: r.trigger.cron === MORNING_CRON && dayOf(r.at) === CFP }) })), `${CFP} 04:47`);
 once("every Nov 1 hook fails", playNov(nov({ mark: (r) => ({ hookFails: dayOf(r.at) === CFP }) })), '2026-11-02 01:17');
-// Netlify takes the hook, but the live site keeps Oct 31 (a failed or unpublished deploy): no second deploy, on
+// Cloudflare takes the hook, but the live site keeps Oct 31 (a failed or rolled-back deployment): no second deploy, on
 // Nov 1 or later, and the log says why.
 const stuck = playNov(nov({ mark: () => ({ unpublished: true }) }));
-expect(stuck.deploys.length === 1 && stuck.liveDay === '2026-10-31', `with Netlify's deploy not live, ${stuck.deploys.length} deploys: ${stuck.deploys.map(atCentral).join(', ')}`);
+expect(stuck.deploys.length === 1 && stuck.liveDay === '2026-10-31', `with Cloudflare's deployment not live, ${stuck.deploys.length} deploys: ${stuck.deploys.map(atCentral).join(', ')}`);
 const stuckWhy = policy({ at: utc('2026-11-03', '07:17'), trigger: morning, calendar, gates: GATES.closed, liveDay: '2026-10-31', hooked: utc(CFP, '07:17') });
-expect(!stuckWhy.rebuild && /Netlify accepted a rebuild for 2026-11-01 .* no second deploy/.test(stuckWhy.why), `with Netlify's deploy not live, the log says "${stuckWhy.why}"`);
+expect(!stuckWhy.rebuild && /Cloudflare accepted a rebuild for 2026-11-01 .* no second deploy/.test(stuckWhy.why), `with Cloudflare's deployment not live, the log says "${stuckWhy.why}"`);
 // A merge on the rebuild day built that day's text: no extra deploy. A merge on Oct 31 didn't: Nov 1 still deploys.
 expect(playNov(nov(), CFP).deploys.length === 0, 'after a merge on Nov 1, a run deploys again');
 once('after a merge on Oct 31', playNov(nov(), '2026-10-31'), `${CFP} 01:17`);
-// A rollback in Netlify to an older day's deploy: if a run already used the hook for the rebuild day, nothing deploys
+// A rollback on Cloudflare to an older day's deployment: if a run already used the hook for the rebuild day, nothing deploys
 // again; if a merge built that day's text, the next run rebuilds once (docs/event-day.md, "Roll back").
 const rolledBack = playNov([...nov(), { at: utc(CFP, '20:00'), rollback: '2026-10-31' }]);
 expect(rolledBack.deploys.length === 1 && rolledBack.liveDay === '2026-10-31', `after a rollback to Oct 31, the deploys are ${rolledBack.deploys.map(atCentral).join(', ')}`);
@@ -625,7 +633,7 @@ if (noteRun && loop) {
       const all = n.out + w.out;
       expect(n.status === 0 && kept === want, `${what}: the note exits ${n.status} and keeps ${JSON.stringify(kept)}, not ${JSON.stringify(want)}`);
       expect(w.status === waitStatus && (waitHits === null || w.hits === waitHits), `${what}: the wait exits ${w.status} after ${w.hits} requests, not ${waitStatus}${waitHits === null ? '' : ` after ${waitHits}`}: ${JSON.stringify(w.out)}`);
-      expect(waitStatus === 0 ? /has the new program/.test(w.out) : /^::error::.*Netlify/m.test(w.out), `${what}: the wait says ${JSON.stringify(w.out)}`);
+      expect(waitStatus === 0 ? /has the new program/.test(w.out) : /^::error::.*Cloudflare/m.test(w.out), `${what}: the wait says ${JSON.stringify(w.out)}`);
       expect(!all.includes(OLD) && !all.includes(NEW), `${what}: the note or the wait prints a version: ${JSON.stringify(all)}`);
     }
     // The wait for the new day, 3 seconds at 0.2-second checks: it ends once /build.txt holds the run's day or a
@@ -641,7 +649,7 @@ if (noteRun && loop) {
     ]) {
       serve = answer;
       const w = await runStep(dayFast, { LIVE: `http://127.0.0.1:${site.address().port}/build.txt`, DAY: '2026-11-01' });
-      expect(w.status === status && (status === 0 ? /built for 2026-11-01/.test(w.out) : /^::error::.*Netlify/m.test(w.out)), `the day wait with ${what}: exit ${w.status}, ${JSON.stringify(w.out)}`);
+      expect(w.status === status && (status === 0 ? /built for 2026-11-01/.test(w.out) : /^::error::.*Cloudflare/m.test(w.out)), `the day wait with ${what}: exit ${w.status}, ${JSON.stringify(w.out)}`);
     }
   } finally {
     site.closeAllConnections();
@@ -712,4 +720,4 @@ if (failures.length) {
   console.error(`Rebuild tests failed (${failures.length} of ${checks}):\n  ${failures.join('\n  ')}`);
   process.exit(1);
 }
-console.log(`Rebuild tests passed: ${checks} checks; rebuild days ${[...listed].sort().join(', ')}; cron ${allCrons.join(' and ')} UTC; March and April with no program change rebuild ${budgetCount.both} times (${wantBudget.join(', ')}); with a change every day, ${perMonth('2027-03')} program deploys in March, ${perMonth('2027-04')} in April to Apr 21, 1 on the eve and ${onEventDay.length} on Event Day (${onEventDay.map(hm).join(', ')} Central), so ${productionDeploys['2027-03']} and ${productionDeploys['2027-04']} production deploys from the schedule in March and April (${productionDeploys['2027-03'] * 15} and ${productionDeploys['2027-04'] * 15} credits); ${linted}.`);
+console.log(`Rebuild tests passed: ${checks} checks; rebuild days ${[...listed].sort().join(', ')}; cron ${allCrons.join(' and ')} UTC; March and April with no program change rebuild ${budgetCount.both} times (${wantBudget.join(', ')}); with a change every day, ${perMonth('2027-03')} program deploys in March, ${perMonth('2027-04')} in April to Apr 21, 1 on the eve and ${onEventDay.length} on Event Day (${hm(onEventDay[0])} to ${hm(onEventDay.at(-1))} Central), so ${productionDeploys['2027-03']} and ${productionDeploys['2027-04']} production builds from the schedule in March and April, of Pages' ${PAGES_BUILDS_PER_MONTH} a month; ${linted}.`);
