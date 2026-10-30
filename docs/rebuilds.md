@@ -91,7 +91,7 @@ The caps on program deploys, set in `DEPLOY_BUDGET` in `scripts/refresh-policy.m
 
 With a program change before every run, the schedule makes 31 production builds in March and 168 in April. `tests/rebuild.mjs` keeps each month under `PAGES_BUILD_CAP`, 250, which leaves 250 or more for merges, announcements and previews.
 
-If a month's builds run out, Pages starts no new build until the next month, and the live site stays as it is. Check the account's Pages usage in mid-April, before Event Day.
+Cloudflare's limits page doesn't say what happens when a month's builds run out; expect new builds to stop until the next month, while the live site stays as it is. Check the account's Pages usage in mid-April, before Event Day.
 
 ## Check a day
 

@@ -4,7 +4,7 @@
 // _redirects first (exact paths, 301/302; a redirect wins over a file at the same
 // path), Pages' 308 redirects to a page's own address (/about to /about/,
 // /about/index.html to /about/, /page.html to /page), _headers (all matching
-// blocks; a rule for another host, such as https://kcdtexas.pages.dev/*, never
+// blocks; a rule for another host, such as https://:project.pages.dev/*, never
 // matches here), and answers unknown paths with 404.html.
 // Optionally mounts a private review folder at /_review/ (local only,
 // never part of the build).

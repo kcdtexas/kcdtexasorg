@@ -102,9 +102,13 @@ ${existsSync(`${DIST}/schedule.js`) ? `
 /sw.js
   Cache-Control: no-cache
 ` : ''}${netlify ? '' : `
-# The project's own Cloudflare Pages address shows the same site: search engines index kcdtexas.org only. Pages
-# applies a rule that starts with a URL on that host alone (it already marks its preview addresses noindex).
-https://kcdtexas.pages.dev/*
+# The project's own Cloudflare Pages addresses show the same site: search engines index kcdtexas.org only. A rule
+# that starts with a URL applies on that host alone; :project is the project's pages.dev name, and :version a
+# preview's (Cloudflare's documented pattern; Pages also marks preview addresses noindex itself).
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
   X-Robots-Tag: noindex
 `}`;
 // Cloudflare Pages takes at most 100 header rules.

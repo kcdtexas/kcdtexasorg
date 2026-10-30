@@ -7,7 +7,7 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Setting | Value | Why |
 |---|---|---|
 | Account | the Cloudflare account that holds the kcdtexas.org zone | Pages serves an apex domain only from the zone's own account |
-| Project name | `kcdtexas`, so its address is `kcdtexas.pages.dev` | if Cloudflare gave it another address, change the host rule in `scripts/write-host-files.mjs` to match |
+| Project name | `kcdtexas`, so its address is `kcdtexas.pages.dev` | the noindex rule in `_headers` matches whatever `pages.dev` name the project gets |
 | Git integration | Cloudflare's GitHub app, limited to `kcdtexas/kcdtexasorg` | |
 | Production branch | `main` | ADR 0011 |
 | Preview branches | every other branch | a preview for every pull request |
@@ -39,7 +39,7 @@ To check the result from outside, run the smoke and browser tests against the li
 
 - A `_redirects` rule wins over a file at the same path. `scripts/write-host-files.mjs` refuses a Short Link that collides with a page.
 - A page's other addresses redirect to its own with a 308: `/about` and `/about/index.html` go to `/about/`.
-- `_headers` takes at most 100 rules; the build fails past that. A rule that starts with a URL (`https://kcdtexas.pages.dev/*`) applies on that host only.
+- `_headers` takes at most 100 rules; the build fails past that. A rule that starts with a URL (`https://:project.pages.dev/*`) applies on that host only.
 - Pages marks its preview addresses noindex by itself.
 - A rollback lasts until the next production build: the next merge or deploy hook build replaces it. Fix the cause on `main` before the next scheduled run.
 
@@ -51,4 +51,4 @@ To check the result from outside, run the smoke and browser tests against the li
 
 ## Netlify, until it's shut down
 
-Netlify served the site until the move, and stays ready as the rollback for two weeks after it. `netlify.toml` and `CONTEXT=production` keep it building the same site. To go back to it: remove `kcdtexas.org` from the Pages project's custom domains, put back the zone's old `kcdtexas.org` record (export the zone's records before the move), and revert the move's pull request. Then Netlify, its GitHub app and the `NETLIFY_BUILD_HOOK` secret are removed, and so is `netlify.toml`.
+Netlify served the site until the move, and stays ready as the rollback for two weeks after it. `netlify.toml` and `CONTEXT=production` keep it building the same site. To go back to it: in the zone's DNS records, replace the `kcdtexas.org` record that points to Pages with the old one (export the zone's records before the move); then remove `kcdtexas.org` from the Pages project's custom domains (Cloudflare detaches a custom domain only after its DNS record changes); then revert the move's pull request. Then Netlify, its GitHub app and the `NETLIFY_BUILD_HOOK` secret are removed, and so is `netlify.toml`.
