@@ -70,8 +70,9 @@ export const edition2026 = {
   keynotes: [
     { photo: 'katie', time: '9:28 a.m.', name: 'Katie Gamanji', affiliation: 'CNCF, TOC Member', talk: 'The State of Cloud Native: The Shift Towards AI', youtube: 'Z2hOG3K0gis',
       alt: 'Katie Gamanji speaks on stage at KCD Texas 2026, holding a microphone in front of a slide with a rising chart.' },
-    { photo: 'bryce', time: '9:59 a.m.', name: 'Jonathan Bryce', affiliation: 'Cloud Native Computing Foundation (CNCF), Executive Director', talk: 'Open Source Infrastructure for the AI Native Era', youtube: 'bTjnWq2zCkw',
-      alt: 'Jonathan Bryce smiles on stage at KCD Texas 2026, microphone in hand, wearing a blue KCD Texas shirt.' },
+    { photo: 'bryce', time: '9:52 a.m.', name: 'Jonathan Bryce', affiliation: 'Cloud Native Computing Foundation (CNCF), Executive Director', talk: 'Open Source Infrastructure for the AI Native Era', youtube: 'bTjnWq2zCkw',
+      // Album photo 038, during his keynote, cropped to the same scale as the other two keynotes (the owner, 2026-10-30).
+      alt: 'Jonathan Bryce speaks at the podium at KCD Texas 2026, microphone in one hand and the other raised, wearing a blue KCD Texas shirt.' },
     { photo: 'ian', time: '10:14 a.m.', name: 'Ian Coldwater', affiliation: 'Kubernetes SIG Security Chair', talk: 'Spoke to a full room', youtube: null,
       alt: 'Ian Coldwater speaks into a microphone on stage at KCD Texas 2026, seen in profile.' },
   ],
