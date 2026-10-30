@@ -1,7 +1,5 @@
 # kcdtexas.org
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/f583e4ad-7d81-49b0-9d67-3b7c6edce795/deploy-status)](https://app.netlify.com/projects/kcdtexas/deploys)
-
 The website of [KCD Texas](https://kcdtexas.org), the community-run Kubernetes Community Day for Texas. One permanent site presents the Current Edition and keeps every Past Edition.
 
 - **What and why:** [docs/brief.md](docs/brief.md)
@@ -21,7 +19,7 @@ npm run serve               # serve dist/ like production: _redirects, _headers,
 npm test                    # HTTP smoke tests + browser tests (zero data, CSP, axe WCAG 2.2 AA) on a local server
 ```
 
-The built site goes to `dist/`. It's plain static files that any static host can serve. Netlify builds it with the settings in `netlify.toml`.
+The built site goes to `dist/`. It's plain static files that any static host can serve. Cloudflare Pages builds it with the settings in [docs/hosting.md](docs/hosting.md).
 
 To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. To run the tests against any running copy, use `node tests/smoke.mjs <url>` and `node tests/browser.mjs <url>`. `node tests/a11y.mjs <url>` runs the keyboard and screen-reader check on every page. The browser tests use Playwright's Chromium if it's installed, otherwise the system snap Chromium.
 
@@ -35,6 +33,7 @@ To serve on your network: `node scripts/serve.mjs --host 0.0.0.0 --port 8090`. T
 | Shared design foundation, reusable by sister sites | `src/foundation/` |
 | Build and checks | `scripts/` |
 | Scheduled rebuilds on the days the pages change | `.github/workflows/rebuild.yml`, [docs/rebuilds.md](docs/rebuilds.md) |
+| Hosting settings and rollback | [docs/hosting.md](docs/hosting.md) |
 
 ## Ground rules
 

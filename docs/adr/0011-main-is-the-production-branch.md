@@ -4,6 +4,8 @@ status: accepted
 
 # `main` is the production branch, and a build hook runs the scheduled rebuilds
 
+> Updated by [ADR 0012](0012-hosting-cloudflare-pages.md): the Website moves to Cloudflare Pages. `main` stays the production branch, and the scheduled rebuilds call the Pages deploy hook for `main` (the secret `CLOUDFLARE_DEPLOY_HOOK`). Production builds no longer count against Netlify's credits. The rest stands.
+
 Netlify publishes `main`. Every pull request merged into `main` has gone live within minutes since the site launched in October 2026. ADR 0010 planned a separate `release` branch that only a deploy workflow would update, and a monthly deploy counter. Neither was set up. There are only a few merges a month, so deploys stay within Netlify's budget with one branch.
 
 Text that depends on the date changes only when a build runs. On those days, `.github/workflows/rebuild.yml` calls a Netlify build hook for `main` (`docs/rebuilds.md`).

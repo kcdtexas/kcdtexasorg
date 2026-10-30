@@ -16,17 +16,17 @@ The build downloads the file from the address in the host environment variable `
 
 `SESSIONIZE_ENDPOINT_ID` or `PROGRAM_CSV_URL` goes in two places:
 
-- **Netlify:** the site's environment variables, scoped to the **Production** deploy context only, not to all deploy contexts. Mark it as a secret value where the plan allows it.
+- **Cloudflare Pages:** the project's variables for **Production** only, never for Preview, as a secret (type "Secret"), so it's never shown again (`docs/hosting.md`).
 - **GitHub:** a secret of the `production` environment, which only `main` can use. The refresh workflow's check reads it there (`docs/rebuilds.md`).
 
 Deploy previews run code from pull requests, so the value must never be available to them. Add it only shortly before the program goes public.
 
 ## When it's read
 
-- Only in a production build (`CONTEXT=production` on Netlify), and only while a program gate is open (`program` in `src/data/edition-2027.ts`).
+- Only in a production build (Cloudflare Pages building `main`, `src/lib/build-context.mjs`), and only while a program gate is open (`program` in `src/data/edition-2027.ts`).
 - With both gates closed, the build reads nothing.
 - Deploy previews, branch deploys and local builds with a gate open use the test program, labeled "Sample", and never read the variable.
-- If a gate is open in production and neither variable is set, the build fails. It also fails when the download fails or the file doesn't follow this format, so Netlify keeps the last good deploy. The error names the row and the column, as the spreadsheet numbers them, never a value or an id.
+- If a gate is open in production and neither variable is set, the build fails. It also fails when the download fails or the file doesn't follow this format, so the site keeps the last good deployment. The error names the row and the column, as the spreadsheet numbers them, never a value or an id.
 
 ## The format
 
@@ -66,4 +66,4 @@ break,,Lunch,,,,,2027-04-23 12:00,2027-04-23 13:00,,,
 
 ## Tests
 
-`tests/program-adapter.mjs` reads `tests/fixtures/program.csv` and builds the site from it, served by a local test server. A test may point the build at a server on the same machine (`127.0.0.1`, `localhost` or `[::1]`) over plain http. Netlify and GitHub Actions builds refuse that, so a real production build always reads an https address.
+`tests/program-adapter.mjs` reads `tests/fixtures/program.csv` and builds the site from it, served by a local test server. A test may point the build at a server on the same machine (`127.0.0.1`, `localhost` or `[::1]`) over plain http. Cloudflare Pages, Netlify and GitHub Actions builds refuse that, so a real production build always reads an https address.

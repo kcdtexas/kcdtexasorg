@@ -344,7 +344,7 @@ function play(runs, { live, gates = GATES.both, changed = true }) {
 }
 const dayOf = (at) => centralClock(at).day;
 
-// The deploy budget (ADR 0010): every run in March and April 2027, with no program change and the gates open or
+// The rebuild days alone: every run in March and April 2027, with no program change and the gates open or
 // closed, from a live build of Feb 28. Only the rebuild days rebuild, once each.
 const budgetDays = [];
 for (let d = '2027-03-01'; d <= '2027-04-30'; d = shift(d, 1)) budgetDays.push(d);

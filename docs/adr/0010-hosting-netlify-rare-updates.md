@@ -1,10 +1,10 @@
 ---
-status: accepted
+status: superseded
 ---
 
 # Hosting stays on Netlify in rare-updates mode, and any move needs the Organizers' approval
 
-> The production branch part is superseded by [ADR 0011](0011-main-is-the-production-branch.md): `main` is the production branch. The rest stands.
+> Superseded by [ADR 0012](0012-hosting-cloudflare-pages.md): the Organizers decided on 2026-10-30 to move the Website to Cloudflare Pages. The production branch part was already superseded by [ADR 0011](0011-main-is-the-production-branch.md): `main` is the production branch.
 
 The Website stays on the existing Netlify site. To fit Netlify's free plans, a production deploy happens only when:
 

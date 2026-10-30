@@ -53,6 +53,6 @@ A baseline applies to all three: fast, accessible (aiming at WCAG 2.2 AA), open 
 - **Content lives in this repository.** Organizers edit through a git-based editor, and every change arrives as a pull request with a preview. The owning Committee approves it.
 - **Pushing is announcing** (ADR 0009). Only facts the Organizers have announced go into git. The program appears only after the Organizers flip the `speakersPublic` and `schedulePublic` gates.
 - **The site collects no personal data** (ADR 0007). Analytics is cookie-free and can be switched off.
-- **Hosting:** Netlify, deploying only when something meaningful changes (ADR 0010).
+- **Hosting:** Cloudflare Pages, built from this repository; each merge goes live (ADR 0012).
 - **Built with** Astro and TypeScript (ADR 0005).
 - **Built with AI assistance.** Organizers review all content.
