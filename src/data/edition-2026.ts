@@ -36,6 +36,9 @@ export const edition2026 = {
   recordings: 18,
   // 2025 Edition, from the 2025 transparency report.
   proposals2025: '200+',
+  // The 2026 call's proposals: 159, as a 2026 Organizer shared them with the owner (2026-10-30), printed as "150+"
+  // (the owner). The 2026 transparency report doesn't give the count; the owner chose no source line.
+  proposals2026: '150+',
 
   sponsors: {
     platinum: [

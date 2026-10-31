@@ -4,7 +4,6 @@ import Base from '../../layouts/Base.astro';
 import PageHead from '../../components/PageHead.astro';
 import { cfp } from '../../data/cfp';
 import { cfpStatus } from '../../data/edition-2027';
-import { edition2026 } from '../../data/edition-2026';
 import { paths } from '../../data/nav';
 import { contact, legal } from '../../data/site';
 
@@ -51,7 +50,7 @@ const canSubmit = status === 'Open now' && cfp.submitUrl !== '';
     <section class="page-sec" aria-labelledby="choose">
       <h2 id="choose" class="page-h2">{cfp.choose.title}</h2>
       <p>{cfp.choose.text}</p>
-      <p>{cfp.choose.proposals} <a class="src" href={edition2026.report2025Url}>{cfp.choose.proposalsSource}</a></p>
+      <p>{cfp.choose.proposals}</p>
     </section>
 
     <section class="page-sec" aria-labelledby="conduct">

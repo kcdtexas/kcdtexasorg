@@ -64,8 +64,7 @@ export const cfp = {
     title: 'How we choose',
     text: `The Session Committee selects the Sessions. ${prog === 'speakers' ? 'The Speakers are announced, and the Schedule comes out soon.'
       : `The selected Speakers, the keynotes and the Schedule ${prog === 'soon' ? 'come out together soon' : `are announced together on ${shortDateYear(e.schedule)}`}.`}`,
-    proposals: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.`,
-    proposalsSource: 'CNCF transparency report, 2025',
+    proposals: `KCD Texas 2026 received ${edition2026.proposals2026} proposals.`,
   },
   conduct: {
     title: 'Code of Conduct',
