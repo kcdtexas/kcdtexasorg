@@ -20,6 +20,7 @@ const PAIRS = [
   ['dateline', 'bg', 4.5],
   ['figure', 'bg', 4.5],
   ['on-signal', 'signal', 4.5],     // "Dallas" on the key-dates block
+  ['photo-tab-fg', 'photo-tab', 4.5], // a loyalty credit's "3rd year" and white edge on a person's photo
   ['fg', 'surface', 4.5],
   ['band-fg', 'band', 4.5],
   ['band-muted', 'band', 4.5],

@@ -18,6 +18,8 @@ export const edition2026 = {
   eventPageUrl: 'https://community2.cncf.io/events/details/cncf-kcd-texas-presents-kcd-texas-2026/',
   talksUrl: 'https://www.youtube.com/playlist?list=PL4UW_RgvzVcgZfg1SBz6_J6L8jchHvoX7',
   recapUrl: 'https://www.youtube.com/watch?v=yg6AS9W7bzE',
+  // The recap's length: 167 seconds, per its YouTube page (checked 2026-10-18).
+  recapLength: '2:47',
   photosUrl: 'https://photos.kcdtexas.org/',
   // The raw file, 23 MB. A compressed copy on kcdtexas.org replaces it later.
   // A compressed copy of the public 2026 prospectus (github.com/kcdtexas/sponsor-prospectus, 23.9 MB), served
@@ -34,6 +36,9 @@ export const edition2026 = {
   recordings: 18,
   // 2025 Edition, from the 2025 transparency report.
   proposals2025: '200+',
+  // The 2026 call's proposals: 159, as a 2026 Organizer shared them with the owner (2026-10-30), printed as "150+"
+  // (the owner). The 2026 transparency report doesn't give the count; the owner chose no source line.
+  proposals2026: '150+',
 
   sponsors: {
     platinum: [
@@ -68,8 +73,9 @@ export const edition2026 = {
   keynotes: [
     { photo: 'katie', time: '9:28 a.m.', name: 'Katie Gamanji', affiliation: 'CNCF, TOC Member', talk: 'The State of Cloud Native: The Shift Towards AI', youtube: 'Z2hOG3K0gis',
       alt: 'Katie Gamanji speaks on stage at KCD Texas 2026, holding a microphone in front of a slide with a rising chart.' },
-    { photo: 'bryce', time: '9:59 a.m.', name: 'Jonathan Bryce', affiliation: 'Cloud Native Computing Foundation (CNCF), Executive Director', talk: 'Open Source Infrastructure for the AI Native Era', youtube: 'bTjnWq2zCkw',
-      alt: 'Jonathan Bryce smiles on stage at KCD Texas 2026, microphone in hand, wearing a blue KCD Texas shirt.' },
+    { photo: 'bryce', time: '9:52 a.m.', name: 'Jonathan Bryce', affiliation: 'Cloud Native Computing Foundation (CNCF), Executive Director', talk: 'Open Source Infrastructure for the AI Native Era', youtube: 'bTjnWq2zCkw',
+      // Album photo 038, during his keynote, cropped to the same scale as the other two keynotes (the owner, 2026-10-30).
+      alt: 'Jonathan Bryce speaks at the podium at KCD Texas 2026, microphone in one hand and the other raised, wearing a blue KCD Texas shirt.' },
     { photo: 'ian', time: '10:14 a.m.', name: 'Ian Coldwater', affiliation: 'Kubernetes SIG Security Chair', talk: 'Spoke to a full room', youtube: null,
       alt: 'Ian Coldwater speaks into a microphone on stage at KCD Texas 2026, seen in profile.' },
   ],

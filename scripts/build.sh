@@ -16,8 +16,8 @@
 #                   the pages say "Sample". Never in production.
 #   --sponsors-sample  fill the 2027 wall with plain "Sample" tiles, no logos or names. Never in
 #                   production, and never deployed.
-#   --program-sample  open the program gates on test data: the 2026 Schedule and the made-up fixture
-#                   (src/lib/program.ts). The program pages, the Event Day page and the loyalty credits
+#   --program-sample  open the program gates on test data: a made-up Schedule in the 2026 Schedule's
+#                   shape and the made-up fixture, with no real names (src/lib/program.ts). The program pages, the Event Day page and the loyalty credits
 #                   say "Sample". Never in production, and never deployed.
 #   --program-sample=speakers  the same test data with only the `speakersPublic` gate open: the Speakers, the
 #                   titles and the abstracts, with no times, rooms, calendar files or Event Day page.
@@ -90,9 +90,9 @@ if [ -n "${KCD_SPONSORS_SAMPLE:-}" ]; then
   echo "Building with sample 2027 sponsor tiles. Test builds only; never deploy this build."
 fi
 if [ "${KCD_PROGRAM_SAMPLE:-}" = 1 ]; then
-  echo "Building with the sample program (the 2026 Schedule and the fixture). Test builds only; never deploy this build."
+  echo "Building with the sample program (made-up Speakers and Sessions). Test builds only; never deploy this build."
 elif [ -n "${KCD_PROGRAM_SAMPLE:-}" ]; then
-  echo "Building with the sample Speakers and Sessions, no times or rooms (the 2026 Schedule and the fixture). Test builds only; never deploy this build."
+  echo "Building with the sample Speakers and Sessions, no times or rooms (made up). Test builds only; never deploy this build."
 fi
 
 step "Checking Node.js (needs 22.12 or newer)"

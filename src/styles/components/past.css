@@ -28,3 +28,15 @@
     .tier--silver.tier--n7 .logos { --cols: 4; }
   }
 }
+
+/* The row at the end of each past page (MoreEditions.astro): "More Editions: 2025 · 2024 · All Editions". */
+@layer components {
+  .more-eds { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--fg); font-weight: 700; }
+  .more-eds-label::after { content: ":" / ""; }
+  .more-eds ul { display: flex; flex-wrap: wrap; gap: 4px 0; }
+  .more-eds li + li::before { content: "·" / ""; padding-inline: 12px; color: var(--muted); }
+  .more-eds a { display: inline-block; padding-block: var(--tap); }
+  @media (max-width: 599px) {
+    .more-eds { margin-top: 44px; }
+  }
+}

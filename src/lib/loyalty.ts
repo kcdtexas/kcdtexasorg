@@ -1,10 +1,11 @@
-// The loyalty credits: "Sponsor since", "Organizer since" and "Speaker since". One registry holds
-// every Edition's history, one file per Edition in src/data/history/, each checked when the build loads it. Every
-// year comes from those records, never typed by hand, and one Edition alone gets no credit. A name matches across
-// Editions exactly (ignoring case, accents and spacing) or through the confirmed lists in src/data/returning-*.ts.
+// The loyalty credits: how many Editions a returning Organizer, Speaker or Sponsor has taken part in, "3rd year".
+// One registry holds every Edition's history, one file per Edition in src/data/history/, each checked when the build
+// loads it. Every count comes from those records, never typed by hand, and one Edition alone gets no credit. A name
+// matches across Editions exactly (ignoring case, accents and spacing) or through the confirmed lists in
+// src/data/returning-*.ts.
 //
 // A kind's credits print only when every earlier Edition from where its history starts has a complete record of
-// that kind (src/lib/credits.ts), so a missing year can never print a wrong "since". A person listed on any earlier
+// that kind (src/lib/credits.ts), so a missing year can never print a wrong count. A person listed on any earlier
 // record, complete or not, gets a credit only when every record from that first year on is complete. Test builds
 // add the test history (src/data/history-test.ts) and start every kind's history there; their Organizer credits
 // come from the test history alone, so only its made-up Organizer shows one.
@@ -17,9 +18,9 @@ import { edition2027, programDataSample, sponsorsSample } from '../data/edition-
 import { testHistory, testHistoryFrom } from '../data/history-test';
 import { heldOrganizers, returningOrganizers } from '../data/returning-organizers';
 import { returningSpeakers } from '../data/returning-speakers';
-import { creditFor, KINDS, norm, recordsFor, validateHistory, type Credit, type EditionHistory, type Kind } from './credits';
+import { creditFor, creditText, KINDS, norm, recordsFor, validateHistory, type Credit, type EditionHistory, type Kind } from './credits';
 
-export { norm, type Credit };
+export { creditText, norm, type Credit };
 
 /** Every Edition's year: the past ones and the current one. */
 const editionYears = [...editions.past.map((p) => p.year), edition2027.year];
@@ -54,18 +55,19 @@ const namesOf = (list: readonly { name: string; earlier: readonly string[] }[], 
   return same ? [name, same.name, ...same.earlier] : [name];
 };
 
-/** "Speaker since": a Speaker in `edition` who also spoke in an earlier Edition. */
+/** A Returning Speaker's credit: a Speaker in `edition` who also spoke in an earlier Edition. */
 export function speakerCredit(name: string, edition: number = edition2027.year): Credit | null {
   const names = namesOf(returningSpeakers, name);
   return creditFor(recordsAt('speakers', edition), 'speakers', names, ruleFor('speakers', edition));
 }
 
-/** "Sponsor since": a sponsor of `edition` that also backed an earlier one. */
+/** A returning Sponsor's credit: a sponsor of `edition` that also backed an earlier one. */
 export function sponsorCredit(id: string, edition: number = edition2027.year): Credit | null {
   return creditFor(recordsAt('sponsors', edition), 'sponsors', [id], ruleFor('sponsors', edition));
 }
 
-/** "Organizer since": an Organizer of `edition` who also organized an earlier one, unless their credit is held. */
+/** A returning Organizer's credit: an Organizer of `edition` who also organized an earlier one, unless their credit
+ *  is held. */
 export function organizerCredit(name: string, edition: number = edition2027.year): Credit | null {
   const names = namesOf(returningOrganizers, name);
   if (heldOrganizers.some((h) => names.some((n) => norm(n) === norm(h.name)))) return null;

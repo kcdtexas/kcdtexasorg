@@ -35,6 +35,7 @@ export const editions = {
         `${e.recordings} talk recordings`,
       ],
       link: { text: 'The 2026 program, sponsors and recordings', href: paths.edition2026 },
+      menu: `${e.city} · ${e.recordings} talk recordings`,
       sources: [{ text: 'CNCF transparency report, 2026', href: e.reportUrl }],
     },
     {
@@ -47,6 +48,7 @@ export const editions = {
         `Keynotes by ${keynotes2025.join(', ').replace(/, ([^,]*)$/, ' and $1')}`,
       ],
       link: { text: 'The 2025 program, sponsors and recordings', href: paths.edition2025 },
+      menu: `${edition2025.city} · ${edition2025.speakers} Speakers on ${edition2025.stages} stages`,
       sources: [{ text: 'CNCF transparency report, 2025', href: edition2025.reportUrl }],
     },
     {
@@ -57,6 +59,7 @@ export const editions = {
         `${edition2024.speakers} Speakers on ${edition2024.tracks} tracks`,
       ],
       link: { text: 'The 2024 program and sponsors', href: paths.edition2024 },
+      menu: `${edition2024.city} · with ${edition2024.coLocated.name}`,
       sources: [
         { text: 'CNCF transparency report, 2025', href: edition2024.report2025Url },
         { text: 'the KCD Texas 2024 Schedule', href: edition2024.scheduleUrl },
@@ -65,4 +68,13 @@ export const editions = {
   ],
 
   canceled: 'The 2023 Edition was canceled.',
+} as const;
+
+/** The header's "Past Editions" menu and the row at the end of each past page: one entry per Past Edition,
+ *  newest first, from `editions.past`, so an Edition joins once it is listed there. `menu` is its one line. */
+export const pastEditionsMenu = {
+  label: 'Past Editions',
+  all: { text: 'All Editions', href: paths.editions },
+  more: 'More Editions',
+  years: editions.past.map((p) => ({ year: p.year, href: p.link.href, line: p.menu })),
 } as const;

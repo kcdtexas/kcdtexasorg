@@ -28,6 +28,9 @@ export const legal = {
   codeOfConductUrl: 'https://www.cncf.io/conduct/',
   kcdProgramUrl: 'https://www.cncf.io/kcds/',
   lfTrademarksUrl: 'https://www.linuxfoundation.org/legal/trademark-usage',
+  // Netlify's Open Source plan asks every page (or the home page) to link "This site is powered by Netlify" to its
+  // home page: https://www.netlify.com/legal/open-source-policy/. A text link, as its badges load from Netlify.
+  netlifyUrl: 'https://www.netlify.com',
 } as const;
 
 // The 2027 prospectus (Sponsor Committee): a PDF the committee puts on GitHub and links directly, so no

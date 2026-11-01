@@ -1,12 +1,12 @@
-// The loyalty credits' rules (src/lib/credits.ts) on made-up histories: a credit's year comes from the records,
-// one Edition alone gets nothing, a missing or incomplete record hides that kind's credits, a name on an earlier
+// The loyalty credits' rules (src/lib/credits.ts) on made-up histories: a credit's first year and count come from
+// the records, the count prints as "3rd year" (a gap in the years counts true), one Edition alone gets nothing, a missing or incomplete record hides that kind's credits, a name on an earlier
 // incomplete record holds that person's credit back, a sponsor needs a Sponsorship in the current Edition, a test
 // build's Organizer credits read the test history alone, and a history file with a bad shape fails with its file
 // name.
 // tests/run-local.mjs runs it; tests/run-program.mjs checks the same rules in real builds.
 // Usage: node --experimental-strip-types tests/credits.mjs (Node 22.12 needs the flag to read TypeScript)
 import { existsSync, readFileSync } from 'node:fs';
-import { creditFor, mergeHistory, recordsFor, validateHistory } from '../src/lib/credits.ts';
+import { creditFor, creditText, mergeHistory, ordinal, recordsFor, validateHistory } from '../src/lib/credits.ts';
 
 const failures = [];
 let checks = 0;
@@ -32,6 +32,12 @@ expect(same(creditFor(full, 'organizers', ['Cy Example'], rule(2024)), { since: 
 expect(same(creditFor(full, 'organizers', ['Di Example'], rule(2024)), { since: 2026, editions: 2 }), 'Di: expected since 2026');
 expect(same(creditFor(full, 'speakers', ['Bo Example'], rule(2024)), { since: 2024, editions: 3 }), 'Bo: expected Speaker since 2024');
 expect(same(creditFor(full, 'sponsors', ['acme'], rule(2024)), { since: 2024, editions: 3 }), 'acme: expected since 2024');
+// The words: the count as English orders it, "3rd year".
+for (const [n, want] of [[2, '2nd'], [3, '3rd'], [4, '4th'], [10, '10th'], [11, '11th'], [12, '12th'], [13, '13th'], [21, '21st'], [22, '22nd'], [23, '23rd'], [101, '101st'], [111, '111th'], [112, '112th']]) {
+  expect(ordinal(n) === want, `ordinal(${n}) is ${ordinal(n)}, not ${want}`);
+}
+expect(creditText(creditFor(full, 'organizers', ['Ann Example'], rule(2024))) === '3rd year', 'Ann: the credit does not print "3rd year"');
+expect(creditText(creditFor(full, 'organizers', ['Di Example'], rule(2024))) === '2nd year', 'Di: the credit does not print "2nd year"');
 // Names match ignoring case, accents and apostrophes, and through a confirmed variant.
 expect(creditFor(full, 'organizers', ['ann  EXAMPLE'], rule(2024))?.since === 2024, 'a name in another case does not match');
 expect(creditFor(full, 'organizers', ['Ann Newname', 'Ann Example'], rule(2024))?.since === 2024, 'a confirmed variant does not match');
@@ -60,6 +66,8 @@ expect(creditFor(full, 'organizers', ['Cy Example'], asOf(2025)) === null, 'as o
 expect(same(creditFor(full, 'organizers', ['Cy Example'], asOf(2026)), { since: 2025, editions: 2 }), 'as of 2026: Cy is not "since 2025"');
 expect(creditFor(full, 'organizers', ['Di Example'], asOf(2026)) === null, 'as of 2026: a 2027 record gives a 2026 first-timer a credit');
 expect(same(creditFor(full, 'speakers', ['Bo Example'], asOf(2026)), { since: 2024, editions: 2 }), 'as of 2026: a Speaker who skipped 2025 is not "since 2024"');
+// A gap counts true: in 2024 and 2026 is a "2nd year", where "since 2024" would claim 2025 too.
+expect(creditText(creditFor(full, 'speakers', ['Bo Example'], asOf(2026))) === '2nd year', 'as of 2026: a Speaker who skipped 2025 does not print "2nd year"');
 expect(creditFor(full.map((h) => (h.year === 2026 ? { ...h, sponsors: ids(['acme']) } : h)), 'sponsors', ['acme'], asOf(2026))?.since === 2024, 'as of 2026: a sponsor that skipped 2025 is not "since 2024"');
 expect(creditFor(full, 'organizers', ['Ann Example'], asOf(2026)) === null, 'as of 2026: someone not on the 2026 record gets a credit there');
 
@@ -134,15 +142,16 @@ for (const [what, value] of bad) {
 // build, which credits only the made-up Organizer (tests/run-program.mjs).
 const about = new URL('../dist/about/index.html', import.meta.url);
 if (existsSync(about) && !existsSync(new URL('../dist/.test-build', import.meta.url))) {
+  // The words a screen reader hears: the tab, then its hidden role.
   const expected = {
-    'Mars Toktonaliev': 'Organizer since 2024',
-    'Rich Boyd': 'Organizer since 2025', 'Harsha Thirimanna': 'Organizer since 2025', 'Mara Ruvalcaba': 'Organizer since 2025', 'Jamie Prince': 'Organizer since 2025',
-    'Cris Nevares': 'Organizer since 2026', 'Joel Hernandez': 'Organizer since 2026', 'Srihari Nagaram': 'Organizer since 2026', 'Vishwa Gandhi': 'Organizer since 2026',
+    'Mars Toktonaliev': '4th year as an Organizer',
+    'Rich Boyd': '3rd year as an Organizer', 'Harsha Thirimanna': '3rd year as an Organizer', 'Mara Ruvalcaba': '3rd year as an Organizer', 'Jamie Prince': '3rd year as an Organizer',
+    'Cris Nevares': '2nd year as an Organizer', 'Joel Hernandez': '2nd year as an Organizer', 'Srihari Nagaram': '2nd year as an Organizer', 'Vishwa Gandhi': '2nd year as an Organizer',
     'Amy Marrich': null, 'Akshay Mittal': null, 'Myroslav Mishov': null,
   };
   const list = readFileSync(about, 'utf8').match(/<ul class="pg-org"[^>]*>([\s\S]*?)<\/ul>/)?.[1] ?? '';
   const shown = Object.fromEntries([...list.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map(([, li]) => [
-    li.match(/<b[^>]*>([^<]*)<\/b>/)?.[1], li.match(/<span class="credit"[^>]*>([^<]*)<\/span>/)?.[1] ?? null,
+    li.match(/<b[^>]*>([^<]*)<\/b>/)?.[1], li.match(/<span class="credit">([^<]*)<span class="sr-only">([^<]*)<\/span><\/span>/)?.slice(1).join('') ?? null,
   ]));
   const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
   expect(same(sorted(shown), sorted(expected)), `About's Organizer credits differ from the table: ${JSON.stringify(shown)}`);

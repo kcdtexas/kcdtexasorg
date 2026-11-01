@@ -33,11 +33,12 @@ const fillPast = (html, key) => new RegExp(`<li class="pr-lane pr-lane--${key} [
 const sponsorsAgree = (html) => (lane(html, 'spons').state === 'past') === (lane(html, 'spons').when === 'Closed');
 // The header's filled button: its label and where it goes.
 const headCta = (html) => html.match(/<a class="btn btn--sm head-cta" href="([^"]*)"(?: aria-current="page")?>([^<]*)<\/a>/)?.slice(1, 3) ?? [];
-// The wide nav's link labels (the phone menu is a separate list).
-const navLabels = (html) => [...(html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '').matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
-const menuLabels = (html) => [...(html.match(/<nav class="menu-panel" aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '').matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
-const allLinks = 'Speak,Sponsor,Attend,2026 talks,About';
-const navWithout = (html) => navLabels(html).join() === 'Speak,Attend,2026 talks,About' && menuLabels(html).join() === allLinks;
+// The wide nav's top-level labels, "Past Editions" included, without the links inside its panel (the phone menu is a
+// separate list, with "Past Editions" as a label over the years).
+const navLabels = (html) => [...(html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="pe-panel"[^>]*>[\s\S]*?<\/ul>/, '').matchAll(/<(?:a [^>]*|button class="pe-btn"[^>]*)>([^<]*)</g)].map((m) => m[1]);
+const menuLabels = (html) => [...(html.match(/<nav class="menu-panel"[^>]* aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="menu-years"[\s\S]*?<\/ul>\s*<a class="menu-pe-all"[^>]*>[\s\S]*?<\/a>/, '').matchAll(/<(?:a [^>]*|span class="menu-pe-label"[^>]*)>([^<]*)</g)].map((m) => m[1]);
+const allLinks = 'Speak,Sponsor,Attend,Past Editions,About';
+const navWithout = (html) => navLabels(html).join() === 'Speak,Attend,Past Editions,About' && menuLabels(html).join() === allLinks;
 const navWith = (html) => navLabels(html).join() === allLinks && menuLabels(html).join() === allLinks;
 // The home page's sections in DOM order, by their last class ("speak program" is the program block).
 const sections = (html) => [...html.matchAll(/<section [^>]*class="([a-z ]+)"/g)].map((m) => m[1].split(' ').at(-1)).join();
@@ -60,8 +61,8 @@ const sponsorAsks = (html) => [
 // What invites proposals, once the call is closed: "Submit a talk" or the nav's "Speak".
 const talkAsks = (html) => linkWords(html).filter((w) => w === 'Submit a talk' || w === 'Speak');
 const navIs = (html, labels) => navLabels(html).join() === labels && menuLabels(html).join() === labels;
-const countdownNav = 'Program,Sponsor,Attend,2026 talks,About';
-const closedNav = 'Program,Sponsors,Attend,2026 talks,About';
+const countdownNav = 'Program,Sponsor,Attend,Past Editions,About';
+const closedNav = 'Program,Sponsors,Attend,Past Editions,About';
 const sponsorsPage = (html) => (/<p class="page-callout"><b>Sponsorships are closed\.<\/b>/.test(html) ? 'closed' : 'open');
 const chapter = 'https://community2.cncf.io/kcd-texas/';
 

@@ -6,10 +6,10 @@ import type { Session, Speaker } from '../lib/program';
 const e = edition2027;
 
 /** The label on every page that shows the test program (build.sh --program-sample): with only the Speakers public,
- *  the 2026 Sessions have no times or rooms. */
+ *  the Sessions have no times or rooms. */
 export const programSampleLabel = programSampleGates.schedulePublic
-  ? 'Sample: this test build shows the 2026 Schedule and made-up Sessions, not the 2027 program.'
-  : 'Sample: this test build shows the 2026 Speakers and Sessions, without times or rooms, plus made-up Sessions, not the 2027 program.';
+  ? 'Sample: this test build shows made-up Speakers and Sessions, not the 2027 program.'
+  : 'Sample: this test build shows made-up Speakers and Sessions without times or rooms, not the 2027 program.';
 
 export const programPages = {
   year: e.year,

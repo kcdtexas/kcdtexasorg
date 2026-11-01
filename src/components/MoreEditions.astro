@@ -1,0 +1,18 @@
+---
+// The row at the end of each past page: the other Past Editions, newest first, and the Editions page.
+import { pastEditionsMenu as pe } from '../data/editions';
+
+interface Props {
+  year: number;
+}
+const { year } = Astro.props;
+const others = pe.years.filter((y) => y.year !== year);
+---
+
+<nav class="more-eds" aria-labelledby="more-eds">
+  <p class="more-eds-label" id="more-eds">{pe.more}</p>
+  <ul>
+    {others.map((y) => <li><a href={y.href}>{y.year}</a></li>)}
+    <li><a href={pe.all.href}>{pe.all.text}</a></li>
+  </ul>
+</nav>

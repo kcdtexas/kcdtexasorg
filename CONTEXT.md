@@ -65,7 +65,7 @@ A person presenting in one Edition's program. The same person speaking in two Ed
 _Avoid_: Presenter, talent
 
 **Returning Speaker**:
-A Speaker who also spoke at an earlier KCD Texas Edition. The site credits them as "Speaker since" their first Edition, matched by name against the earlier Editions' public programs and confirmed by a short list for name variants. Hosts count only if they spoke.
+A Speaker who also spoke at an earlier KCD Texas Edition. The site credits them with how many Editions they have spoken at, this one included, such as "2nd year", matched by name against the earlier Editions' public programs and confirmed by a short list for name variants. Hosts count only if they spoke.
 _Avoid_: Repeat speaker, alumni speaker
 
 **Schedule**:

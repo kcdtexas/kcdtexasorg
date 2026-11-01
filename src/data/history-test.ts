@@ -16,7 +16,7 @@ export const fixtureOrganizer = { name: 'Fixture Organizer', employer: 'Fixture 
 const organizers = { names: [fixtureOrganizer.name], complete: true, source };
 
 export const testHistory: readonly EditionHistory[] = [
-  // The made-up Organizer organized 2025, 2026 and 2027: About shows "Organizer since 2025".
+  // The made-up Organizer organized 2025, 2026 and 2027: About shows "3rd year".
   { year: 2025, organizers },
   // The fixture's made-up earlier-Edition entry: Fixture Speaker 4 spoke in 2026.
   { year: fixtureEarlierSpeakers.year, organizers, speakers: { names: [...fixtureEarlierSpeakers.names], complete: true, source } },

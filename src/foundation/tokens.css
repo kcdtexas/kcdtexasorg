@@ -89,6 +89,8 @@
 
   --tile: transparent;        /* behind sponsor logos */
   --tile-fg: #121412;         /* a sponsor's name on its tile, before its logo is in (ink in both themes) */
+  --photo-tab: #121412;       /* a loyalty credit's tab on a person's photo: ink with a white edge and white text, */
+  --photo-tab-fg: #ffffff;    /* in both themes, so it holds on light and dark photos */
   --focus: #121412;
 }
 
@@ -128,6 +130,8 @@
     --track-tickets: #8a8d8a;
     --tile: #f4f3ef;
     --tile-fg: #121412;
+    --photo-tab: #121412;
+    --photo-tab-fg: #ffffff;
     --focus: #ffffff;
   }
 }
@@ -167,6 +171,8 @@
     --track-tickets: #8a8d8a;
     --tile: #f4f3ef;
     --tile-fg: #121412;
+    --photo-tab: #121412;
+    --photo-tab-fg: #ffffff;
     --focus: #ffffff;
   }
 }

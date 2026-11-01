@@ -25,12 +25,13 @@ export const paths = {
 
 // The header keeps Round 1's labels; each one now opens its page. Two follow the state (plan-release-5):
 // "Speak" becomes "Program", the schedule page, once the call closes (Feb 1), and "Sponsor" becomes "Sponsors"
-// once the site stops asking for sponsors (Event Day, Apr 23). The footer keeps every page.
+// once the site stops asking for sponsors (Event Day, Apr 23). "Past Editions" opens a menu of the Past Editions
+// (SiteHeader.astro); elsewhere, such as the 404 page, it links to the Editions page. The footer keeps every page.
 export const mainNav = [
   phase === 'cfp' ? { href: paths.cfp, label: 'Speak' } : { href: paths.schedule, label: 'Program' },
   { href: paths.sponsors, label: sponsorAsk() ? 'Sponsor' : 'Sponsors' },
   { href: paths.tickets, label: 'Attend' },
-  { href: paths.edition2026, label: '2026 talks' },
+  { href: paths.editions, label: 'Past Editions', menu: true },
   { href: paths.about, label: 'About' },
 ] as const;
 

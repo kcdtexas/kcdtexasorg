@@ -145,8 +145,7 @@ export const home = {
       { term: 'Dates', text: `Opens ${shortDateYear(e.cfp.opens)}; closes ${shortDateYear(e.cfp.closes)}, ${e.cfp.closesTime} Central` },
       { term: 'Formats', text: 'Talks and hands-on workshops' },
       { term: 'Video', text: `${edition2026.recordings} talks from 2026 are on YouTube`, href: edition2026.talksUrl },
-      { term: 'First time', text: 'First time speaking? Ask for a mentor when you submit.' },
-      { term: 'Proposals', text: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.` },
+      { term: 'Proposals', text: `KCD Texas 2026 received ${edition2026.proposals2026} proposals.` },
     ],
     photoAlt: 'Tyler Auerbeck speaks during his afternoon talk at KCD Texas 2026, a microphone clipped to his shirt.',
     photoTime: '4:07 p.m.',
@@ -184,7 +183,10 @@ export const home = {
     title: 'On the 2026 stage',
     count: `${edition2026.speakers} Speakers and ${edition2026.hosts} hosts`,
     asPrinted: 'Affiliations as printed on the 2026 Event Page.',
-    // The talks list and the recap video live on /2026/ (release 4: the stage was 2,600 px tall).
+    // The talks list lives on /2026/ (release 4: the stage was 2,600 px tall). The recap video is back since
+    // 2026-10-18 (the owner), as one row before the open 2027 slot.
+    recapKicker: `Recap video · ${edition2026.recapLength}`,
+    recap: `Watch the ${edition2026.year} recap video`,
     programLink: `See the full 2026 program and its ${edition2026.recordings} talk recordings`,
     // The open slot that ends the stage: an End-User Story in the CFP Phase, then the 2027 keynotes by the gates, or
     // the Speakers while only they are public.

@@ -21,9 +21,9 @@ export const cfp = {
     { term: 'Event', text: `${longDate(e.eventDay)}, ${e.city}` },
   ],
 
-  // The link to submit, from the Session Committee once its platform is set. The page names no
-  // platform until then (a Co-Organizer, 2026-10-08), and while the link is empty it links nowhere.
-  submitUrl: '',
+  // The link to submit: the call's public page on Pretalx, the Session Committee's platform (the owner,
+  // 2026-10-30). The button shows only while the call is open.
+  submitUrl: 'https://pretalx.com/kcd-texas-2027/cfp' as string,
   submitButton: 'Submit a proposal',
   // Before the call opens, and while it is open without a link.
   submit: 'The link to submit is coming soon.',
@@ -52,10 +52,6 @@ export const cfp = {
     // One line on the call-for-proposals social card.
     cardLine: 'Run cloud native for your own business? Tell us your End-User Story.',
   },
-  firstTime: {
-    title: 'First-time Speakers',
-    text: 'First time speaking? Ask for a mentor when you submit.',
-  },
   writing: {
     title: 'Writing a strong proposal',
     points: [
@@ -68,8 +64,7 @@ export const cfp = {
     title: 'How we choose',
     text: `The Session Committee selects the Sessions. ${prog === 'speakers' ? 'The Speakers are announced, and the Schedule comes out soon.'
       : `The selected Speakers, the keynotes and the Schedule ${prog === 'soon' ? 'come out together soon' : `are announced together on ${shortDateYear(e.schedule)}`}.`}`,
-    proposals: `KCD Texas 2025 received ${edition2026.proposals2025} proposals.`,
-    proposalsSource: 'CNCF transparency report, 2025',
+    proposals: `KCD Texas 2026 received ${edition2026.proposals2026} proposals.`,
   },
   conduct: {
     title: 'Code of Conduct',

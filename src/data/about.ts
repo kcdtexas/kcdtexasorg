@@ -51,25 +51,29 @@ export const about = {
     past: { text: 'Meet the 2026 Organizers', href: '/2026/#organizers' },
     // Each earlier Edition's page lists its team with its source.
     pastTeams: { before: 'Earlier teams:', years: [2026, 2025, 2024] },
-    // build.sh --program-sample: a made-up Organizer with a made-up history shows the "Organizer since" credit
+    // build.sh --program-sample: a made-up Organizer with a made-up history shows the "3rd year" credit
     // (src/data/history-test.ts), and the real Organizers show none.
     creditsSample: 'Sample: this test build adds a made-up Organizer to show the credit.',
   },
-  // The 2027 Organizers: everyone who said OK to be listed (owner-actions A28; the owner's workbook,
-  // 2026-10-07), in its order. Employer and title only where given; photos in src/assets/organizers/2027.
+  // The 2027 Organizers: everyone who said OK to be listed (owner-actions A28; the owner's workbook, 2026-10-07 and
+  // 2026-10-11), in its order. Every card has a title and an employer, in one style (the owner, 2026-10-18): titles
+  // in title case and in full ("Senior", not "Sr."), "and" for "&", and the employer never inside the title. Where the
+  // workbook had neither, they come from the Organizer's own public profile: the KCD Texas chapter page on the CNCF
+  // community site, their Sessionize speaker page, or their company's own site (checked 2026-10-18; the private
+  // research notes list each source). Photos in src/assets/organizers/2027.
   // While the list is empty, the page shows the "soon" line above.
   organizers2027: [
-    { name: 'Rich Boyd', employer: '', title: 'Principal DevOps Engineer', photo: 'rich-boyd' },
-    { name: 'Mars Toktonaliev', employer: '', title: 'Senior System Engineer at KGPCo', photo: 'mars-toktonaliev' },
-    { name: 'Harsha Thirimanna', employer: '', title: 'Head of IAM CS | US & LATAM', photo: 'harsha-thirimanna' },
-    { name: 'Cris Nevares', employer: '', title: 'Senior Software Engineer 2', photo: 'cris-nevares' },
-    { name: 'Mara Ruvalcaba', employer: '', title: 'Marketing', photo: 'mara-ruvalcaba' },
+    { name: 'Rich Boyd', employer: 'Liatrio', title: 'Principal DevOps Engineer', photo: 'rich-boyd' },
+    { name: 'Mars Toktonaliev', employer: 'KGPCo', title: 'Senior System Engineer', photo: 'mars-toktonaliev' },
+    { name: 'Harsha Thirimanna', employer: 'WSO2', title: 'Principal Forward Deployed Engineer', photo: 'harsha-thirimanna' },
+    { name: 'Cris Nevares', employer: 'Zynga', title: 'Senior Software Engineer II', photo: 'cris-nevares' },
+    { name: 'Mara Ruvalcaba', employer: 'Software Guru', title: 'Co-Founder and COO', photo: 'mara-ruvalcaba' },
     { name: 'Joel Hernandez', employer: 'Red Hat', title: 'Senior Technical Account Manager', photo: 'joel-hernandez' },
-    { name: 'Srihari Nagaram', employer: '', title: 'Sr. Platform engineer', photo: 'srihari-nagaram' },
-    { name: 'Vishwa Gandhi', employer: '', title: 'software engineer', photo: 'vishwa-gandhi' },
-    { name: 'Amy Marrich', employer: 'Red Hat', title: '', photo: 'amy-marrich' },
-    { name: 'Akshay Mittal', employer: '', title: '', photo: 'akshay-mittal' },
-    { name: 'Myroslav Mishov', employer: 'Tech Evolvers', title: '', photo: 'myroslav-mishov' },
+    { name: 'Srihari Nagaram', employer: 'Doma TechCo', title: 'Senior Platform Engineer', photo: 'srihari-nagaram' },
+    { name: 'Vishwa Gandhi', employer: 'Oracle', title: 'Software Engineer', photo: 'vishwa-gandhi' },
+    { name: 'Amy Marrich', employer: 'Red Hat', title: 'Principal Technical Marketing Manager', photo: 'amy-marrich' },
+    { name: 'Akshay Mittal', employer: 'PayPal', title: 'MTS Software Engineer', photo: 'akshay-mittal' },
+    { name: 'Myroslav Mishov', employer: 'Tech Evolvers', title: 'Founder and CTO', photo: 'myroslav-mishov' },
     { name: 'Jamie Prince', employer: 'Red Hat', title: 'Product Manager', photo: 'jamie-prince' },
   ] as { name: string; employer: string; title: string; photo: string }[],
 

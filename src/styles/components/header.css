@@ -17,10 +17,28 @@
     :root[data-theme="dark"] .logo-on-light { display: none; }
     :root[data-theme="dark"] .logo-on-dark { display: block; }
   }
-  .nav ul { display: flex; gap: 28px; }
-  .nav a { display: block; padding: 12px 0; color: var(--fg); font-weight: 600; font-size: 16px; text-decoration: none; white-space: nowrap; }
-  .nav a:hover { color: var(--fg); text-decoration: underline 2px var(--action); text-underline-offset: 0.35em; }
-  .nav a[aria-current="page"] { text-decoration: underline 3px var(--action); text-underline-offset: 0.35em; }
+  .nav > ul { display: flex; gap: 28px; }
+  .nav > ul > li > a, .pe-btn { display: block; padding: 12px 0; color: var(--fg); font-weight: 600; font-size: 16px; text-decoration: none; white-space: nowrap; }
+  .nav > ul > li > a:hover, .pe-btn:hover, .pe:has(> :popover-open) .pe-btn { color: var(--fg); text-decoration: underline 2px var(--action); text-underline-offset: 0.35em; }
+  .nav > ul > li > a[aria-current="page"], .pe:has([aria-current="page"]) .pe-btn { text-decoration: underline 3px var(--action); text-underline-offset: 0.35em; }
+
+  /* "Past Editions": a button that opens a popover of the Past Editions, newest first, then the Editions page. The
+     browser closes it on Escape, a click elsewhere or a second click, with no script. The panel shows in the top
+     layer, under the button by anchor positioning (below 1200 px aligned to its right, so it stays on screen); a
+     browser without anchor positioning puts it under the header's right end. */
+  .pe-btn { display: flex; align-items: center; gap: 6px; cursor: pointer; anchor-name: --pe; }
+  .pe-chevron { width: 12px; height: 12px; flex: none; }
+  .pe:has(> :popover-open) .pe-chevron { transform: rotate(180deg); }
+  .pe-panel { position: fixed; inset: auto; top: calc(var(--head-h) / 2 + 30px); right: max(var(--pad), (100% - var(--maxw)) / 2 + var(--pad)); width: 360px; margin: 0; padding: 6px 20px 10px; background: var(--bg); color: var(--fg); border: 2px solid var(--fg); }
+  @supports (anchor-name: --pe) {
+    .pe-panel { position-anchor: --pe; top: calc(anchor(bottom) + 6px); right: auto; left: calc(anchor(left) - 20px); }
+  }
+  .pe-panel a { display: flex; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none; white-space: nowrap; }
+  .pe-year { flex: none; width: 60px; font-size: 22px; font-weight: 900; letter-spacing: -0.01em; }
+  .pe-line { font-size: 14px; color: var(--muted); }
+  .pe-panel a:hover .pe-year, .pe-all:hover { text-decoration: underline 2px var(--action); text-underline-offset: 0.3em; }
+  .pe-panel a[aria-current="page"] .pe-year, .pe-all[aria-current="page"] { text-decoration: underline 3px var(--action); text-underline-offset: 0.3em; }
+  .pe-panel .pe-all { display: block; border-bottom: 0; font-weight: 600; font-size: 16px; }
   .head-end { display: flex; align-items: center; gap: 12px; }
 
   /* The theme switch: hidden until /theme.js runs; without JavaScript the device setting decides. */
@@ -33,32 +51,65 @@
   .theme svg { width: 18px; height: 18px; flex: none; }
   .theme[data-now="light"] .icon-sun, .theme[data-now="dark"] .icon-moon { display: none; }
 
-  .menu { display: none; position: relative; }
-  .menu summary {
-    display: flex; align-items: center; min-height: 44px; padding: 0 14px; border: 2px solid var(--fg); cursor: pointer; list-style: none;
-    font-weight: 700; font-size: 16px;
+  /* The phone menu: a popover too, under its button by anchor positioning, or else under the header's right end; it
+     scrolls if the screen is too short for it. */
+  .menu { display: none; }
+  .menu-btn, .menu-link {
+    display: flex; align-items: center; min-height: 44px; padding: 0 14px; border: 2px solid var(--fg); cursor: pointer;
+    color: var(--fg); font-weight: 700; font-size: 16px; text-decoration: none;
   }
-  .menu summary::-webkit-details-marker { display: none; }
+  .menu-btn { anchor-name: --menu; }
+  .menu-link { display: none; }
   .menu-icon { display: none; width: 20px; height: 20px; }
-  .menu[open] summary { background: var(--fg); color: var(--bg); }
-  .menu-panel { position: absolute; right: 0; top: calc(100% + 10px); z-index: 40; width: min(84vw, 320px); padding: 8px 20px 14px; background: var(--bg); border: 2px solid var(--fg); }
-  .menu-panel li a { display: block; padding: 13px 0; border-bottom: 1px solid var(--line); color: var(--fg); font-weight: 600; font-size: 20px; text-decoration: none; }
-  .menu-panel li:last-child a { border-bottom: 0; }
+  .menu:has(> :popover-open) .menu-btn { background: var(--fg); color: var(--bg); }
+  .menu-panel { position: fixed; inset: auto; top: calc(var(--head-h) / 2 + 32px); right: var(--pad); width: min(84vw, 320px); max-height: calc(100dvh - var(--head-h) / 2 - 40px); margin: 0; padding: 8px 20px 14px; overflow-y: auto; background: var(--bg); color: var(--fg); border: 2px solid var(--fg); }
+  @supports (anchor-name: --menu) {
+    .menu-panel { position-anchor: --menu; top: calc(anchor(bottom) + 10px); right: anchor(right); }
+  }
+  .menu-panel > ul > li > a { display: block; padding: 13px 0; border-bottom: 1px solid var(--line); color: var(--fg); font-weight: 600; font-size: 20px; text-decoration: none; }
+  .menu-panel > ul > li:last-child > a { border-bottom: 0; }
   .menu-panel a[aria-current="page"] { text-decoration: underline 3px var(--action); text-underline-offset: 0.3em; }
+  /* The phone menu's Past Editions: the label, the years as buttons that wrap as years are added, then the Editions page. */
+  .menu-pe { border-bottom: 1px solid var(--line); }
+  .menu-pe-label { display: block; padding: 13px 0 6px; color: var(--fg); font-weight: 600; font-size: 20px; }
+  .menu-pe:has([aria-current="page"]) .menu-pe-label { text-decoration: underline 3px var(--action); text-underline-offset: 0.3em; }
+  .menu-years { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 8px; }
+  .menu-years li { flex: 1 0 72px; }
+  .menu-years a { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 2px solid var(--fg); color: var(--fg); font-size: 18px; font-weight: 900; text-decoration: none; }
+  .menu-years a:hover { background: var(--fg); color: var(--bg); }
+  .menu-years a[aria-current="page"] { background: var(--fg); color: var(--bg); text-decoration: none; }
+  .menu-panel .menu-pe .menu-pe-all { display: flex; align-items: center; min-height: 44px; padding: 0 0 6px; border-bottom: 0; font-size: 16px; }
+
+  /* A browser without popovers (such as Safari before 17): no "Past Editions" panel, as the footer links every
+     Edition, and the phone header's "Menu" is a link to the footer's lists. */
+  @supports not selector(:popover-open) {
+    .pe, .menu-btn, .menu-panel { display: none; }
+    .menu-link { display: flex; }
+  }
 
   @media (max-width: 1199px) {
     .head { gap: 20px; }
-    .nav ul { gap: 20px; }
+    .nav > ul { gap: 20px; }
+    /* Near the right edge the panel aligns right, so it stays on screen. */
+    @supports (anchor-name: --pe) {
+      .pe-panel { left: auto; right: calc(anchor(right) - 20px); }
+    }
   }
   @media (min-width: 900px) and (max-width: 979px) {
     /* Just above the phone menu, a slightly smaller lockup and tighter gaps keep the nav on one line with the
        longest button label ("Get ticket news"). */
     .head { gap: 14px; }
-    .nav ul { gap: 16px; }
+    .nav > ul { gap: 16px; }
     .lockup { gap: 12px; }
     .lockup-kcd { height: 44px; }
     .lockup-rule { height: 40px; }
     .lockup-badge { height: 52px; }
+  }
+  @media (max-width: 1023px) {
+    /* Below 1024 px the switch shows its icon alone, as on phones, so the widest header (Nov 1 to Jan 31) fits from
+       900 px with a classic scrollbar; its word stays in the accessible name. */
+    .theme { padding: 0; width: 44px; }
+    .theme-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   }
   @media (max-width: 899px) {
     .nav { display: none; }
@@ -77,11 +128,10 @@
     .lockup-rule { height: 26px; }
     .lockup-badge { height: 34px; }
     .head-cta { min-height: 44px; padding: 0 8px; font-size: 15px; }
-    /* Phones: the switch and the menu show icons; their words stay in the accessible names. */
-    .menu summary { justify-content: center; width: 44px; padding: 0; }
+    /* Phones: the menu shows its icon too; its word stays in the accessible name. */
+    .menu-btn, .menu-link { justify-content: center; width: 44px; padding: 0; }
     .menu-icon { display: block; }
-    .theme { padding: 0; width: 44px; }
-    .menu-word, .theme-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .menu-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   }
   @media (max-width: 379px) {
     .lockup { gap: 5px; }

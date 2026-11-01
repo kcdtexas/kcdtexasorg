@@ -1,7 +1,9 @@
 ---
 // The 2026 bill: keynotes in the day's order, every Speaker by surname, then the hosts.
 // Desktop and tablet rows are fitted to the measure; phones show the keynotes and a disclosure. Below it, the
-// returning Speakers by their "Speaker since" credit as of 2026 (src/lib/loyalty.ts), outside the fitted rows.
+// returning Speakers grouped by their credit as of 2026 (src/lib/loyalty.ts), most Editions first, outside the
+// fitted rows.
+import Credit from './program/Credit.astro';
 import { edition2026 } from '../data/edition-2026';
 import { speakerCredit } from '../lib/loyalty';
 
@@ -11,7 +13,11 @@ const and = (list: string[]) => (list.length < 2 ? list.join('') : `${list.slice
 const returning = [...b.keynotes, ...b.speakers.map(([n]) => n)]
   .map((n) => ({ n, credit: speakerCredit(n, 2026) }))
   .filter((r) => r.credit);
-const since = [...new Set(returning.map((r) => r.credit!.since))].sort().map((y) => ({ y, names: and(returning.filter((r) => r.credit!.since === y).map((r) => r.n)) }));
+const counts = [...new Set(returning.map((r) => r.credit!.editions))].sort((a, b) => b - a);
+const groups = counts.map((n) => {
+  const same = returning.filter((r) => r.credit!.editions === n);
+  return { credit: same[0].credit, names: and(same.map((r) => r.n)) };
+});
 ---
 
 <div class="bill26">
@@ -26,7 +32,7 @@ const since = [...new Set(returning.map((r) => r.credit!.since))].sort().map((y)
     <p class="bl-by">Hosted by</p>
     <ul class="bl bl-hosts">{b.hosts.map((n) => <li>{n}</li>)}</ul>
   </details>
-  {since.length > 0 && (
-    <ul class="bl-since">{since.map((g) => <li><span class="credit">Speaker since {g.y}</span><span>{g.names}</span></li>)}</ul>
+  {groups.length > 0 && (
+    <ul class="bl-since">{groups.map((g) => <li><Credit credit={g.credit} role="Speaker" /><span>{g.names}</span></li>)}</ul>
   )}
 </div>
