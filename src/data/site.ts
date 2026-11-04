@@ -3,7 +3,8 @@ import { edition2027, longDate } from './edition-2027';
 import { paths } from './nav';
 
 export const contact = {
-  email: 'organizers@kcdtexas.org',
+  // Cloud Native Texas's address (the owner, 2026-11-03), on every page and the Code of Conduct page.
+  email: 'info@cloudnativetexas.com',
   conductEmail: 'conduct@cncf.io',
   chapterUrl: 'https://community2.cncf.io/kcd-texas/',
   communityUrl: 'https://cloudnativetexas.com',
@@ -33,13 +34,14 @@ export const legal = {
 // The 2027 prospectus (Sponsor Committee): a PDF the committee puts on GitHub and links directly, so no
 // one has to email for it. Until its link is in, the sponsor doors open the sponsors page and say it's
 // coming soon (a Co-Organizer, 2026-10-08). Put the direct link in `url` to switch every door to it.
-const prospectusUrl: string = '';
+// The 2027 prospectus, as a direct download from GitHub (the owner, 2026-11-03).
+const prospectusUrl: string = 'https://github.com/kcdtexas/sponsor-prospectus/raw/main/KCD-Texas-2027-Sponsorship-Prospectus.pdf';
 export const prospectus = {
   url: prospectusUrl,
   href: prospectusUrl || paths.sponsors,
   // The doors: the hero, the home sponsor block and the sponsors link card.
   label: prospectusUrl ? `Download the ${edition2027.year} prospectus` : `Sponsor KCD Texas ${edition2027.year}`,
-  note: prospectusUrl ? 'PDF on GitHub' : `${edition2027.year} prospectus coming soon`,
+  note: prospectusUrl ? 'PDF, 4.4 MB' : `${edition2027.year} prospectus coming soon`,
 } as const;
 
 // Cloudflare Web Analytics, the one analytics exception to zero data (ADR 0013, which replaces ADR 0007's Umami).
