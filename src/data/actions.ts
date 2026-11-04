@@ -27,7 +27,7 @@ const afterAction: Action = phase === 'event-day' && scheduleData ? { href: path
  *  (the ticket link, the program). */
 export const headerCta: Action = phase === 'cfp'
   ? (cfpStatus() === 'Open now' ? { href: cfpPath, label: 'Submit a talk' }
-    : sponsorshipsOpen() ? { href: prospectus.href, label: 'Sponsor' }
+    : sponsorshipsOpen() ? { href: paths.sponsors, label: 'Sponsor' }
     : ticketsAction)
   : phase === 'countdown' ? { href: ticketsAction.href, label: 'Tickets' }
   : programPublic() ? { href: paths.schedule, label: 'Schedule' }

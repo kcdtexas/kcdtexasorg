@@ -38,6 +38,9 @@ const headCta = (html) => html.match(/<a class="btn btn--sm head-cta" href="([^"
 const navLabels = (html) => [...(html.match(/<nav class="nav" aria-label="Main">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="pe-panel"[^>]*>[\s\S]*?<\/ul>/, '').matchAll(/<(?:a [^>]*|button class="pe-btn"[^>]*)>([^<]*)</g)].map((m) => m[1]);
 const menuLabels = (html) => [...(html.match(/<nav class="menu-panel"[^>]* aria-label="Main, phone">([\s\S]*?)<\/nav>/)?.[1] ?? '').replace(/<ul class="menu-years"[\s\S]*?<\/ul>\s*<a class="menu-pe-all"[^>]*>[\s\S]*?<\/a>/, '').matchAll(/<(?:a [^>]*|span class="menu-pe-label"[^>]*)>([^<]*)</g)].map((m) => m[1]);
 const allLinks = 'Speak,Sponsor,Attend,Past Editions,About';
+// The sponsor door's words: "Download the 2027 prospectus" once src/data/site.ts links the PDF, else the sponsors page.
+const sponsorDoor = /const prospectusUrl: string = '([^']+)'/.test(readFileSync('src/data/site.ts', 'utf8'))
+  ? 'Download the 2027 prospectus' : 'Sponsor KCD Texas 2027';
 const navWithout = (html) => navLabels(html).join() === 'Speak,Attend,Past Editions,About' && menuLabels(html).join() === allLinks;
 const navWith = (html) => navLabels(html).join() === allLinks && menuLabels(html).join() === allLinks;
 // The home page's sections in DOM order, by their last class ("speak program" is the program block).
@@ -71,7 +74,9 @@ const chapter = 'https://community2.cncf.io/kcd-texas/';
 export const DAYS = {
   '2026-10-28': ({ home, cfp }) => ({
     'nav: no "Sponsor" link while the button says "Sponsor"; the phone menu keeps it': navWithout(home) && navWithout(cfp),
-    'header: "Sponsor", to the hero\'s Sponsor door': headCta(home)[1] === 'Sponsor' && new RegExp(`class="btn btn--door" href="${headCta(home)[0]}"`).test(home),
+    // The header's "Sponsor" opens the sponsors page; the hero's Sponsor door goes there too until the prospectus is
+    // linked, then to the PDF.
+    'header: "Sponsor", to the sponsors page': headCta(home).join() === '/2027/sponsors/,Sponsor',
     'phase rail rows in order: Sponsorships, CFP, Schedule, event': lanes(home).map((l) => l.key).join() === 'spons,cfp,sched,event',
     'phase rail: Sponsorships live': lane(home, 'spons').state === 'live',
     'phase rail: CFP future': lane(home, 'cfp').state === 'future',
@@ -79,7 +84,7 @@ export const DAYS = {
     'phase rail: the rows read "Open now", "Nov 1 to Jan 31", "Mar 1" (no end) and "Apr 23"':
       lane(home, 'spons').when === 'Open now' && lane(home, 'cfp').when === 'Nov 1 to Jan 31' && lane(home, 'sched').when === 'Mar 1' && lane(home, 'event').when === 'Apr 23',
     'hero: "Sponsorships: open now"': /Sponsorships: open now/.test(text(home)),
-    'hero: Sponsor filled, then "Submit a talk" outlined': doorsAre(home, 'filled Sponsor KCD Texas 2027', 'line Submit a talk'),
+    'hero: Sponsor filled, then "Submit a talk" outlined': doorsAre(home, `filled ${sponsorDoor}`, 'line Submit a talk'),
     'CFP page: "Opens Nov 1."': cfpCallout(cfp) === 'Opens Nov 1.',
     '/2027/cfp/ uses the default card': cardOf(cfp) === 'default',
     'home page sections in the one order for every width': sections(home) === 'hero,dates,wall,sponsor,stage,speak,day,organizers,attend',
@@ -105,7 +110,7 @@ export const DAYS = {
   '2027-02-01': ({ home, cfp, schedule, sponsors }) => ({
     'nav: "Program" for "Speak", and "Sponsor"; the phone menu the same': navIs(home, countdownNav) && navIs(cfp, countdownNav),
     'header: "Tickets", to the hero\'s filled door (ticket news until the link is in)': headCta(home).join() === `${chapter},Tickets` && heroDoors(home)[0]?.href === chapter,
-    'hero: tickets filled, then the Sponsor door outlined': doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027'),
+    'hero: tickets filled, then the Sponsor door outlined': doorsAre(home, 'filled Get ticket news', `line ${sponsorDoor}`),
     'hero bill: Tickets, Schedule, Sponsorships, then the 2026 talks': bill(home) === 'Tickets: coming soon | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks',
     'home order: the wall third, Attend fourth, the pitch last': sections(home) === 'hero,dates,wall,attend,program,stage,day,organizers,sponsor',
     'no "Submit a talk" or "Speak" on any page checked': [home, cfp, schedule, sponsors].every((h) => !talkAsks(h).length),
@@ -133,7 +138,7 @@ export const DAYS = {
   '2027-03-31': ({ home }) => ({
     'nav: "Sponsor" still; sponsorships run through Event Day': navIs(home, countdownNav),
     'header: still "Tickets"': headCta(home)[1] === 'Tickets',
-    'hero: the Sponsor door still outlined': doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027'),
+    'hero: the Sponsor door still outlined': doorsAre(home, 'filled Get ticket news', `line ${sponsorDoor}`),
     'phase rail: Sponsorships still "Open now"': lane(home, 'spons').state === 'live' && lane(home, 'spons').when === 'Open now',
   }),
   '2027-04-01': ({ home, sponsors }) => ({
@@ -143,7 +148,7 @@ export const DAYS = {
     'sponsors page: still open': sponsorsPage(sponsors) === 'open',
   }),
   '2027-04-22': ({ home }) => ({
-    'the last day that asks: the Sponsor door, the pitch and the open slot': doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027') && sections(home).endsWith(',sponsor') && slotLabel(home) === 'Be the first 2027 sponsor',
+    'the last day that asks: the Sponsor door, the pitch and the open slot': doorsAre(home, 'filled Get ticket news', `line ${sponsorDoor}`) && sections(home).endsWith(',sponsor') && slotLabel(home) === 'Be the first 2027 sponsor',
     'home order: the wall still third': sections(home).split(',')[2] === 'wall',
   }),
   '2027-04-23': ({ home, cfp, sponsors }) => ({
@@ -183,17 +188,17 @@ export const DAYS = {
 export const RUNS = [
   { name: 'tickets on sale in the CFP Phase', flags: ['--now', cfpSaleDay, '--tickets-day', cfpSaleDay], checks: ({ home }) => ({
     'header: still "Submit a talk"': headCta(home)[1] === 'Submit a talk',
-    'hero: Sponsor filled, "Submit a talk" outlined': doorsAre(home, 'filled Sponsor KCD Texas 2027', 'line Submit a talk'),
+    'hero: Sponsor filled, "Submit a talk" outlined': doorsAre(home, `filled ${sponsorDoor}`, 'line Submit a talk'),
     'hero bill: "Tickets: on sale now" third': bill(home) === 'Sponsorships: open now | Call for proposals: open now | Tickets: on sale now | Your End-User Story here',
     'home order: Attend fourth': sections(home) === 'hero,dates,wall,attend,sponsor,stage,speak,day,organizers',
   }) },
   { name: 'tickets on sale in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', cfpSaleDay], checks: ({ home }) => ({
-    'header: "Tickets", where the hero\'s "Get tickets" goes': headCta(home)[1] === 'Tickets' && doorsAre(home, 'filled Get tickets', 'line Sponsor KCD Texas 2027') && heroDoors(home)[0].href === headCta(home)[0],
+    'header: "Tickets", where the hero\'s "Get tickets" goes': headCta(home)[1] === 'Tickets' && doorsAre(home, 'filled Get tickets', `line ${sponsorDoor}`) && heroDoors(home)[0].href === headCta(home)[0],
     'hero bill: "Tickets: on sale now"': bill(home) === 'Tickets: on sale now | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks',
     'home order: as without tickets': sections(home) === 'hero,dates,wall,attend,program,stage,day,organizers,sponsor',
   }) },
   { name: 'a later sale day in the Countdown', flags: ['--now', '2027-02-01', '--tickets-day', laterSaleDay], checks: ({ home }) => ({
-    'header: "Tickets", to ticket news until the sale day': headCta(home).join() === `${chapter},Tickets` && doorsAre(home, 'filled Get ticket news', 'line Sponsor KCD Texas 2027'),
+    'header: "Tickets", to ticket news until the sale day': headCta(home).join() === `${chapter},Tickets` && doorsAre(home, 'filled Get ticket news', `line ${sponsorDoor}`),
     [`hero bill: "Tickets: ${laterOnSale}"`]: bill(home) === `Tickets: ${laterOnSale} | Schedule: Mar 1 | Sponsorships: open now | Watch the 2026 talks`,
   }) },
   { name: 'the program public in the Countdown', flags: ['--now', '2027-03-10', '--program-public'], checks: ({ home, schedule }) => ({
