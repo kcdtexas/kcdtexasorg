@@ -42,12 +42,13 @@ export const prospectus = {
   note: prospectusUrl ? 'PDF on GitHub' : `${edition2027.year} prospectus coming soon`,
 } as const;
 
-// Umami, the one analytics exception to zero data (ADR 0007). Off until the host sets ANALYTICS=umami;
-// the footer's privacy line follows this setting so it stays true.
+// Cloudflare Web Analytics, the one analytics exception to zero data (ADR 0013, which replaces ADR 0007's Umami).
+// Cloudflare adds its script to the live pages itself; the production build allows it in the CSP and says so on the
+// privacy page only when the host sets ANALYTICS=cloudflare, so the footer's privacy line and the page stay true.
 export const analytics = {
-  enabled: import.meta.env.ANALYTICS === 'umami',
+  enabled: import.meta.env.ANALYTICS === 'cloudflare',
 } as const;
 
 export const privacyLine = analytics.enabled
-  ? 'This website sets no cookies. Its cookieless analytics run on kcdtexas.org.'
+  ? 'This website sets no cookies. It counts visits with Cloudflare’s cookie-free Web Analytics, and loads YouTube’s player only when you play a recording.'
   : 'This website sets no cookies and loads nothing from other companies’ servers, except YouTube’s player when you play a recording.';

@@ -15,10 +15,10 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Build command | `npm ci --ignore-scripts --no-audit --no-fund && bash scripts/build.sh --skip-install` | no dependency's install script runs in a production build |
 | Build output directory | `dist` | |
 | Variables, Production and Preview | `NODE_VERSION=22`, `ASTRO_TELEMETRY_DISABLED=1`, `SKIP_DEPENDENCY_INSTALL=1` | Astro needs Node 22.12 or newer; the build command installs the dependencies itself, without their install scripts |
-| Variables, Production only | `SESSIONIZE_ENDPOINT_ID` or `PROGRAM_CSV_URL`, as a secret, only shortly before the program goes public | ADR 0009, `docs/program-csv.md` |
+| Variables, Production only | `ANALYTICS=cloudflare` (ADR 0013); and `SESSIONIZE_ENDPOINT_ID` or `PROGRAM_CSV_URL`, as a secret, only shortly before the program goes public | ADR 0009, `docs/program-csv.md` |
 | Build cache | off | no program data in a cache |
 | Deploy hook | one, for `main`; its address is the secret `CLOUDFLARE_DEPLOY_HOOK` in GitHub's `production` environment | the scheduled rebuilds (`docs/rebuilds.md`) |
-| Web Analytics (the project's and the zone's) | off | ADR 0007 |
+| Web Analytics, the project's | off | the zone's covers kcdtexas.org (ADR 0013) |
 | Failure email | Notifications: a failed Pages deployment of `kcdtexas` emails organizers@kcdtexas.org | a failed build reaches a person |
 | Custom domain | `kcdtexas.org` | |
 
@@ -27,7 +27,7 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Setting | Value | Why |
 |---|---|---|
 | Email Address Obfuscation | off | it rewrites every email address on our pages, which then shows as "[email protected]" without JavaScript |
-| Web Analytics | off | it adds a script from another origin to every page |
+| Web Analytics | on, with `ANALYTICS=cloudflare` in the project's Production variables | ADR 0013: the one script allowed from another origin; turn the zone's off before removing the variable |
 | Rocket Loader, Bot Fight Mode, Zaraz | off | they add scripts or cookies |
 | Always Use HTTPS | on | |
 | Redirect Rule | "Redirect from WWW to root": `www.kcdtexas.org` to `kcdtexas.org`, 301 | one address for the site |

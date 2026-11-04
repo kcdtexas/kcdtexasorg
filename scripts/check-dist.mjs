@@ -298,6 +298,13 @@ async function check() {
   if (/^\/watch\.js$/m.test(hostHeaders) !== player) failures.push('_headers has a /watch.js rule without the file, or the file without its rule');
   const frames = hostHeaders.match(/frame-src[^;\n]*/g) ?? [];
   if (frames.join() !== (player ? 'frame-src https://www.youtube-nocookie.com' : '')) failures.push(`the CSP's frame-src is "${frames.join(' | ')}": it must be exactly youtube-nocookie.com with /watch.js, and absent without it`);
+  // Cloudflare Web Analytics (ADR 0013): the CSP lets its script in, and the privacy page describes it, only in a build
+  // with ANALYTICS=cloudflare; otherwise neither does.
+  const cfAnalytics = process.env.ANALYTICS === 'cloudflare';
+  const scripts = hostHeaders.match(/script-src[^;\n]*/g) ?? [];
+  if (scripts.join() !== (cfAnalytics ? "script-src 'self' https://static.cloudflareinsights.com" : "script-src 'self'")) failures.push(`the CSP's script-src is "${scripts.join(' | ')}": it must be 'self', plus static.cloudflareinsights.com only with ANALYTICS=cloudflare`);
+  const privacyPage = pages.find(({ file }) => file.endsWith(`privacy${sep}index.html`) || file === `privacy${sep}index.html`);
+  if (privacyPage && privacyPage.html.includes('Cloudflare Web Analytics') !== cfAnalytics) failures.push(`the privacy page ${cfAnalytics ? "doesn't describe" : 'describes'} Cloudflare Web Analytics, but ANALYTICS is ${cfAnalytics ? '' : 'not '}cloudflare`);
   if (worker && !/register\('\/sw\.js', \{ scope: '\/2027\/' \}\)/.test(readFileSync(join(DIST, 'schedule.js'), 'utf8'))) failures.push('schedule.js does not register /sw.js with the scope /2027/');
 
   for (const file of walk(DIST).filter((p) => extname(p) === '.css')) {

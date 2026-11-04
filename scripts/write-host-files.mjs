@@ -44,7 +44,9 @@ const csp = [
   "default-src 'self'",
   "img-src 'self' data:",
   "style-src 'self'",
-  "script-src 'self'",
+  // Cloudflare Web Analytics (ADR 0013): Cloudflare adds its script on the live site, and it reports back to our own
+  // domain, so only script-src needs its host, and only while ANALYTICS=cloudflare is set.
+  process.env.ANALYTICS === 'cloudflare' ? "script-src 'self' https://static.cloudflareinsights.com" : "script-src 'self'",
   "font-src 'self'",
   "connect-src 'self'",
   // The offline worker (/sw.js), only in a build that has it.
