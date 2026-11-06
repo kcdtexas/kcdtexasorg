@@ -1,6 +1,6 @@
 // Says whether today, in Central time, is a rebuild day (scripts/rebuild-dates.mjs) and what this run of
 // .github/workflows/rebuild.yml does by the refresh policy (scripts/refresh-policy.mjs): rebuild, check the
-// program for a change, or nothing. The workflow POSTs to the Netlify build hook on a rebuild, or after a check
+// program for a change, or nothing. The workflow POSTs to the Cloudflare Pages deploy hook on a rebuild, or after a check
 // that finds a change. docs/rebuilds.md explains the whole loop.
 //
 // Usage: node scripts/rebuild-today.mjs [--day YYYY-MM-DD] [--at ISO-INSTANT] [--cron CRON] [--force true|false]

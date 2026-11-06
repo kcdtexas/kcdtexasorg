@@ -1,6 +1,6 @@
 // When the last program deploy, or the last use of the build hook, started, from this workflow's own runs on
 // GitHub (.github/workflows/rebuild.yml). A program deploy is a run whose rebuild job is named PROGRAM_DEPLOY_JOB
-// (after a program change, or a forced run) and whose HOOK_STEP succeeded, so Netlify accepted the build. A use of
+// (after a program change, or a forced run) and whose HOOK_STEP succeeded, so Cloudflare accepted the build. A use of
 // the hook is any run whose HOOK_STEP succeeded. A run that failed later, while it waited for the live site, still
 // counts. The time is the run's start, as the refresh policy compares run starts.
 // scripts/rebuild-today.mjs calls these only when the refresh policy needs them (scripts/refresh-policy.mjs). They
@@ -8,9 +8,9 @@
 
 /** The rebuild job's name when it deploys a program change or a forced run, and its build hook step. */
 export const PROGRAM_DEPLOY_JOB = 'Program deploy';
-export const HOOK_STEP = 'Start a Netlify production build';
+export const HOOK_STEP = 'Start a Cloudflare production build';
 
-/** Whether one run's jobs (from GitHub's jobs API) include a program deploy that reached Netlify. */
+/** Whether one run's jobs (from GitHub's jobs API) include a program deploy that reached Cloudflare. */
 export function deployedIn(jobs) {
   return (jobs ?? []).some((j) => j.name === PROGRAM_DEPLOY_JOB && (j.steps ?? []).some((s) => s.name === HOOK_STEP && s.conclusion === 'success'));
 }

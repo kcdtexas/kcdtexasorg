@@ -8,7 +8,7 @@ import { offlineCopy, program } from '../lib/program';
 
 const analyticsText = {
   on: [
-    'We count page views, and clicks on the links to the call for proposals, the sponsor prospectus and tickets, with Umami, served from kcdtexas.org. It sets no cookies and doesn’t identify you.',
+    'We count page views with Cloudflare Web Analytics. Cloudflare, our host, adds its script to each page; the script loads from static.cloudflareinsights.com, measures how fast the page loaded, and sends the count back to kcdtexas.org. It sets no cookies, stores nothing in your browser, and Cloudflare says it doesn’t collect or use visitors’ personal data.',
     'The counts tell us whether people find what they came for.',
   ],
   off: [
@@ -18,7 +18,9 @@ const analyticsText = {
 
 export const privacy = {
   title: 'Privacy',
-  description: 'kcdtexas.org sets no cookies, has no forms and loads nothing from other companies’ servers until you play a recording. This page lists what it stores in your browser, and when.',
+  description: analytics.enabled
+    ? 'kcdtexas.org sets no cookies and has no forms. It counts visits with Cloudflare’s cookie-free Web Analytics. This page lists what it stores in your browser, and what loads from elsewhere.'
+    : 'kcdtexas.org sets no cookies, has no forms and loads nothing from other companies’ servers until you play a recording. This page lists what it stores in your browser, and when.',
   kicker: 'This website',
   lead: program
     ? 'This website sets no cookies and has no forms. What it stores in your browser stays there.'
@@ -43,7 +45,9 @@ export const privacy = {
       id: 'loads',
       title: 'What loads when you open a page',
       text: [
-        'The pages, fonts, images and logos all come from kcdtexas.org. Opening a page here loads nothing from other companies’ servers.',
+        analytics.enabled
+          ? 'The pages, fonts, images and logos all come from kcdtexas.org. The one script from elsewhere is Cloudflare’s Web Analytics, from static.cloudflareinsights.com (see Analytics, below).'
+          : 'The pages, fonts, images and logos all come from kcdtexas.org. Opening a page here loads nothing from other companies’ servers.',
         // The video player (public/watch.js): the one thing from another company's servers, and only on a click.
         'When you play a recording here, YouTube’s player loads from youtube-nocookie.com, and YouTube’s privacy policy applies to it. Nothing from YouTube loads before you choose a recording.',
       ],

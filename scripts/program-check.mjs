@@ -18,7 +18,7 @@
 //       - Exit 0 after printing. On a failure (no variable set, a failed fetch, data that doesn't validate) it
 //         prints a redacted message on stderr, nothing on stdout, writes no output, and exits 1.
 //   Tests only: KCD_PROGRAM_TEST_BASE (the Sessionize base) and KCD_PROGRAM_LIVE_URL (the live file) may name a
-//   server on this machine; both are refused on Netlify and in GitHub Actions.
+//   server on this machine; both are refused on Cloudflare Pages, Netlify and in GitHub Actions.
 import { appendFileSync } from 'node:fs';
 import { importTs } from './lib/import-ts.mjs';
 import { liveVersionUrl } from '../src/lib/program-source/config.mjs';

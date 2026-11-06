@@ -3,7 +3,8 @@ import { edition2027, longDate } from './edition-2027';
 import { paths } from './nav';
 
 export const contact = {
-  email: 'organizers@kcdtexas.org',
+  // Cloud Native Texas's address (the owner, 2026-11-03), on every page and the Code of Conduct page.
+  email: 'info@cloudnativetexas.com',
   conductEmail: 'conduct@cncf.io',
   chapterUrl: 'https://community2.cncf.io/kcd-texas/',
   communityUrl: 'https://cloudnativetexas.com',
@@ -28,29 +29,28 @@ export const legal = {
   codeOfConductUrl: 'https://www.cncf.io/conduct/',
   kcdProgramUrl: 'https://www.cncf.io/kcds/',
   lfTrademarksUrl: 'https://www.linuxfoundation.org/legal/trademark-usage',
-  // Netlify's Open Source plan asks every page (or the home page) to link "This site is powered by Netlify" to its
-  // home page: https://www.netlify.com/legal/open-source-policy/. A text link, as its badges load from Netlify.
-  netlifyUrl: 'https://www.netlify.com',
 } as const;
 
 // The 2027 prospectus (Sponsor Committee): a PDF the committee puts on GitHub and links directly, so no
 // one has to email for it. Until its link is in, the sponsor doors open the sponsors page and say it's
 // coming soon (a Co-Organizer, 2026-10-08). Put the direct link in `url` to switch every door to it.
-const prospectusUrl: string = '';
+// The 2027 prospectus, as a direct download from GitHub (the owner, 2026-11-03).
+const prospectusUrl: string = 'https://github.com/kcdtexas/sponsor-prospectus/raw/main/KCD-Texas-2027-Sponsorship-Prospectus.pdf';
 export const prospectus = {
   url: prospectusUrl,
   href: prospectusUrl || paths.sponsors,
   // The doors: the hero, the home sponsor block and the sponsors link card.
   label: prospectusUrl ? `Download the ${edition2027.year} prospectus` : `Sponsor KCD Texas ${edition2027.year}`,
-  note: prospectusUrl ? 'PDF on GitHub' : `${edition2027.year} prospectus coming soon`,
+  note: prospectusUrl ? 'PDF, 4.4 MB' : `${edition2027.year} prospectus coming soon`,
 } as const;
 
-// Umami, the one analytics exception to zero data (ADR 0007). Off until the host sets ANALYTICS=umami;
-// the footer's privacy line follows this setting so it stays true.
+// Cloudflare Web Analytics, the one analytics exception to zero data (ADR 0013, which replaces ADR 0007's Umami).
+// Cloudflare adds its script to the live pages itself; the production build allows it in the CSP and says so on the
+// privacy page only when the host sets ANALYTICS=cloudflare, so the footer's privacy line and the page stay true.
 export const analytics = {
-  enabled: import.meta.env.ANALYTICS === 'umami',
+  enabled: import.meta.env.ANALYTICS === 'cloudflare',
 } as const;
 
 export const privacyLine = analytics.enabled
-  ? 'This website sets no cookies. Its cookieless analytics run on kcdtexas.org.'
+  ? 'This website sets no cookies. It counts visits with Cloudflare’s cookie-free Web Analytics, and loads YouTube’s player only when you play a recording.'
   : 'This website sets no cookies and loads nothing from other companies’ servers, except YouTube’s player when you play a recording.';

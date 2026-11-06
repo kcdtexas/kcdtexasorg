@@ -151,9 +151,12 @@ try {
   expect(adapter.status === 0, `tests/program-adapter.mjs fails:\n${adapter.stderr.slice(-3000)}`);
 
   // 1. The production build refuses the sample flags.
-  for (const flag of [['--program-sample'], ['--clock', '10:30']]) {
-    const res = build(flag, { CONTEXT: 'production' });
-    expect(res.status === 2 && /not allowed in a production build/.test(res.log), `production build accepts ${flag[0]}`);
+  // Netlify's production deploys, and Cloudflare Pages building `main` (src/lib/build-context.mjs).
+  for (const host of [{ CONTEXT: 'production' }, { CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }]) {
+    for (const flag of [['--program-sample'], ['--clock', '10:30']]) {
+      const res = build(flag, host);
+      expect(res.status === 2 && /not allowed in a production build/.test(res.log), `production build (${JSON.stringify(host)}) accepts ${flag[0]}`);
+    }
   }
 
   // 2. The program sample with the sample sponsors, built today (tests/browser.mjs checks today's build).
@@ -244,8 +247,10 @@ try {
   console.log(`Share Cards: ${cardTimes.length} drawn in ${cardTotal.toFixed(1)} s; ${CARD_BUDGET} at this pace take about ${atBudget.toFixed(0)} s (budget ${CARD_SECONDS} s).`);
   // A test build is marked, and check-dist refuses it in a production context.
   expect(existsSync('dist/.test-build'), 'the sample build has no dist/.test-build marker');
-  const prod = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env: { ...process.env, KCD_PROGRAM_SAMPLE: '1', CONTEXT: 'production' } });
-  expect(prod.status !== 0 && /\.test-build: this is a test build/.test(prod.stdout + prod.stderr), 'check-dist passes a marked test build with CONTEXT=production');
+  for (const host of [{ CONTEXT: 'production' }, { CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }]) {
+    const prod = spawnSync(process.execPath, ['scripts/check-dist.mjs'], { encoding: 'utf8', env: { ...process.env, KCD_PROGRAM_SAMPLE: '1', ...host } });
+    expect(prod.status !== 0 && /\.test-build: this is a test build/.test(prod.stdout + prod.stderr), `check-dist passes a marked test build in production (${JSON.stringify(host)})`);
+  }
   // The calendar files.
   expect(timedItems.length === items.length, `${items.length - timedItems.length} Sessions on the Schedule have no time`);
   checkIcs('schedule.ics', read('2027/schedule.ics'), timedItems);
@@ -290,8 +295,9 @@ try {
   // test build never has a Speaker photo.
   const flags = { KCD_PROGRAM_SAMPLE: '1', KCD_SPONSORS_SAMPLE: '1' };
   expect(checkDist(flags).status === 0, 'check-dist fails the sample build with its flags');
-  for (const context of ['deploy-preview', 'branch-deploy']) {
-    const res = checkDist({ ...flags, CONTEXT: context, SESSIONIZE_ENDPOINT_ID: 'fxEndpoint42', PROGRAM_CSV_URL: 'https://example.com/p.csv' });
+  for (const [context, hostEnv] of [['deploy-preview', { CONTEXT: 'deploy-preview' }], ['branch-deploy', { CONTEXT: 'branch-deploy' }],
+    ['Pages preview', { CF_PAGES: '1', CF_PAGES_BRANCH: 'cloudflare' }]]) {
+    const res = checkDist({ ...flags, ...hostEnv, SESSIONIZE_ENDPOINT_ID: 'fxEndpoint42', PROGRAM_CSV_URL: 'https://example.com/p.csv' });
     expect(res.status !== 0 && /SESSIONIZE_ENDPOINT_ID reaches a build that isn't a production build/.test(res.log) && /PROGRAM_CSV_URL reaches/.test(res.log) && !res.log.includes('fxEndpoint42'),
       `check-dist passes a ${context} build with the platform's variables, or prints a value`);
   }

@@ -5,28 +5,35 @@
 //
 // - Every scheduled or manual run catches up: it rebuilds when the newest rebuild day from
 //   scripts/rebuild-dates.mjs, on or before today, is later than the day the live site was built for (/build.txt).
-//   So a rebuild day that GitHub ran late or dropped, or whose build hook failed, is made up by the next run that
-//   gets through. The build hook is used at most once per rebuild day: if Netlify accepted it and the live site
+//   So a rebuild day that GitHub ran late or dropped, or whose deploy hook failed, is made up by the next run that
+//   gets through. The deploy hook is used at most once per rebuild day: if Cloudflare accepted it and the live site
 //   still has an older day, no run deploys again (docs/rebuilds.md).
 // - While the program is public (a gate open), from the program's day to the eve of Event Day, the morning run
-//   checks the program and rebuilds only on a change, and no sooner than DEPLOY_BUDGET allows.
+//   checks the program and rebuilds only on a change, at most once a day (DEPLOY_BUDGET).
 // - On Event Day, the runs every 5 minutes from 7 a.m. to 7 p.m. Central check, and rebuild only on a change, at
-//   most once per DEPLOY_BUDGET.eventDayEveryMinutes.
+//   most once per DEPLOY_BUDGET.eventDayEveryMinutes (ADR 0008).
 // - The later daily runs only catch up, and never check the program.
 // - A manual run with "force" rebuilds, and counts as the last program deploy.
-// Netlify's free plan has 300 credits a month, and a production deploy costs 15 (docs/rebuilds.md, "The credit
-// budget"), so nothing else rebuilds.
+// Cloudflare Pages' free plan builds 500 times a month, previews included (docs/rebuilds.md, "The build budget"),
+// so nothing else rebuilds.
 
 /**
  * The deploy budget for program changes. A program deploy is a rebuild after a check found a change, or a forced
  * run. The caller reads the last one's time (scripts/last-program-deploy.mjs).
  * - From the program's day to 2 days before Event Day, a change deploys only if the last program deploy was
- *   `everyDays` or more Central days earlier: at most 8 a month.
+ *   `everyDays` or more Central days earlier: at most one a day, so a change is live by the next morning.
  * - On the eve of Event Day, a change always deploys, so the program is fresh for the day.
  * - On Event Day, from 7 a.m. to 7 p.m. Central, a change deploys only if the last program deploy started
- *   `eventDayEveryMinutes` or more earlier: at most 6.
+ *   `eventDayEveryMinutes` or more earlier: at most 144, one per 5-minute run.
+ * Even with a change every day, March and April stay under PAGES_BUILD_CAP production builds from the schedule,
+ * which leaves room for merges and previews within Pages' 500 a month (tests/rebuild.mjs).
  */
-export const DEPLOY_BUDGET = { everyDays: 4, eventDayEveryMinutes: 120 };
+export const DEPLOY_BUDGET = { everyDays: 1, eventDayEveryMinutes: 5 };
+
+/** Cloudflare Pages' free plan: builds a month, previews included. */
+export const PAGES_BUILDS_PER_MONTH = 500;
+/** The most production builds the schedule may start in a month, with a program change before every run. */
+export const PAGES_BUILD_CAP = 250;
 
 /** The daily runs, in UTC: the morning run, then later chances for a rebuild day that GitHub ran late or dropped.
  *  All fall after midnight Central and on the same Central day, all year (tests/rebuild.mjs). */
@@ -138,9 +145,9 @@ export function refreshPolicy({ at, trigger, calendar, gates, liveDay, hooked, c
     if (!hooked || hooked < hookSince) {
       return out(true, false, due.day === day ? due.why : `catch-up for ${due.day}: ${due.why}`);
     }
-    // Netlify took the hook for this rebuild day, but the live site didn't follow (a failed or unpublished
-    // deploy): no second deploy for it. The run goes on as if it were caught up.
-    note = `Netlify accepted a rebuild for ${due.day} at ${hooked.toISOString()}, but the live build is still for ${live}, so no second deploy (docs/rebuilds.md); `;
+    // Cloudflare took the hook for this rebuild day, but the live site didn't follow (a failed or rolled-back
+    // deployment): no second deploy for it. The run goes on as if it were caught up.
+    note = `Cloudflare accepted a rebuild for ${due.day} at ${hooked.toISOString()}, but the live build is still for ${live}, so no second deploy (docs/rebuilds.md); `;
   }
   const idle = note ? 'nothing else to do' : due && due.day === day ? "today's rebuild is already live" : 'not a rebuild day';
 

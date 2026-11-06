@@ -4,7 +4,8 @@
 # when the live site's /build.txt is older than the newest rebuild day that scripts/rebuild-dates.mjs lists from
 # the Edition file, so a late, dropped or failed run is made up by the next one; while a program gate is open,
 # check the platform and rebuild only on a change, no sooner than the deploy budget allows; otherwise nothing. A
-# rebuild POSTs to the Netlify build hook, then waits until the live site has the new day, or the new program.
+# rebuild POSTs to the Cloudflare Pages deploy hook (ADR 0012), then waits until the live site has the new day, or
+# the new program.
 name: Rebuild on date changes
 
 on:
@@ -133,17 +134,18 @@ jobs:
               echo "::error::Couldn't read the live program version ($why). No build started; the next run checks again."
               exit 1 ;;
           esac
-      - name: Start a Netlify production build
+      - name: Start a Cloudflare production build
         env:
-          HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+          HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
           DAY: ${{ needs.check.outputs.day }}
-          TITLE: ${{ needs.check.outputs.rebuild == 'true' && 'Scheduled+rebuild' || 'Program+change' }}
+          WHY: ${{ needs.check.outputs.rebuild == 'true' && 'a scheduled rebuild' || 'a program change' }}
         # The hook's address never goes in the log: it isn't echoed, and curl's errors don't print it. curl retries
-        # only the errors it counts as transient (no answer, a timeout, 408, 429 or a 5xx).
+        # only the errors it counts as transient (no answer, a timeout, 408, 429 or a 5xx). Pages builds `main`, the
+        # hook's branch (docs/hosting.md).
         run: |
-          if [ -z "$HOOK" ]; then echo "::error::NETLIFY_BUILD_HOOK isn't set in the production environment."; exit 1; fi
-          curl -fsS --retry 3 --retry-connrefused --max-time 30 -o /dev/null -X POST -d '{}' "$HOOK?trigger_title=$TITLE+$DAY"
-          echo "Netlify accepted the build hook for $DAY. The deploy shows in Netlify's Deploys list."
+          if [ -z "$HOOK" ]; then echo "::error::CLOUDFLARE_DEPLOY_HOOK isn't set in the production environment."; exit 1; fi
+          curl -fsS --retry 3 --retry-connrefused --max-time 30 -o /dev/null -X POST "$HOOK"
+          echo "Cloudflare accepted the deploy hook for $DAY ($WHY). The build shows in the Pages project's Deployments list."
       # Then it checks the live version every 20 seconds, for up to 10 minutes, until it differs from the noted one
       # (or appears, if there was none). The next run waits for this one (concurrency, above), so it compares with
       # the new live site and doesn't deploy the same change again. Rebuild days and forced runs wait for the new day
@@ -160,7 +162,7 @@ jobs:
             got="$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
             if [ -n "$got" ] && [ "$got" != "$before" ]; then echo "The live site has the new program."; exit 0; fi
           done
-          echo "::error::The live site still doesn't have the new program after 10 minutes. Open the newest deploy in Netlify's Deploys list: its deploy log says whether it failed or is still building."
+          echo "::error::The live site still doesn't have the new program after 10 minutes. Open the newest deployment in the Pages project's Deployments list on Cloudflare: its build log says whether it failed or is still building."
           exit 1
       # A rebuild day's build, or a forced one: check the live /build.txt every 20 seconds, for up to 10 minutes,
       # until it holds this run's day or a later one. The next run waits for this one (concurrency, above), so it
@@ -177,7 +179,7 @@ jobs:
             built="$(curl -fsS --max-time 10 -H 'Cache-Control: no-cache' "$LIVE" 2>/dev/null || true)"
             if [[ "$built" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ ! "$built" < "$DAY" ]]; then echo "The live site is built for $DAY."; exit 0; fi
           done
-          echo "::error::The live site still isn't built for $DAY after 10 minutes. Open the newest deploy in Netlify's Deploys list: its deploy log says whether it failed or is still building. No run deploys this day again on its own; once the cause is fixed, run the workflow with \"Force a rebuild now\"."
+          echo "::error::The live site still isn't built for $DAY after 10 minutes. Open the newest deployment in the Pages project's Deployments list on Cloudflare: its build log says whether it failed or is still building. No run deploys this day again on its own; once the cause is fixed, run the workflow with \"Force a rebuild now\"."
           exit 1
 
   # GitHub turns off scheduled workflows in a public repo after 60 days without repository activity, and

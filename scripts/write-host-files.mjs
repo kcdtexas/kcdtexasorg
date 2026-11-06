@@ -1,5 +1,6 @@
 // Writes dist/_redirects (from src/data/short-links.yaml), dist/_headers and dist/sitemap.xml.
-// Both Netlify and Cloudflare Pages read the first two (ADR 0010); robots.txt names the sitemap.
+// Cloudflare Pages reads the first two (ADR 0012), and so does Netlify, kept as the rollback until it's shut down;
+// robots.txt names the sitemap.
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { parse } from 'yaml';
@@ -43,7 +44,9 @@ const csp = [
   "default-src 'self'",
   "img-src 'self' data:",
   "style-src 'self'",
-  "script-src 'self'",
+  // Cloudflare Web Analytics (ADR 0013): Cloudflare adds its script on the live site, and it reports back to our own
+  // domain, so only script-src needs its host, and only while ANALYTICS=cloudflare is set.
+  process.env.ANALYTICS === 'cloudflare' ? "script-src 'self' https://static.cloudflareinsights.com" : "script-src 'self'",
   "font-src 'self'",
   "connect-src 'self'",
   // The offline worker (/sw.js), only in a build that has it.
@@ -59,6 +62,10 @@ const csp = [
   // forces HTTPS in production, while the directive breaks plain-HTTP previews
   // (the browser rewrites every asset request to https and they all fail).
 ].join('; ');
+
+// Netlify (the rollback until it's shut down, ADR 0012) gets no host rule: it has no use for one, and its parser
+// isn't Pages'.
+const netlify = Boolean(process.env.NETLIFY);
 
 // The program script's and the offline worker's rules only in a build that has them (src/pages/[script].js.ts
 // builds both while a program page exists). Browsers check both with the server on every visit, so a new build
@@ -96,7 +103,22 @@ ${existsSync(`${DIST}/schedule.js`) ? `
 ` : ''}${existsSync(`${DIST}/sw.js`) ? `
 /sw.js
   Cache-Control: no-cache
-` : ''}`;
+` : ''}${netlify ? '' : `
+# The project's own Cloudflare Pages addresses show the same site: search engines index kcdtexas.org only. A rule
+# that starts with a URL applies on that host alone; :project is the project's pages.dev name, and :version a
+# preview's (Cloudflare's documented pattern; Pages also marks preview addresses noindex itself).
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex
+`}`;
+// Cloudflare Pages takes at most 100 header rules.
+const headerRules = headers.split('\n').filter((line) => /^[/h]/.test(line)).length;
+if (headerRules > 100) {
+  console.error(`_headers has ${headerRules} rules; Cloudflare Pages takes at most 100.`);
+  process.exit(1);
+}
 writeFileSync(`${DIST}/_headers`, headers);
 
 // The sitemap: every page except the 404 page, at its canonical kcdtexas.org address.

@@ -35,7 +35,9 @@ serve=false
 install=true
 # The build day and the samples come only from the flags, never from inherited variables.
 unset KCD_BUILD_DAY KCD_BUILD_CLOCK KCD_TICKETS_DAY KCD_PROGRAM_PUBLIC KCD_SPONSORS_SAMPLE KCD_PROGRAM_SAMPLE
-production() { [ "${CONTEXT:-}" = production ] || [ "${GITHUB_REF:-}" = refs/heads/release ]; }
+# A production build: Cloudflare Pages building `main`, or a Netlify production deploy (src/lib/build-context.mjs).
+build_kind="$(node scripts/build-context.mjs)"
+production() { [ "$build_kind" = production ]; }
 while [ $# -gt 0 ]; do
   case "$1" in
     --zip) zip=true ;;
@@ -43,7 +45,7 @@ while [ $# -gt 0 ]; do
     --skip-install) install=false ;;
     --now)
       [[ "${2:-}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "--now needs a date as YYYY-MM-DD" >&2; exit 2; }
-      # Netlify sets CONTEXT; a production deploy must describe the real day.
+      # A production deploy must describe the real day.
       if production; then
         echo "--now is not allowed in a production build" >&2; exit 2
       fi
@@ -114,11 +116,11 @@ step "Choosing the program data"
 # Real program data only in a production build (src/lib/program-source/platform.mjs). Every other build with a
 # gate open (deploy previews, branch deploys, local builds) uses the test program and never sees the platform's
 # variables.
-if [ "${CONTEXT:-}" != production ]; then
-  # The platform's variables belong in the Production deploy context alone. The warning names one, never its value.
+if ! production; then
+  # The platform's variables belong in the host's production settings alone. The warning names one, never its value.
   for v in SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL; do
     if [ -n "${!v:-}" ]; then
-      echo "Warning: $v is set in a ${CONTEXT:-local} build. Scope it to the Production deploy context only: deploy previews run code from pull requests. This build ignores it." >&2
+      echo "Warning: $v is set in a $build_kind build. Set it for production only (Cloudflare Pages: the Production environment variables): previews run code from pull requests. This build ignores it." >&2
     fi
   done
   unset SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL

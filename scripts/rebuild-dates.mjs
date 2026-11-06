@@ -1,5 +1,5 @@
-// Prints every day on which the built pages change, from the Edition file. The live site is rebuilt
-// rarely (ADR 0010), so date-driven text only changes when a build runs: a scheduled job builds and
+// Prints every day on which the built pages change, from the Edition file. The live site is static
+// (ADR 0012), so date-driven text only changes when a build runs: a scheduled job builds and
 // deploys on each of these days, early in the morning Central time. NOW and the phase fills on the key
 // dates move in the browser (/now.js), so they need no date of their own.
 // tests/run-time-machine.mjs proves the list: each day changes the output and the days between don't.

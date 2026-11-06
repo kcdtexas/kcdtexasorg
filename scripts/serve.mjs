@@ -1,8 +1,11 @@
 // Local production-like server for the built site.
 //
-// Serves dist/ the way Netlify does for this project: applies _redirects
-// (exact paths, 301/302, a real file wins over a redirect) and _headers
-// (all matching blocks), and answers unknown paths with 404.html.
+// Serves dist/ the way Cloudflare Pages does for this project (ADR 0012): applies
+// _redirects first (exact paths, 301/302; a redirect wins over a file at the same
+// path), Pages' 308 redirects to a page's own address (/about to /about/,
+// /about/index.html to /about/, /page.html to /page), _headers (all matching
+// blocks; a rule for another host, such as https://:project.pages.dev/*, never
+// matches here), and answers unknown paths with 404.html.
 // Optionally mounts a private review folder at /_review/ (local only,
 // never part of the build).
 //
@@ -77,6 +80,7 @@ function loadHeaders() {
 }
 
 function matches(pattern, path) {
+  if (!pattern.startsWith('/')) return false;
   if (pattern.endsWith('*')) return path.startsWith(pattern.slice(0, -1));
   return path === pattern;
 }
@@ -87,6 +91,15 @@ function findFile(base, path) {
   if (target !== base && !target.startsWith(base + sep)) return null;
   const candidates = [target, join(target, 'index.html'), `${target}.html`];
   return candidates.find((c) => existsSync(c) && statSync(c).isFile()) ?? null;
+}
+
+// Pages' redirect to an HTML page's own address, or null: a folder's page lives at its address with the "/", and
+// a page.html at its address without ".html".
+function pageAddress(base, path) {
+  if (path.endsWith('/index.html')) return path.slice(0, -'index.html'.length);
+  if (path.endsWith('.html') && findFile(base, path)) return path.slice(0, -'.html'.length);
+  if (!path.endsWith('/') && findFile(base, `${path}/`)?.endsWith(`${sep}index.html`)) return `${path}/`;
+  return null;
 }
 
 function send(req, res, status, file, extraHeaders) {
@@ -125,17 +138,27 @@ const server = createServer((req, res) => {
     if (matches(block.pattern, path)) for (const [name, value] of block.headers) headers[name] = value;
   }
 
-  const file = findFile(root, path);
-  if (file) {
-    log(200);
-    return send(req, res, 200, file, headers);
-  }
-
+  // On Pages a redirect rule wins over a file at the same path; scripts/write-host-files.mjs refuses a Short Link
+  // that collides with a page.
   const rule = redirects.get(path.replace(/\/$/, '') || '/');
   if (rule) {
     res.writeHead(rule.code, { ...headers, Location: rule.to, 'Content-Type': 'text/plain; charset=utf-8' });
     res.end(req.method === 'HEAD' ? undefined : `Redirecting to ${rule.to}\n`);
     return log(rule.code);
+  }
+
+  const address = pageAddress(root, path);
+  if (address !== null) {
+    const to = address + url.search;
+    res.writeHead(308, { ...headers, Location: to, 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(req.method === 'HEAD' ? undefined : `Redirecting to ${to}\n`);
+    return log(308);
+  }
+
+  const file = findFile(root, path);
+  if (file) {
+    log(200);
+    return send(req, res, 200, file, headers);
   }
 
   const notFound = join(root, '404.html');
