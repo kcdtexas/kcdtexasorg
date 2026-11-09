@@ -112,6 +112,13 @@ const BUDGETS = {
   photos: { bytes: 500 * KB, label: 'images' },
   plain: { bytes: 150 * KB, label: 'no images' },
 };
+// A page's own budget, where the owner raised it. /2025/ (2026-11-08): its 7 photos by the 2025 photographer take it
+// past 500 KB. It weighed 451 KB before them, about 263 KB of that the Cockroach Labs logo on its sponsor wall, which
+// carries a large bitmap inside its SVG; the owner chose to keep that sponsor's file as it is and raise this page's
+// budget instead.
+const PAGE_BUDGETS = {
+  '/2025/': { bytes: 650 * KB, label: 'images, 2025 photos' },
+};
 
 const DIST = 'dist';
 /** The file scripts/build.sh writes into dist/ for any build with a test flag. */
@@ -373,7 +380,7 @@ async function check() {
   // (/_astro/badge-*), a Speaker photo (/2027/speakers/*.webp), or a sponsor logo (img.sp-logo): a logo wall is
   // image content, like photos.
   // Budgets: the home page under 1 MB (v1 has photos on every screen), other pages with photos
-  // under 500 KB, pages without photos under 150 KB.
+  // under 500 KB, pages without photos under 150 KB, and a page's own budget where PAGE_BUDGETS has one.
   const weights = new Map();
   const wire = (p) => {
     if (!weights.has(p)) {
@@ -400,7 +407,7 @@ async function check() {
       files.add(candidates.reduce((a, b) => (wire(b) < wire(a) ? b : a)));
     }
     const bytes = [...files].reduce((sum, p) => sum + wire(p), 0);
-    const budget = path === '/' ? BUDGETS.home : photos ? BUDGETS.photos : BUDGETS.plain;
+    const budget = PAGE_BUDGETS[path] ?? (path === '/' ? BUDGETS.home : photos ? BUDGETS.photos : BUDGETS.plain);
     const ok = bytes < budget.bytes;
     rows.push({ path, kb: (bytes / KB).toFixed(0), photos: photos ? 'yes' : 'no', budget: `< ${budget.bytes / KB} KB (${budget.label})`, ok });
     if (!ok) failures.push(`${path} weighs ${(bytes / KB).toFixed(0)} KB on a phone (budget under ${budget.bytes / KB} KB, ${budget.label})`);
