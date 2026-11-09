@@ -78,11 +78,14 @@ Pretalx's texts are Markdown. The site shows them as plain text, with their line
 | `its session type (...) is not a known format` | Name the session type Talk, Workshop or Keynote, or add its name to `formatNames`. |
 | `the Schedule is public, but it has no time or room` | A confirmed Session isn't in the released schedule. Schedule it, and release again. |
 | `HTTP 404: there is no public event kcd-texas-2027` | The event isn't public, or its short form changed. Make it public, or fix `pretalx.event`. |
-| `the list changed while it was read` | Pretalx changed during the build. The next build reads it again. |
+| `the list changed while it was read`, or `is not among the slots of the released schedule` | Pretalx changed during the build, or a new version was released meanwhile. The next build reads it again. |
+| `slots ... are from schedule ..., not from the released one` | Pretalx sent slots from an older version of the schedule. The API changed: the reader needs a fix. |
 
 ## The API
 
-The build reads these from `https://pretalx.com/api/events/kcd-texas-2027/`, 50 entries a page, and follows each list's `next` page on the same host: the event itself, `questions/?expand=options`, `submission-types/`, `rooms/`, `submissions/?expand=answers`, `speakers/?expand=answers` and `slots/`. That's 7 requests while every list fits on one page, plus one per photo. Every request names the site in its User-Agent, and no email address.
+The build reads these from `https://pretalx.com/api/events/kcd-texas-2027/`, 50 entries a page, and follows each list's `next` page on the same host: the event itself, `questions/?expand=options`, `submission-types/`, `rooms/`, `schedules/latest/`, `submissions/?expand=answers`, `speakers/?expand=answers` and `slots/?schedule=<id>`. That's 8 requests while every list fits on one page, plus one per photo.
+
+Pretalx keeps every released version of the schedule. The build takes the newest version's id from `schedules/latest/` and asks for that version's slots only. If a slot from another version comes back anyway, or a Session's slot is missing from the list, the build fails and says so. Every request names the site in its User-Agent, and no email address.
 
 The build reads the API's current version (Pretalx's API changelog: https://docs.pretalx.org/api/changelog/) and checks the shape of every response, so a change on Pretalx's side fails the build instead of showing wrong data.
 

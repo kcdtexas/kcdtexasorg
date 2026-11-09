@@ -6,10 +6,12 @@
 //   questions/:         id, identifier, question (the label), variant, target, icon, position, options (expanded)
 //   submission-types/:  id, name
 //   rooms/:             id, name, position
-//   submissions/:       code, title, abstract, description, speakers (codes, in order), submission_type, state,
+//   schedules/latest/:  id, the newest released version of the schedule
+//   submissions/:       code, title, abstract, description, speakers (codes, in order), submission_type, state, slots,
 //                       answers (expanded: question, answer, options)
 //   speakers/:          code, name, biography, avatar_url, answers (expanded)
-//   slots/:             room, start, end, submission (a code, or null for a break), description (a break's title)
+//   slots/?schedule=:   that version's slots: id, schedule, room, start, end, submission (a code, or null for a
+//                       break), description (a break's title)
 //
 // What Pretalx doesn't say directly:
 //   - the format is the session type's name (formatNames in config.mjs);
@@ -32,7 +34,7 @@ import { toCentral } from './central.mjs';
 import { mapLinks } from './links.mjs';
 import { fetchBytes, pretalxBase, pretalxPhoto } from './remote.mjs';
 
-/** The lists the adapter reads, in this order: the program's own three last and close together. */
+/** The lists the adapter reads. */
 const LISTS = ['questions', 'submission-types', 'rooms', 'submissions', 'speakers', 'slots'];
 /** The lists that come with their answers or options expanded, so one request per page does. */
 const EXPAND = { questions: 'options', submissions: 'answers', speakers: 'answers' };
@@ -78,6 +80,7 @@ export function validatePretalx(data, settings = pretalx) {
   const problems = [];
   if (!isObj(data.event)) problems.push('the event is not an object');
   else if (data.event.slug !== settings.event) problems.push(`the event's short form is not ${settings.event}`);
+  if (!isObj(data.schedule) || !Number.isInteger(data.schedule.id)) problems.push('the released schedule has no id');
   for (const key of LISTS) if (!Array.isArray(data[key])) problems.push(`${key} is not a list`);
   if (problems.length) return problems;
   const answers = (r, at) => {
@@ -123,6 +126,7 @@ export function validatePretalx(data, settings = pretalx) {
         if (!(Array.isArray(r.speakers) && r.speakers.every(isCode))) problems.push(`${at}.speakers is not a list of codes`);
         if (!Number.isInteger(r.submission_type)) problems.push(`${at}.submission_type is not an id`);
         if (!optStr(r.state)) problems.push(`${at}.state is not text`);
+        if (!(Array.isArray(r.slots) && r.slots.every(Number.isInteger))) problems.push(`${at}.slots is not a list of ids`);
       } else {
         if (!isText(r.name) || !i18n(r.name)) problems.push(`${at} has no name`);
         if (!optText(r.biography)) problems.push(`${at}.biography is not text`);
@@ -132,9 +136,13 @@ export function validatePretalx(data, settings = pretalx) {
       return undefined;
     });
   }
+  // Every slot must come from the released version: Pretalx keeps the older ones too (readPretalx).
+  const others = [];
   data.slots.forEach((sl, i) => {
     const at = `slots[${i}]`;
     if (!isObj(sl)) return problems.push(`${at} is not an object`);
+    if (!Number.isInteger(sl.id)) problems.push(`${at}.id is not an id`);
+    if (sl.schedule !== data.schedule.id) others.push({ i, schedule: Number.isInteger(sl.schedule) ? sl.schedule : '(none)' });
     if (sl.room !== null && sl.room !== undefined && !Number.isInteger(sl.room)) problems.push(`${at}.room is not an id`);
     if (sl.submission !== null && sl.submission !== undefined && !isCode(sl.submission)) problems.push(`${at}.submission is not a code`);
     if (!optText(sl.description)) problems.push(`${at}.description is not text`);
@@ -144,6 +152,11 @@ export function validatePretalx(data, settings = pretalx) {
     }
     return undefined;
   });
+  if (others.length) {
+    const from = [...new Set(others.map((o) => o.schedule))].join(', ');
+    const which = others.length === 1 ? `slots[${others[0].i}] is` : `${others.length} slots, from slots[${others[0].i}] on, are`;
+    problems.unshift(`${which} from schedule ${from}, not from the released one (${data.schedule.id})`);
+  }
   return problems;
 }
 
@@ -199,6 +212,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
     return roomName.get(sl.room);
   };
   // The released schedule's slots that have a time; a slot without one isn't scheduled.
+  const slotIds = new Set(data.slots.map((sl) => sl.id));
   const timed = data.slots.map((sl, i) => ({ sl, at: `slots[${i}]` })).filter(({ sl }) => sl.start && sl.end);
 
   const sessions = [];
@@ -207,6 +221,9 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
     if (s.state !== undefined && s.state !== null && s.state !== 'confirmed') return;
     confirmed.add(s.code);
     const at = `submissions[${i}] (Session ${s.code})`;
+    // A confirmed Session's slots are in the released version's list, unless Pretalx changed between the requests.
+    const lost = s.slots.find((id) => !slotIds.has(id));
+    if (lost !== undefined) throw new Error(`${at}: its slot ${lost} is not among the slots of the released schedule (${data.schedule.id})`);
     const type = types.get(s.submission_type);
     if (type === undefined) throw new Error(`${at}: its session type (${s.submission_type}) is not one of the session types`);
     const format = formatNames[type.toLowerCase()];
@@ -288,14 +305,17 @@ function customDomain(event) {
   }
 }
 
-/** One response as JSON. A 401 or 403 means Pretalx doesn't publish the list yet. */
-async function getJson(url, env, what, { event = false } = {}) {
+/** What a 401 or a 403 means, and a 404 for the released schedule. */
+const UNRELEASED = 'Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public (docs/pretalx.md)';
+
+/** One response as JSON. A 401 or 403 means Pretalx doesn't publish it yet; `notFound` says what a 404 means. */
+async function getJson(url, env, what, { notFound = null } = {}) {
   let body;
   try {
     ({ body } = await fetchBytes(url, { env, what, accept: 'application/json' }));
   } catch (e) {
-    if (e?.status === 401 || e?.status === 403) throw new Error(`${e.message}: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public (docs/pretalx.md)`);
-    if (e?.status === 404 && event) throw new Error(`${e.message}: there is no public event ${pretalx.event} (pretalx.event in src/lib/program-source/config.mjs)`);
+    if (e?.status === 401 || e?.status === 403) throw new Error(`${e.message}: ${UNRELEASED}`);
+    if (e?.status === 404 && notFound) throw new Error(`${e.message}: ${notFound}`);
     throw e;
   }
   try {
@@ -305,9 +325,10 @@ async function getJson(url, env, what, { event = false } = {}) {
   }
 }
 
-/** Every page of one list, following `next` on the same host, up to pretalx.maxPages pages. */
-async function readList(name, env) {
-  const first = new URL(`${pretalxBase(env)}/events/${encodeURIComponent(pretalx.event)}/${name}/?${EXPAND[name] ? `expand=${EXPAND[name]}&` : ''}page_size=${PAGE_SIZE}`);
+/** Every page of one list, following `next` on the same host, up to pretalx.maxPages pages. `filter` narrows it. */
+async function readList(name, env, filter = '') {
+  const query = [EXPAND[name] ? `expand=${EXPAND[name]}` : '', filter, `page_size=${PAGE_SIZE}`].filter(Boolean).join('&');
+  const first = new URL(`${pretalxBase(env)}/events/${encodeURIComponent(pretalx.event)}/${name}/?${query}`);
   const results = [];
   const seen = new Set();
   let count = null;
@@ -338,7 +359,17 @@ async function readList(name, env) {
  * @param {Record<string, string | undefined>} env
  */
 export async function readPretalx(env) {
-  const data = { event: await getJson(`${pretalxBase(env)}/events/${encodeURIComponent(pretalx.event)}/`, env, `Pretalx (the event ${pretalx.event})`, { event: true }) };
-  for (const name of LISTS) data[name] = await readList(name, env);
+  const event = `${pretalxBase(env)}/events/${encodeURIComponent(pretalx.event)}/`;
+  const data = { event: await getJson(event, env, `Pretalx (the event ${pretalx.event})`, { notFound: `there is no public event ${pretalx.event} (pretalx.event in src/lib/program-source/config.mjs)` }) };
+  for (const name of ['questions', 'submission-types', 'rooms']) data[name] = await readList(name, env);
+  // The newest released version of the schedule; logged out, Pretalx shows no other. Then the program's own lists,
+  // close together, so a new release is unlikely to fall between them.
+  data.schedule = await getJson(`${event}schedules/latest/`, env, 'Pretalx (the released schedule)', { notFound: UNRELEASED });
+  if (!isObj(data.schedule) || !Number.isInteger(data.schedule.id)) throw new Error('Pretalx (the released schedule): it has no id');
+  for (const name of ['submissions', 'speakers']) data[name] = await readList(name, env);
+  // Only that version's slots. With no filter, slots/ gives the latest published version, but only by a documented
+  // default: any filter returns every released version, and each Session would show once per version. So the reader
+  // names the version, and validatePretalx checks that every slot is from it.
+  data.slots = await readList('slots', env, `schedule=${data.schedule.id}`);
   return data;
 }

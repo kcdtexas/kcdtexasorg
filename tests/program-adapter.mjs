@@ -72,16 +72,23 @@ const server = createServer((req, res) => {
     if (state.mode === 'unreleased' && !['', 'questions', 'submission-types'].includes(name)) return send(401, 'application/json', '{"detail":"Authentication credentials were not provided."}');
     const data = JSON.parse(local(state.pretalx, AVATARS));
     if (name === '') return state.mode === 'noevent' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.event));
-    if (!Array.isArray(data[name])) return send(404, 'application/json', '{"detail":"Not found."}');
+    if (name === 'schedules/latest') return state.mode === 'noschedule' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.schedule));
+    // Pretalx keeps every released version. Here an older one has the same slots under other ids, with one Session in
+    // another room, and slots/ answers with every version unless it's asked for one, as Pretalx does for any filter.
+    const older = data.slots.map((s) => ({ ...s, id: s.id + 100000, schedule: data.schedule.id - 1, room: s.submission === 'FXTLK3' ? 101 : s.room }));
+    const version = url.searchParams.get('schedule');
+    if (name === 'slots' && version !== null && ![data.schedule.id, data.schedule.id - 1].map(String).includes(version)) return send(400, 'application/json', '{"schedule":["Select a valid choice."]}');
+    const lists = { ...data, slots: [...data.slots, ...older].filter((s) => version === null || String(s.schedule) === version) };
+    if (!Array.isArray(lists[name])) return send(404, 'application/json', '{"detail":"Not found."}');
     if (state.mode === 'nolist') return send(200, 'application/json', '{"detail":"Not a list."}');
     const size = Math.min(Number(url.searchParams.get('page_size') ?? 50), state.pageMax);
     const page = Number(url.searchParams.get('page') ?? 1);
     const at = (p) => { const u = new URL(url); u.searchParams.set('page', String(p)); return u.href; };
-    let next = page * size < data[name].length ? at(page + 1) : null;
+    let next = page * size < lists[name].length ? at(page + 1) : null;
     if (next && state.mode === 'nexthost') next = next.replace('127.0.0.1', 'localhost');
     if (next && state.mode === 'nextloop') next = url.href;
-    const count = data[name].length + (state.mode === 'count' ? 1 : 0);
-    return send(200, 'application/json', JSON.stringify({ count, next, previous: page > 1 ? at(page - 1) : null, results: data[name].slice((page - 1) * size, page * size) }));
+    const count = lists[name].length + (state.mode === 'count' ? 1 : 0);
+    return send(200, 'application/json', JSON.stringify({ count, next, previous: page > 1 ? at(page - 1) : null, results: lists[name].slice((page - 1) * size, page * size) }));
   }
   if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(state.csv, 'https://photos.fixture.invalid/'));
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
@@ -224,7 +231,7 @@ try {
     `breaks in some rooms, in a lobby, or with no title are wrong: ${JSON.stringify(lobby.breaks)}`);
 
   // A Session given twice: two Sessions, the second naming the first; while only the Speakers are public, one.
-  const repeated = adaptPretalx(broken((d) => { d.slots.push({ id: 6012, room: 102, start: '2027-04-23T15:00:00-05:00', end: '2027-04-23T15:50:00-05:00', submission: 'FXWRK4', schedule: 5001, description: null, duration: 50 }); }));
+  const repeated = adaptPretalx(broken((d) => { d.slots.push({ id: 6012, room: 102, start: '2027-04-23T15:00:00-05:00', end: '2027-04-23T15:50:00-05:00', submission: 'FXWRK4', schedule: 5001, description: null, duration: 50 }); d.submissions[3].slots.push(6012); }));
   const workshops = (list) => list.filter((s) => s.title.startsWith('Fixture Workshop'));
   expect(workshops(repeated.sessions).map((s) => `${s.id} ${s.start} ${s.repeatOf ?? '-'}`).join() === 'FXWRK4 2027-04-23T13:00 -,FXWRK4-2 2027-04-23T15:00 FXWRK4', `a Session given twice is wrong: ${workshops(repeated.sessions).map((s) => `${s.id} ${s.start}`).join()}`);
   const twice = publicProgram(repeated, { schedulePublic: true });
@@ -319,6 +326,14 @@ try {
     ['2027-01-15T15:15:00Z', '2027-01-15T15:45:00Z', '2027-01-15T09:15 2027-01-15T09:45'], ['2027-04-23T22:00:00+08:00', '2027-04-23T22:30:00+08:00', '2027-04-23T09:00 2027-04-23T09:30'],
   ]) expect(`${across(start, end)?.start} ${across(start, end)?.end}` === want, `the slot ${start} to ${end} is ${across(start, end)?.start} to ${across(start, end)?.end} in Central, not ${want}`);
 
+  // A second released version read with the first, as slots/ sends it for any filter: a moved Session and a moved
+  // lunch would show twice, so the adapter refuses it.
+  await rejects(() => adaptPretalx(broken((d) => {
+    const v2 = d.slots.map((s) => ({ ...s, id: s.id + 3000, schedule: 5002 }));
+    Object.assign(v2.find((s) => s.submission === 'FXTLK3'), { start: '2027-04-23T11:00:00-05:00', end: '2027-04-23T11:25:00-05:00', room: 101 });
+    d.slots.push(...v2);
+  })), (m) => m === 'the Pretalx data is not valid: 11 slots, from slots[11] on, are from schedule 5002, not from the released one (5001)', 'a second schedule version in the slots');
+
   // Validation failures name the list, the position and the field, never the content.
   for (const [what, data, pattern] of [
     ['not an object', [], /not an object/],
@@ -336,6 +351,12 @@ try {
     ['a bad room', broken((d) => { d.rooms[0].name = null; }), /rooms\[0\] needs an id and a name/],
     ['a nameless session type', broken((d) => { d['submission-types'][2].name = {}; }), /submission-types\[2\] needs an id and a name/],
     ['an unknown room', broken((d) => { d.slots[3].room = 999; }), /slots\[3\]: its room \(999\) is not one of the rooms/],
+    ['no released schedule', broken((d) => { delete d.schedule; }), /the released schedule has no id/],
+    ['a Session\'s slots not a list', broken((d) => { d.submissions[0].slots = null; }), /submissions\[0\]\.slots is not a list of ids/],
+    ['a slot with no id', broken((d) => { delete d.slots[0].id; }), /slots\[0\]\.id is not an id/],
+    ['a slot from an older version', broken((d) => { d.slots.push({ ...d.slots[4], id: 9005, schedule: 5000, room: 101 }); }), /slots\[11\] is from schedule 5000, not from the released one \(5001\)/],
+    ['a slot from no version', broken((d) => { delete d.slots[2].schedule; }), /slots\[2\] is from schedule \(none\), not from the released one \(5001\)/],
+    ['a Session\'s slot missing from the list', broken((d) => { d.submissions[0].slots.push(7777); }), /submissions\[0\] \(Session FXKEY1\): its slot 7777 is not among the slots of the released schedule \(5001\)/],
   ]) await rejects(() => adaptPretalx(data), (m) => pattern.test(m) && !m.includes(marker), `the adapter on ${what}`);
   expect(validatePretalx(fixture()).length === 0, `the fixture does not validate: ${validatePretalx(fixture()).join('; ')}`);
   await rejects(() => publicProgram(adaptPretalx(broken((d) => { d.slots[2].end = '2027-04-23T13:00:00Z'; })), { schedulePublic: true }), (m) => /Session FXKEY1: it ends before it starts/.test(m), 'a Session that ends before it starts');
@@ -443,9 +464,12 @@ try {
   state.requests.length = 0;
   state.agents.length = 0;
   const live = await readPlatform(chooseSource(both, prodPretalx), prodPretalx);
-  const asked = ['', 'questions/?expand=options&page_size=50', 'submission-types/?page_size=50', 'rooms/?page_size=50', 'submissions/?expand=answers&page_size=50', 'speakers/?expand=answers&page_size=50', 'slots/?page_size=50'].map((p) => `${EVENT}${p}`);
+  const asked = ['', 'questions/?expand=options&page_size=50', 'submission-types/?page_size=50', 'rooms/?page_size=50', 'schedules/latest/', 'submissions/?expand=answers&page_size=50', 'speakers/?expand=answers&page_size=50', 'slots/?schedule=5001&page_size=50'].map((p) => `${EVENT}${p}`);
   expect(apiRequests().join(' ') === asked.join(' ') && live.sessions.length === 5, `readPlatform asks for ${apiRequests().join(' ')}`);
-  expect(/kcdtexas\.org/.test(userAgent) && !/@/.test(userAgent) && state.agents.length === 7 && state.agents.every((a) => a === userAgent), `a request doesn't name the site in its User-Agent, or names an email address: ${[...new Set(state.agents)].join(' | ')}`);
+  expect(/kcdtexas\.org/.test(userAgent) && !/@/.test(userAgent) && state.agents.length === 8 && state.agents.every((a) => a === userAgent), `a request doesn't name the site in its User-Agent, or names an email address: ${[...new Set(state.agents)].join(' | ')}`);
+  // The stand-in sends every released version when slots/ isn't asked for one; the reader asked, and got one.
+  const unasked = JSON.parse((await fetchBytes(`${origin}${EVENT}slots/?page_size=50`, { env: {}, what: 'All the slots' })).body.toString('utf8'));
+  expect(unasked.count === 22 && live.sessions.every((s) => !s.repeatOf), `the stand-in doesn't send every version unasked (${unasked.count}), or the reader read more than one`);
   const viaServer = publicModel(live, both, prodPretalx);
   expect(viaServer.model.speakers.find((s) => s.name.endsWith(' A'))?.photo === `${origin}/photos/FXSPKA_fixture.webp`, 'a local test photo is dropped');
   expect(live.speakers.find((s) => s.name.endsWith(' D'))?.photo === null, 'readPlatform keeps a photo on another host');
@@ -465,6 +489,7 @@ try {
     ['notjson', prodPretalx, /Pretalx \(the event kcd-texas-2027\): the response is not JSON/],
     ['noevent', prodPretalx, /Pretalx \(the event kcd-texas-2027\): the server answered HTTP 404: there is no public event kcd-texas-2027 \(pretalx\.event in src\/lib\/program-source\/config\.mjs\)/],
     ['unreleased', prodPretalx, /Pretalx \(rooms, page 1\): the server answered HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public/],
+    ['noschedule', prodPretalx, /Pretalx \(the released schedule\): the server answered HTTP 404: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public/],
     ['nolist', prodPretalx, /Pretalx \(questions, page 1\): the response is not a list/],
     ['nexthost', prodPretalx, /Pretalx \(questions, page 1\): the next page is on another host/, 2],
     ['nextloop', prodPretalx, /Pretalx \(questions, page 1\): the next page is one already read/, 2],
@@ -572,7 +597,7 @@ try {
       if (b.status === 0) {
         expect(!b.log.includes(marker) && /reading the program from Pretalx/.test(b.log), 'the production build log contains the marker, or does not say it reads Pretalx');
         expect(!/Warning: \w+ is set in a/.test(b.log), 'the production build warns about the platform\'s variables');
-        expect(apiRequests().length === 7 && state.requests.filter((u) => u.startsWith('/photos/')).length === 3, `the build made ${state.requests.join(', ')} requests, not 7 to Pretalx and three photos`);
+        expect(apiRequests().length === 8 && state.requests.filter((u) => u.startsWith('/photos/')).length === 3, `the build made ${state.requests.join(', ')} requests, not 8 to Pretalx and three photos`);
         const speakers = readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory()).sort();
         expect(speakers.join() === 'fixture-person-a,fixture-person-b,fixture-person-c,fixture-person-d', `Speaker pages: ${speakers.join()}`);
         expect(readdirSync('dist/2027/sessions').filter((n) => n.endsWith('.ics')).length === 5, 'not every confirmed Session has a calendar file');
@@ -703,11 +728,11 @@ try {
     await withGates(speakersOnly, async () => {
       // Production with only the Speakers' gate open: Pretalx still needs a released schedule, and the site still shows
       // no time, room, calendar file or Event Day page, and a Session given twice once.
-      state.pretalx = JSON.stringify(broken((d) => { d.slots.push({ id: 6012, room: 102, start: '2027-04-23T15:00:00-05:00', end: '2027-04-23T15:50:00-05:00', submission: 'FXWRK4', schedule: 5001, description: null, duration: 50 }); }));
+      state.pretalx = JSON.stringify(broken((d) => { d.slots.push({ id: 6012, room: 102, start: '2027-04-23T15:00:00-05:00', end: '2027-04-23T15:50:00-05:00', submission: 'FXWRK4', schedule: 5001, description: null, duration: 50 }); d.submissions[3].slots.push(6012); d.schedule.slots.push(6012); }));
       state.requests.length = 0;
       let b = await build(prodPretalx);
       state.pretalx = fixtureText;
-      expect(b.status === 0 && apiRequests().length === 7 && existsSync('dist/2027/speakers/fixture-person-a/index.html') && existsSync('dist/2027/speakers/fixture-person-a-large.webp')
+      expect(b.status === 0 && apiRequests().length === 8 && existsSync('dist/2027/speakers/fixture-person-a/index.html') && existsSync('dist/2027/speakers/fixture-person-a-large.webp')
         && !existsSync('dist/2027/today') && !existsSync('dist/2027/schedule.ics') && !/data-schedule/.test(readFileSync('dist/2027/schedule/index.html', 'utf8'))
         && !readdirSync('dist/2027/sessions').some((n) => n.endsWith('.ics')) && readdirSync('dist/2027/sessions').filter((n) => n.startsWith('fixture-workshop')).length === 1,
       `production from Pretalx with only speakersPublic open shows a time, a room or a Session twice, or fails:\n${b.log.slice(-1500)}`);

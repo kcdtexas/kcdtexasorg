@@ -275,6 +275,13 @@
       "icon": "web"
     }
   ],
+  "schedule": {
+    "id": 5001,
+    "version": "v1",
+    "published": "2027-03-01T09:00:00-06:00",
+    "comment": { "en": "A made-up first release." },
+    "slots": [6001, 6002, 6003, 6004, 6005, 6006, 6007, 6008, 6009, 6010, 6011]
+  },
   "submission-types": [
     { "id": 9001, "name": { "en": "Talk" }, "default_duration": 25, "deadline": null, "requires_access_code": false, "attendee_signup_required": false },
     { "id": 9002, "name": { "en": "Workshop" }, "default_duration": 50, "deadline": null, "requires_access_code": false, "attendee_signup_required": false },
