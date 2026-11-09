@@ -28,7 +28,7 @@ Releasing a schedule in Pretalx publishes it on pretalx.com at once, whatever th
 
 Before the announcement pull request opens the gates (the program's day, Mar 1, 2027):
 
-1. **The custom fields, with "Publish answers" on.** The site finds each one by its label or its identifier (`pretalx.fields` in `src/lib/program-source/config.mjs`), asked for each proposal or each speaker as below. Case, spaces and punctuation don't count, and "&" counts as "and".
+1. **The custom fields, active, with "Publish answers" on.** Pretalx hides the answers of an inactive field. The site finds each one by its label or its identifier (`pretalx.fields` in `src/lib/program-source/config.mjs`), asked for each proposal or each speaker as below. Case, spaces and punctuation don't count, and "&" counts as "and".
 
    | Field, as the 2027 call names it | Type | For each | On the site | Without it |
    |---|---|---|---|---|
@@ -74,7 +74,7 @@ Pretalx's texts are Markdown. The site shows them as plain text, with their line
 | The message says | What to do |
 |---|---|
 | `HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public` | Release the schedule in Pretalx and make it public, then build again. |
-| `Pretalx has no public custom field per proposal named ...` (or per speaker) | Turn on "Publish answers" for that field in Pretalx, and check it's asked for each proposal or each speaker as the table above says. If it was renamed, add its label to `pretalx.fields`. |
+| `Pretalx has no public custom field per proposal named ...` (or per speaker) | Turn on "Publish answers" for that field in Pretalx, keep it active, and check it's asked for each proposal or each speaker as the table above says. If it was renamed, add its label to `pretalx.fields`. |
 | `its session type (...) is not a known format` | Name the session type Talk, Workshop or Keynote, or add its name to `formatNames`. |
 | `the Schedule is public, but it has no time or room` | A confirmed Session isn't in the released schedule. Schedule it, and release again. |
 | `HTTP 404: there is no public event kcd-texas-2027` | The event isn't public, or its short form changed. Make it public, or fix `pretalx.event`. |

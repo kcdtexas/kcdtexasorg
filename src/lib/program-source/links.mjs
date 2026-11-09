@@ -9,6 +9,8 @@ const HOSTS = [
   [/(^|\.)(pretalx|sessionize|instagram|facebook|fb)\.com$/, null],
 ];
 const LABELS = [
+  [/^github$/i, 'github'],
+  [/^bluesky$|^bsky$/i, 'bluesky'],
   [/^twitter$|^x$/i, 'x'],
   [/^linkedin$/i, 'linkedin'],
   [/^(company_website|blog|website|web site|site|homepage|home page|portfolio)$/i, 'site'],

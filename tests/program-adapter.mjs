@@ -173,6 +173,8 @@ try {
   expect(kinds('a') === 'site https://fixture-a.example/, github https://github.com/fixture-person-a', `Speaker A's links are ${kinds('a')}, not site, github (in the fields' order)`);
   expect(kinds('b') === 'linkedin https://www.linkedin.com/in/fixture-person-b', `Speaker B's links are ${kinds('b')}, not linkedin (the website field by its host; Instagram and plain http dropped)`);
   expect(kinds('c') === 'mastodon https://mastodon.fixture.example/@fixturec, x https://x.com/fixture_person_c', `Speaker C's links are ${kinds('c')}, not mastodon, x (a Pretalx profile dropped)`);
+  const githubPages = adaptPretalx(JSON.parse(fixtureText.replace('https://github.com/fixture-person-a', 'https://fixture-person-a.github.io/'))).speakers[0].links.map((l) => `${l.kind} ${l.url}`).join(', ');
+  expect(githubPages === 'site https://fixture-a.example/, github https://fixture-person-a.github.io/', `a GitHub field's github.io address is not a GitHub link: ${githubPages}`);
   for (const [url, hint, kind] of [
     ['https://github.com/x', { type: 'github', title: 'GitHub' }, 'github'], ['https://bsky.app/profile/x', { type: 'bluesky' }, 'bluesky'],
     ['https://x.com/x', {}, 'x'], ['https://example.com/', { type: 'twitter' }, 'x'], ['https://example.com/', { type: 'website' }, 'site'],
@@ -180,6 +182,7 @@ try {
     ['https://pretalx.com/kcd-texas-2027/speaker/X/', { fallback: 'site' }, null], ['https://sessionize.com/x', { fallback: 'site' }, null],
     ['https://example.com/', { type: 'instagram', fallback: 'site' }, null], ['https://example.com/', { type: 'discord' }, null],
     ['https://example.com/', { title: 'Something' }, null], ['https://example.com/', { fallback: 'site' }, 'site'], ['http://github.com/x', {}, null],
+    ['https://fixture.github.io/', { type: 'github' }, 'github'], ['https://fixture.example/', { type: 'bluesky' }, 'bluesky'], ['https://fixture.example/', { title: 'Bsky' }, 'bluesky'],
   ]) expect(linkKind(url, hint) === kind, `linkKind(${url}, ${JSON.stringify(hint)}) is ${linkKind(url, hint)}, not ${kind}`);
   // One string, or one per language: English first, else the first language with text.
   expect(i18n('  Talk ') === 'Talk' && i18n({ de: 'Vortrag', en: 'Talk' }) === 'Talk' && i18n({ es: '', de: 'Vortrag' }) === 'Vortrag' && i18n({}) === null && i18n({ en: ' ' }) === null && i18n(null) === null && i18n('a\r\nb') === 'a\nb', 'i18n is wrong');
@@ -193,7 +196,7 @@ try {
   expect(renamed.sessions.find((s) => s.id === 'FXEUS2')?.endUser && renamed.speakers[0].tagline === 'Platform Engineer, Fixture Company', 'a field is not found by a label that differs only in case, spaces, punctuation or "&"');
   const byIdentifier = adaptPretalx(broken((d) => { d.questions[0].question = { en: 'A label the site does not know' }; d.questions[0].identifier = 'end-user-story'; }));
   expect(byIdentifier.sessions.find((s) => s.id === 'FXEUS2')?.endUser === true, 'a field is not found by its identifier');
-  await rejects(() => adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7001); })), (m) => /no public custom field per proposal named "End-User Story" or "Is this an End-User Story\?"/.test(m) && /pretalx\.fields\.endUser/.test(m), 'no End-User Story field');
+  await rejects(() => adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7001); })), (m) => /no public custom field per proposal named "End-User Story" or "Is this an End-User Story\?"/.test(m) && /turn on "Publish answers" for the field and keep it active/.test(m) && /pretalx\.fields\.endUser/.test(m), 'no End-User Story field');
   await rejects(() => adaptPretalx(broken((d) => { d.questions[0].target = 'speaker'; })), (m) => /no public custom field per proposal named "End-User Story"/.test(m), 'an End-User Story field asked per speaker');
   await rejects(() => adaptPretalx(broken((d) => { d.questions[2].question = { en: 'Pronouns' }; })), (m) => /no public custom field per speaker named "Job title and company"/.test(m) && /pretalx\.fields\.tagline/.test(m) && !m.includes('Pronouns'), 'no job title field');
   const noLevel = adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7002); }));

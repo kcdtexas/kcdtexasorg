@@ -13,7 +13,8 @@ export const pretalx = {
    *  photo anywhere else is dropped. */
   photoHost: 'pretalx.com',
   /** The public custom fields the site reads, by their label or identifier in Pretalx. Case, spaces and punctuation
-   *  don't count, and "&" counts as "and". Each needs "Publish answers" turned on in Pretalx. */
+   *  don't count, and "&" counts as "and". Each needs "Publish answers" turned on in Pretalx, and must stay active:
+   *  Pretalx hides an inactive field's answers. */
   fields: {
     /** Yes/No, per proposal: marks an End-User Story. The build fails if no public field has one of these names. */
     endUser: ['End-User Story', 'Is this an End-User Story?'],

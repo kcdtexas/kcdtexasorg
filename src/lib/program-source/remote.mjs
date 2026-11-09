@@ -52,7 +52,8 @@ export function pretalxPhoto(raw, env, hosts = []) {
   return protocol === 'http:' || hostname === pretalx.photoHost || hostname.endsWith(`.${pretalx.photoHost}`) || hosts.includes(hostname);
 }
 
-/** A test variable's address on this machine, or null when it's unset. Refused on Netlify and in GitHub Actions. */
+/** A test variable's address on this machine, or null when it's unset. Refused on Cloudflare Pages, Netlify and in
+ *  GitHub Actions. */
 export function localTestUrl(name, env) {
   const test = env[name];
   if (!test) return null;

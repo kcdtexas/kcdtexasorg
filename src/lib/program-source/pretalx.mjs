@@ -64,9 +64,9 @@ const named = (q, names) => names.some((n) => norm(n) === norm(i18n(q.question))
 /** The id of the field an answer belongs to, expanded or not. */
 const fieldOf = (a) => (isObj(a?.question) ? a.question.id : a?.question);
 
-/** A URL field's icon, as a label links.mjs knows. The address decides first: GitHub and Bluesky are known by their
- *  host, and an icon this doesn't name counts for nothing. */
-const ICON = { linkedin: 'linkedin', mastodon: 'mastodon', twitter: 'twitter', web: 'website', instagram: 'instagram' };
+/** A URL field's icon, as a label links.mjs knows. The address decides first; then the icon, so a name.github.io
+ *  address in a GitHub field is a GitHub link. An icon this doesn't name counts for nothing. */
+const ICON = { github: 'github', bsky: 'bluesky', linkedin: 'linkedin', mastodon: 'mastodon', twitter: 'twitter', web: 'website', instagram: 'instagram' };
 
 /**
  * The problems with the event's and the lists' shapes; empty when they're valid.
@@ -167,7 +167,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
   const fields = (key, target, required) => {
     const found = questions.filter((q) => q.target === target && named(q, settings.fields[key]));
     if (required && !found.length) {
-      throw new Error(`Pretalx has no public custom field per ${target === 'speaker' ? 'speaker' : 'proposal'} named ${settings.fields[key].map((n) => `"${n}"`).join(' or ')}. In Pretalx, turn on "Publish answers" for the field, or add its label to pretalx.fields.${key} in src/lib/program-source/config.mjs (docs/pretalx.md).`);
+      throw new Error(`Pretalx has no public custom field per ${target === 'speaker' ? 'speaker' : 'proposal'} named ${settings.fields[key].map((n) => `"${n}"`).join(' or ')}. In Pretalx, turn on "Publish answers" for the field and keep it active, or add its label to pretalx.fields.${key} in src/lib/program-source/config.mjs (docs/pretalx.md).`);
     }
     return new Set(found.map((q) => q.id));
   };
