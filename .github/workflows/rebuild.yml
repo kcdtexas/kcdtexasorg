@@ -73,13 +73,15 @@ jobs:
         run: node scripts/rebuild-today.mjs --cron "$CRON" --force "$FORCE"
 
   # Has the public program changed on the platform since the live site was built? It runs only when the check job
-  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches.
+  # found a gate open, and prints only "changed" or "unchanged": no program data, no artifacts, no caches. It reads
+  # Pretalx's public API, which needs no key, or the CSV when PROGRAM_CSV_URL is set (ADR 0014).
   program:
     needs: check
     if: needs.check.outputs.program == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    # The platform's key is a secret of the production environment, which only main can use (CLAUDE.md).
+    # The CSV's address, if there is one, is a secret of the production environment, which only main can use
+    # (CLAUDE.md).
     environment: production
     permissions:
       contents: read # check out the repo
@@ -97,7 +99,6 @@ jobs:
       - id: compare
         name: Has the program changed?
         env:
-          SESSIONIZE_ENDPOINT_ID: ${{ secrets.SESSIONIZE_ENDPOINT_ID }}
           PROGRAM_CSV_URL: ${{ secrets.PROGRAM_CSV_URL }}
         run: node scripts/program-check.mjs
 

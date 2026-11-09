@@ -104,7 +104,7 @@ expect(wf.on?.workflow_dispatch?.inputs?.force?.type === 'boolean', 'no workflow
 expect(JSON.stringify(wf.permissions) === '{}', 'the workflow-level permissions are not {}');
 const allowed = { check: { contents: 'read', actions: 'read' }, program: { contents: 'read' }, rebuild: {}, keepalive: { actions: 'write' } };
 // The secrets each job may read, all from the production environment.
-const secretsOf = { program: ['PROGRAM_CSV_URL', 'SESSIONIZE_ENDPOINT_ID'], rebuild: ['CLOUDFLARE_DEPLOY_HOOK'] };
+const secretsOf = { program: ['PROGRAM_CSV_URL'], rebuild: ['CLOUDFLARE_DEPLOY_HOOK'] };
 for (const [name, job] of Object.entries(wf.jobs)) {
   expect(name in allowed, `job "${name}" is not checked here`);
   expect(JSON.stringify(job.permissions) === JSON.stringify(allowed[name]), `job "${name}" has permissions ${JSON.stringify(job.permissions)}, not ${JSON.stringify(allowed[name])}`);
@@ -117,7 +117,7 @@ for (const [name, job] of Object.entries(wf.jobs)) {
     if (step.uses) expect(!/^actions\/(cache|upload-artifact)\b/.test(step.uses), `job "${name}": ${step.uses} keeps files after the run`);
     if (step.uses?.startsWith('actions/setup-node@')) expect(step.with?.['package-manager-cache'] === false && !('cache' in (step.with ?? {})), `job "${name}": setup-node's npm cache is not off`);
     // Secrets reach a command only through env variables, and no command prints one.
-    if (step.run) expect(!/secrets\./.test(step.run) && !/(echo|printf)[^\n]*\$\{?(HOOK|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL)\b/.test(step.run), `job "${name}": a command uses or prints a secret`);
+    if (step.run) expect(!/secrets\./.test(step.run) && !/(echo|printf)[^\n]*\$\{?(HOOK|PROGRAM_CSV_URL)\b/.test(step.run), `job "${name}": a command uses or prints a secret`);
   }
 }
 // The program check: only after the check job finds a gate open, and its only command prints "changed" or "unchanged".
@@ -571,7 +571,7 @@ for (const [what, answers, want, calls] of [
 
 // The program check with the gates closed in the checked-out Edition file: "unchanged", no platform call.
 if (!edition.program.speakersPublic && !edition.program.schedulePublic) {
-  const res = spawnSync(process.execPath, ['scripts/program-check.mjs'], { encoding: 'utf8', env: { ...process.env, SESSIONIZE_ENDPOINT_ID: '', PROGRAM_CSV_URL: '', GITHUB_OUTPUT: '' } });
+  const res = spawnSync(process.execPath, ['scripts/program-check.mjs'], { encoding: 'utf8', env: { ...process.env, PROGRAM_CSV_URL: '', GITHUB_OUTPUT: '' } });
   expect(res.status === 0 && res.stdout === 'unchanged\n', `program-check with the gates closed: exit ${res.status}, ${JSON.stringify(res.stdout)}`);
 }
 
