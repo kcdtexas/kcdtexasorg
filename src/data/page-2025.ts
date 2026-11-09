@@ -35,7 +35,7 @@ export const page2025: PastPage = {
     title: `A day at KCD Texas ${e.year}`,
     photos: [
       { id: '2025-103', time: '10:36 a.m.', caption: 'A full main hall for the keynotes.', alt: 'The main hall from the back during a keynote: rows of attendees, and the slide on both big screens.' },
-      { id: '2025-230', time: '3:00 p.m.', caption: 'The hallway track between sessions.', alt: 'Three attendees talk behind an open laptop: one with a hand on his chin, one in a cap with a paper bag on his arm.' },
+      { id: '2025-230', time: '3:00 p.m.', caption: 'The hallway track between sessions.', alt: 'Three attendees talk behind an open laptop; one rests a hand on the chin, and one in a cap carries a paper bag.' },
       { id: '2025-324', time: '5:15 p.m.', caption: 'A prize from the closing raffle.', alt: 'A smiling raffle winner holds a LEGO box and a round shield with the Kubernetes logo.' },
     ],
     credit: credit('Photos'),
@@ -51,7 +51,7 @@ export const page2025: PastPage = {
     // of 2026's keynote photos.
     photos: {
       'Chris Aniszczyk': { file: 'aniszczyk-2025', alt: 'Chris Aniszczyk speaks into a microphone on stage at KCD Texas 2025, in a light shirt with a blue print.' },
-      'Andrew Martin': { file: 'martin-2025', alt: 'Andrew Martin smiles on stage at KCD Texas 2025, a microphone in one hand and the other raised to his blue cap.' },
+      'Andrew Martin': { file: 'martin-2025', alt: 'Andrew Martin smiles on stage at KCD Texas 2025, a microphone in one hand and the other hand raised to a blue cap.' },
       'Ricardo Rocha': { file: 'rocha-2025', alt: 'Ricardo Rocha speaks at the podium at KCD Texas 2025, gesturing with both hands, in a dark t-shirt.' },
     },
     photoCredit: credit('Photos'),
