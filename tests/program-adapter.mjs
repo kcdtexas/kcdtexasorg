@@ -193,8 +193,9 @@ try {
   expect(renamed.sessions.find((s) => s.id === 'FXEUS2')?.endUser && renamed.speakers[0].tagline === 'Platform Engineer, Fixture Company', 'a field is not found by a label that differs only in case, spaces, punctuation or "&"');
   const byIdentifier = adaptPretalx(broken((d) => { d.questions[0].question = { en: 'A label the site does not know' }; d.questions[0].identifier = 'end-user-story'; }));
   expect(byIdentifier.sessions.find((s) => s.id === 'FXEUS2')?.endUser === true, 'a field is not found by its identifier');
-  await rejects(() => adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7001); })), (m) => /no public custom field named "End-User Story" or "Is this an End-User Story\?"/.test(m) && /pretalx\.fields\.endUser/.test(m), 'no End-User Story field');
-  await rejects(() => adaptPretalx(broken((d) => { d.questions[2].question = { en: 'Pronouns' }; })), (m) => /no public custom field named "Job title and company"/.test(m) && /pretalx\.fields\.tagline/.test(m) && !m.includes('Pronouns'), 'no job title field');
+  await rejects(() => adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7001); })), (m) => /no public custom field per proposal named "End-User Story" or "Is this an End-User Story\?"/.test(m) && /pretalx\.fields\.endUser/.test(m), 'no End-User Story field');
+  await rejects(() => adaptPretalx(broken((d) => { d.questions[0].target = 'speaker'; })), (m) => /no public custom field per proposal named "End-User Story"/.test(m), 'an End-User Story field asked per speaker');
+  await rejects(() => adaptPretalx(broken((d) => { d.questions[2].question = { en: 'Pronouns' }; })), (m) => /no public custom field per speaker named "Job title and company"/.test(m) && /pretalx\.fields\.tagline/.test(m) && !m.includes('Pronouns'), 'no job title field');
   const noLevel = adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7002); }));
   expect(noLevel.sessions.every((s) => s.level === null) && noLevel.sessions.length === 5, 'a missing Level field fails, or keeps a Level');
   const noWebsite = adaptPretalx(broken((d) => { d.questions[3].question = { en: 'Another address' }; }));

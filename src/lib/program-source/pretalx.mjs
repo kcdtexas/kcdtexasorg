@@ -163,17 +163,18 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
   // The custom fields, in Pretalx's order. A required one that isn't public stops the build: without it, every
   // End-User Story would lose its label, or every Speaker the line under their name, and no error would say so.
   const questions = [...data.questions].sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id - b.id);
-  const fields = (key, required) => {
-    const found = questions.filter((q) => named(q, settings.fields[key]));
+  // Each field is asked per proposal or per speaker; one of the same name asked the other way doesn't count.
+  const fields = (key, target, required) => {
+    const found = questions.filter((q) => q.target === target && named(q, settings.fields[key]));
     if (required && !found.length) {
-      throw new Error(`Pretalx has no public custom field named ${settings.fields[key].map((n) => `"${n}"`).join(' or ')}. In Pretalx, turn on "Publish answers" for the field, or add its label to pretalx.fields.${key} in src/lib/program-source/config.mjs (docs/pretalx.md).`);
+      throw new Error(`Pretalx has no public custom field per ${target === 'speaker' ? 'speaker' : 'proposal'} named ${settings.fields[key].map((n) => `"${n}"`).join(' or ')}. In Pretalx, turn on "Publish answers" for the field, or add its label to pretalx.fields.${key} in src/lib/program-source/config.mjs (docs/pretalx.md).`);
     }
     return new Set(found.map((q) => q.id));
   };
-  const endUser = fields('endUser', true);
-  const level = fields('level', false);
-  const tagline = fields('tagline', true);
-  const website = fields('website', false);
+  const endUser = fields('endUser', 'submission', true);
+  const level = fields('level', 'submission', false);
+  const tagline = fields('tagline', 'speaker', true);
+  const website = fields('website', 'speaker', false);
   const byId = new Map(questions.map((q) => [q.id, q]));
   const place = (a) => questions.indexOf(byId.get(fieldOf(a)));
   const optionText = new Map(questions.flatMap((q) => (Array.isArray(q.options) ? q.options : []).map((o) => [o.id, i18n(o.answer)])));
