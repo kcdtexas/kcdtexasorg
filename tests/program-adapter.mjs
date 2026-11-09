@@ -9,10 +9,11 @@
 //      error, the test-only addresses refused on Cloudflare Pages, Netlify and in GitHub Actions, reading Pretalx
 //      page by page and its failures, the User-Agent, and the photos.
 //   4. scripts/program-check.mjs.
-//   5. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
-//      run and restored after: production from the local Pretalx (both gates, then only `speakersPublic`) and from
-//      the CSV, a program with more Share Cards than a build draws, a deploy preview and a branch deploy (the test
-//      data, no request), production before Pretalx releases a schedule, and production with a failing platform.
+//   5. Unless --no-builds: full builds (scripts/build.sh): production with the gates closed (no request); then with a
+//      gate opened in src/data/edition-2027.ts for the run and restored after: production from the local Pretalx (both
+//      gates, then only `speakersPublic`) and from the CSV, a program with more Share Cards than a build draws, a
+//      deploy preview and a branch deploy (the test data, no request), production before Pretalx releases a
+//      schedule, and production with a failing platform.
 // Usage: node tests/program-adapter.mjs [--no-builds]
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -705,6 +706,12 @@ try {
     const build = (env, flags = []) => run('bash', ['scripts/build.sh', '--skip-install', ...flags], env);
     const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
     const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
+    // Production with both gates closed, as the Edition file has them, reads nothing: no request to Pretalx, to the CSV's
+    // address or for a photo, though both point at this server.
+    state.requests.length = 0;
+    const shut = await build(prodCsv);
+    expect(shut.status === 0 && state.requests.length === 0 && /The program gates are closed: no program data/.test(shut.log) && !existsSync('dist/2027/program-version.txt') && !existsSync('dist/2027/speakers'),
+      `production with the gates closed fails, or reads the platform (${state.requests.length} requests):\n${shut.log.slice(-1500)}`);
     await withGates(both, async () => {
       // Production, from the local Pretalx: the pages, the photos, the version, and nothing dropped.
       state.requests.length = 0;
