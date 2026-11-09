@@ -1,20 +1,35 @@
 // The program platform settings, in one place. src/lib/program.ts (the build) and scripts/program-check.mjs (the
 // refresh workflow) both read them, so the published program version and the check's always agree.
 //
-// The Sessionize names are the ones the CFP and the API endpoint use (docs/program-csv.md has the CSV's). Change a
-// name here when the Session Committee names a category or a question differently.
-export const sessionize = {
-  /** The API v2 base. Only tests point it elsewhere (KCD_PROGRAM_TEST_BASE, src/lib/program-source/remote.mjs). */
-  base: 'https://sessionize.com/api/v2',
-  /** Speaker photos come from this host or its subdomains (cdn.sessionize.com); a photo anywhere else is dropped. */
-  photoHost: 'sessionize.com',
-  /** The category whose item names the Session's format. */
-  formatCategory: 'Session format',
-  /** A category of this name (any item but a "no"), an item of this name in any category, or a question of this
-   *  name answered yes, marks an End-User Story. */
-  endUserCategory: 'End-User Story',
-  endUserQuestion: 'End-User Story',
+// The program comes from Pretalx's public API, which needs no key (ADR 0014, docs/pretalx.md). The field names are
+// the ones the 2027 call for proposals uses: change one here when the Session Committee renames a field.
+// docs/program-csv.md has the CSV's format.
+export const pretalx = {
+  /** The API base. Only tests point it elsewhere (KCD_PROGRAM_TEST_BASE, src/lib/program-source/remote.mjs). */
+  base: 'https://pretalx.com/api',
+  /** The event's short form, as in its call for proposals, https://pretalx.com/kcd-texas-2027/cfp (src/data/cfp.ts). */
+  event: 'kcd-texas-2027',
+  /** Speaker photos come from this host or its subdomains, or from the event's custom domain when Pretalx names one; a
+   *  photo anywhere else is dropped. */
+  photoHost: 'pretalx.com',
+  /** The public custom fields the site reads, by their label or identifier in Pretalx. Case, spaces and punctuation
+   *  don't count, and "&" counts as "and". Each needs "Publish answers" turned on in Pretalx. */
+  fields: {
+    /** Yes/No, per proposal: marks an End-User Story. The build fails if no public field has one of these names. */
+    endUser: ['End-User Story', 'Is this an End-User Story?'],
+    /** Choose one, per proposal. Read, but no page shows it yet, so the allowlist (model.mjs) drops it. */
+    level: ['Level'],
+    /** Text, per speaker: the line under the Speaker's name. The build fails without it, like endUser. */
+    tagline: ['Job title and company'],
+    /** URL, per speaker: an address no other rule names (links.mjs) is the Speaker's website. */
+    website: ['Website', 'Website or public profile, for example LinkedIn link'],
+  },
+  /** The most pages of 50 entries the reader follows in one list. */
+  maxPages: 40,
 };
+
+/** Every request to a platform or a photo host names the site, and no email address. */
+export const userAgent = 'kcdtexas.org program build (https://kcdtexas.org)';
 
 /** Format names as a platform writes them (lowercased), to the site's formats. */
 export const formatNames = {
@@ -28,7 +43,7 @@ export const formatNames = {
   'panel discussion': 'panel',
 };
 
-/** Answers and category items that mean yes or no. */
+/** Answers that mean yes or no. */
 export const yes = ['yes', 'y', 'true', '1', 'on', 'x', 'checked'];
 export const no = ['no', 'n', 'false', '0', 'off', 'none', ''];
 

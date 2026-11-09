@@ -1,13 +1,13 @@
-// Reading from a program platform: the address rules, the fetch, and the redaction that keeps the platform's
-// address out of every message. SESSIONIZE_ENDPOINT_ID and PROGRAM_CSV_URL are secrets (CLAUDE.md): an error
-// names the variable, never its value, and never the address built from it.
+// Reading from a program platform: the address rules, the fetch, and the redaction that keeps the CSV's address out
+// of every message. PROGRAM_CSV_URL is a secret (CLAUDE.md): an error names the variable, never its value. Pretalx's
+// public API needs no key (ADR 0014).
 //
 // Addresses must be https. The one exception is for tests: a plain-http server on this machine (127.0.0.1,
 // localhost or [::1]) stands in for the platform and the photo host, and KCD_PROGRAM_TEST_BASE points the
-// Sessionize reader at it. Both are refused on the hosts and in GitHub Actions (CF_PAGES, NETLIFY or
+// Pretalx reader at it. Both are refused on the hosts and in GitHub Actions (CF_PAGES, NETLIFY or
 // GITHUB_ACTIONS set), so a real production build can't be redirected, and even elsewhere they reach only this
-// machine.
-import { sessionize } from './config.mjs';
+// machine. Every request names the site in its User-Agent, and no email address (config.mjs).
+import { pretalx, userAgent } from './config.mjs';
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
 
@@ -17,18 +17,20 @@ export const localTestsAllowed = (env) => !env.CF_PAGES && !env.NETLIFY && !env.
 /** The message with every secret value (as is and URL-encoded) replaced by its variable's name. */
 export function redact(message, env) {
   let out = String(message);
-  for (const [name, value] of [['SESSIONIZE_ENDPOINT_ID', env.SESSIONIZE_ENDPOINT_ID], ['PROGRAM_CSV_URL', env.PROGRAM_CSV_URL]]) {
+  for (const [name, value] of [['PROGRAM_CSV_URL', env.PROGRAM_CSV_URL]]) {
     if (typeof value !== 'string' || !value) continue;
     for (const v of new Set([value, encodeURIComponent(value), encodeURI(value)])) out = out.split(v).join(`<${name}>`);
   }
   return out;
 }
 
-/** A program source failure: the build stops with this message, which names no secret. */
+/** A program source failure: the build stops with this message, which names no secret. `status` is the HTTP status
+ *  when the server answered with an error. */
 export class ProgramSourceError extends Error {
-  constructor(message, env = {}) {
+  constructor(message, env = {}, status = undefined) {
     super(redact(message, env));
     this.name = 'ProgramSourceError';
+    if (status !== undefined) this.status = status;
   }
 }
 
@@ -41,12 +43,13 @@ export function fetchable(raw, env) {
   return url.protocol === 'http:' && LOOPBACK.has(url.hostname) && localTestsAllowed(env);
 }
 
-/** True for a Speaker photo the Sessionize reader keeps: https on Sessionize's own host or one of its subdomains, or
- *  a local test server where tests are allowed. Every other photo address is dropped. */
-export function sessionizePhoto(raw, env) {
+/** True for a Speaker photo the Pretalx reader keeps: https on Pretalx's own host or one of its subdomains, or on one
+ *  of `hosts` (the event's custom domain), or a local test server where tests are allowed. Every other photo address
+ *  is dropped. */
+export function pretalxPhoto(raw, env, hosts = []) {
   if (!fetchable(raw, env)) return false;
   const { protocol, hostname } = new URL(raw);
-  return protocol === 'http:' || hostname === sessionize.photoHost || hostname.endsWith(`.${sessionize.photoHost}`);
+  return protocol === 'http:' || hostname === pretalx.photoHost || hostname.endsWith(`.${pretalx.photoHost}`) || hosts.includes(hostname);
 }
 
 /** A test variable's address on this machine, or null when it's unset. Refused on Netlify and in GitHub Actions. */
@@ -60,8 +63,8 @@ export function localTestUrl(name, env) {
   return test.replace(/\/+$/, '');
 }
 
-/** The Sessionize API v2 base: the real one, or a local test server named by KCD_PROGRAM_TEST_BASE. */
-export const sessionizeBase = (env) => localTestUrl('KCD_PROGRAM_TEST_BASE', env) ?? sessionize.base;
+/** Pretalx's API base: the real one, or a local test server named by KCD_PROGRAM_TEST_BASE. */
+export const pretalxBase = (env) => localTestUrl('KCD_PROGRAM_TEST_BASE', env) ?? pretalx.base;
 
 /**
  * Fetches an address and returns its body as a Buffer. `what` names the request in errors, never with the address.
@@ -72,13 +75,16 @@ export async function fetchBytes(url, { env, what, maxBytes = 20 * 1024 * 1024, 
   if (!fetchable(url, env)) throw new ProgramSourceError(`${what}: the address must be https`, env);
   let res;
   try {
-    res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(timeoutMs), headers: { accept } });
+    res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(timeoutMs), headers: { accept, 'user-agent': userAgent } });
   } catch (e) {
     const code = e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'timed out' : 'network error');
     throw new ProgramSourceError(`${what}: the request failed (${code})`, env);
   }
   if (res.url && !fetchable(res.url, env)) throw new ProgramSourceError(`${what}: redirected to an address that isn't https`, env);
-  if (!res.ok) throw new ProgramSourceError(`${what}: the server answered HTTP ${res.status}`, env);
+  if (!res.ok) {
+    await res.body?.cancel().catch(() => {});
+    throw new ProgramSourceError(`${what}: the server answered HTTP ${res.status}`, env, res.status);
+  }
   const tooLarge = () => new ProgramSourceError(`${what}: the response is larger than ${maxBytes} bytes`, env);
   if (Number(res.headers.get('content-length') ?? 0) > maxBytes) {
     await res.body?.cancel().catch(() => {});

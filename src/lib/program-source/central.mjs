@@ -1,5 +1,5 @@
-// Central time (America/Chicago) for program times. Platforms hand over event-local times with no offset
-// (Sessionize's startsAt), which are Central wall-clock times; a time with an offset or "Z" is converted.
+// Central time (America/Chicago) for program times. A time with an offset or "Z" (Pretalx's) is converted; an
+// event-local time with no offset (the CSV's) is already a Central wall-clock time.
 // The model keeps 'YYYY-MM-DDTHH:MM' in Central, so a wall-clock time that doesn't exist (the hour skipped when
 // daylight saving time starts) is refused rather than shifted.
 const ZONE = 'America/Chicago';

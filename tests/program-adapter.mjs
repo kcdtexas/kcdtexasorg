@@ -1,15 +1,18 @@
 // The program platform's tests (src/lib/program-source/, scripts/program-check.mjs), with no real network: a local
-// HTTP server stands in for Sessionize, the photo host, the CSV's address and the live site.
-//   1. The Sessionize adapter on tests/fixtures/sessionize-all.json, each quirk, Central time across DST, the
-//      validation failures, the allowlist (the planted marker never reaches the model) and the program version.
+// HTTP server stands in for Pretalx, the photo host, the CSV's address and the live site.
+//   1. The Pretalx adapter on tests/fixtures/pretalx-event.json: the mapping, each quirk (custom fields by label or
+//      identifier, choices by option, breaks across rooms, a Session given twice, one string or one per language),
+//      Central time across DST, the validation failures, the allowlist (the planted marker never reaches the model)
+//      and the program version.
 //   2. The CSV fallback on tests/fixtures/program.csv.
-//   3. The rules: which builds read the platform, the redaction of the endpoint ID and the CSV address in every
-//      error, the test-only addresses refused on Cloudflare Pages, Netlify and in GitHub Actions, and the photos.
+//   3. The rules: which builds read the platform, the CSV before Pretalx, the redaction of the CSV address in every
+//      error, the test-only addresses refused on Cloudflare Pages, Netlify and in GitHub Actions, reading Pretalx
+//      page by page and its failures, the User-Agent, and the photos.
 //   4. scripts/program-check.mjs.
 //   5. Unless --no-builds: full builds (scripts/build.sh) with a gate opened in src/data/edition-2027.ts for the
-//      run and restored after: production from the local Sessionize and the CSV, a program with more Share Cards
-//      than a build draws, a deploy preview and a branch deploy (the test data, no request), production with no
-//      variable, and production with a failing platform.
+//      run and restored after: production from the local Pretalx (both gates, then only `speakersPublic`) and from
+//      the CSV, a program with more Share Cards than a build draws, a deploy preview and a branch deploy (the test
+//      data, no request), production before Pretalx releases a schedule, and production with a failing platform.
 // Usage: node tests/program-adapter.mjs [--no-builds]
 import { spawn } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -18,14 +21,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/central.mjs';
+import { pretalx, userAgent } from '../src/lib/program-source/config.mjs';
 import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
 import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { buildKind, isProductionBuild } from '../src/lib/build-context.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
-import { fetchable, fetchBytes, redact, sessionizeBase, sessionizePhoto } from '../src/lib/program-source/remote.mjs';
-import { adaptSessionize, validateAll } from '../src/lib/program-source/sessionize.mjs';
+import { adaptPretalx, i18n, validatePretalx } from '../src/lib/program-source/pretalx.mjs';
+import { fetchable, fetchBytes, pretalxBase, pretalxPhoto, redact } from '../src/lib/program-source/remote.mjs';
 
 const failures = [];
 let checks = 0;
@@ -35,34 +39,55 @@ async function rejects(fn, test, message) {
 }
 
 const marker = readFileSync('src/data/program-fixture.ts', 'utf8').match(/plantedMarker = '([^']+)'/)[1];
-const fixtureText = readFileSync('tests/fixtures/sessionize-all.json', 'utf8');
+const fixtureText = readFileSync('tests/fixtures/pretalx-event.json', 'utf8');
 const csvText = readFileSync('tests/fixtures/program.csv', 'utf8');
-const ID = 'fxEndpoint42';
 const CSV_SECRET = 'csv-token-fx9';
 const both = { speakersPublic: true, schedulePublic: true };
 const speakersOnly = { speakersPublic: true, schedulePublic: false };
 const closed = { speakersPublic: false, schedulePublic: false };
-const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|CF_PAGES|GITHUB_ACTIONS|GITHUB_OUTPUT|SESSIONIZE_ENDPOINT_ID|PROGRAM_CSV_URL|KCD_)/.test(k)));
+const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^(?:CONTEXT|NETLIFY|CF_PAGES|GITHUB_ACTIONS|GITHUB_OUTPUT|PROGRAM_CSV_URL|KCD_)/.test(k)));
+/** The event's API path, as the reader asks for it. */
+const EVENT = `/api/events/${pretalx.event}/`;
+/** Pretalx's own photo host in the fixture, which the local server serves instead. */
+const AVATARS = 'https://pretalx.com/media/avatars/';
 
-// The local stand-in for every remote address. The Sessionize fixture's photos on Sessionize's host, and the CSV's
-// on any host, come from here; Fixture Person D's photo, on another host, stays where it is, so a request for it
-// would fail.
-const state = { mode: 'ok', fixture: fixtureText, csv: csvText, live: null, requests: [], endlessClosed: false };
+// The local stand-in for every remote address. Pretalx's lists come from the fixture, 50 entries a page at most (or
+// `pageMax`), with `next` links as Pretalx sends them. Photos on Pretalx's host, and the CSV's on any host, come from
+// here; Fixture Person D's, on another host, stays where it is, so a request for it would fail.
+const state = { mode: 'ok', pretalx: fixtureText, csv: csvText, live: null, requests: [], agents: [], pageMax: 50, endlessClosed: false };
 const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
+const avatar = await sharp({ create: { width: 400, height: 500, channels: 3, background: { r: 30, g: 120, b: 160 } } }).webp().toBuffer();
 const server = createServer((req, res) => {
   state.requests.push(req.url);
+  state.agents.push(req.headers['user-agent'] ?? '');
   const send = (status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body); };
   const local = (s, from) => s.replaceAll(from, `${origin}/photos/`);
-  if (req.url === `/api/v2/${ID}/view/All`) {
+  const url = new URL(req.url, origin);
+  if (url.pathname.startsWith(EVENT)) {
+    const name = url.pathname.slice(EVENT.length).replace(/\/$/, '');
     if (state.mode === '500') return send(500, 'text/plain', 'down');
     if (state.mode === 'notjson') return send(200, 'application/json', '<html>');
-    if (state.mode === 'invalid') return send(200, 'application/json', JSON.stringify({ sessions: 'none' }));
-    return send(200, 'application/json', local(state.fixture, 'https://cdn.sessionize.com/fixture/'));
+    // Until a schedule is released and public, Pretalx answers 401 for the program's lists; the event, its custom
+    // fields and its session types stay public.
+    if (state.mode === 'unreleased' && !['', 'questions', 'submission-types'].includes(name)) return send(401, 'application/json', '{"detail":"Authentication credentials were not provided."}');
+    const data = JSON.parse(local(state.pretalx, AVATARS));
+    if (name === '') return state.mode === 'noevent' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.event));
+    if (!Array.isArray(data[name])) return send(404, 'application/json', '{"detail":"Not found."}');
+    if (state.mode === 'nolist') return send(200, 'application/json', '{"detail":"Not a list."}');
+    const size = Math.min(Number(url.searchParams.get('page_size') ?? 50), state.pageMax);
+    const page = Number(url.searchParams.get('page') ?? 1);
+    const at = (p) => { const u = new URL(url); u.searchParams.set('page', String(p)); return u.href; };
+    let next = page * size < data[name].length ? at(page + 1) : null;
+    if (next && state.mode === 'nexthost') next = next.replace('127.0.0.1', 'localhost');
+    if (next && state.mode === 'nextloop') next = url.href;
+    const count = data[name].length + (state.mode === 'count' ? 1 : 0);
+    return send(200, 'application/json', JSON.stringify({ count, next, previous: page > 1 ? at(page - 1) : null, results: data[name].slice((page - 1) * size, page * size) }));
   }
   if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(state.csv, 'https://photos.fixture.invalid/'));
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
   if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
   if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
+  if (/^\/photos\/[A-Za-z0-9_]+\.webp$/.test(req.url)) return send(200, 'image/webp', avatar);
   if (req.url === '/live/program-version.txt' && state.live !== null) return send(200, 'text/plain', state.live);
   // A response with no Content-Length that never ends, until the client closes the connection.
   if (req.url === '/endless') {
@@ -76,10 +101,11 @@ const server = createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const testEnv = { KCD_PROGRAM_TEST_BASE: `${origin}/api/v2` };
-const prodSessionize = { ...testEnv, CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID };
-const prodCsv = { CONTEXT: 'production', PROGRAM_CSV_URL: `${origin}/sheets/${CSV_SECRET}/program.csv` };
+const testEnv = { KCD_PROGRAM_TEST_BASE: `${origin}/api` };
+const prodPretalx = { ...testEnv, CONTEXT: 'production' };
+const prodCsv = { ...testEnv, CONTEXT: 'production', PROGRAM_CSV_URL: `${origin}/sheets/${CSV_SECRET}/program.csv` };
 const fixture = () => JSON.parse(fixtureText);
+const apiRequests = () => state.requests.filter((u) => u.startsWith('/api/'));
 // scripts/program-check.mjs writes its GITHUB_OUTPUT here.
 const outDir = mkdtempSync(join(tmpdir(), 'kcd-program-check-'));
 
@@ -113,88 +139,166 @@ async function withGates(gates, fn) {
 }
 
 try {
-  // 1. The Sessionize adapter.
-  const raw = adaptSessionize(fixture());
+  // 1. The Pretalx adapter.
+  const raw = adaptPretalx(fixture());
   const session = (id) => raw.sessions.find((s) => s.id === id);
-  const speaker = (n) => raw.speakers.find((s) => s.id.endsWith(`0000000000${n}`));
-  expect(raw.rooms.join('|') === 'Fixture Hall|Fixture Room B', `rooms are ${raw.rooms.join('|')}, not in their sort order`);
-  expect(session('1001')?.format === 'keynote' && session('1002')?.format === 'talk' && session('1004')?.format === 'workshop' && session('1005')?.format === 'panel', 'the format does not come from the "Session format" category');
-  expect(session('1005')?.format === 'panel' && session('1001')?.format === 'keynote', 'isPlenumSession decides the format');
-  expect(session('1002')?.endUser === true, 'the End-User Story category does not mark a Session');
-  expect(session('1003')?.endUser === true, 'the End-User Story question does not mark a Session');
-  expect(session('1004')?.endUser === false && session('1001')?.endUser === false, 'a "No" category item or a "No" answer marks an End-User Story');
-  expect(!session('1006'), 'a declined Session is read');
-  expect(raw.sessions.length === 5 && !raw.sessions.some((s) => /Registration|Lunch|Callout/.test(s.title)), 'service sessions are read as Sessions');
+  const speaker = (c) => raw.speakers.find((s) => s.id === `FXSPK${c.toUpperCase()}`);
+  // The site links to the call for proposals on Pretalx: the reader asks for that event.
+  const cfp = readFileSync('src/data/cfp.ts', 'utf8').match(/submitUrl: '([^']+)'/)?.[1] ?? '';
+  expect(cfp === `${new URL(pretalx.base).origin}/${pretalx.event}/cfp`, `src/data/cfp.ts links to ${cfp}, but config.mjs reads the event ${pretalx.event} at ${pretalx.base}`);
+  expect(raw.rooms.join('|') === `Fixture Hall|Fixture Room B|Fixture Storage ${marker}`, `rooms are ${raw.rooms.join('|')}, not in their position order`);
+  expect(session('FXKEY1')?.format === 'keynote' && session('FXEUS2')?.format === 'talk' && session('FXWRK4')?.format === 'workshop' && session('FXALL5')?.format === 'talk', 'the format does not come from the session type');
+  expect(session('FXEUS2')?.endUser === true, 'a "True" End-User Story answer does not mark a Session');
+  expect(session('FXKEY1')?.endUser === false && session('FXWRK4')?.endUser === false, 'a "False" End-User Story answer marks a Session');
+  expect(session('FXTLK3')?.endUser === false && session('FXALL5')?.endUser === false, 'a Session with no End-User Story answer is marked');
+  expect(!session('FXREJ6') && !session('FXACC7') && raw.sessions.length === 5, `a Session that isn't confirmed is read (${raw.sessions.map((s) => s.id).join()})`);
   expect(JSON.stringify(raw.breaks) === JSON.stringify([
     { title: 'Registration', start: '2027-04-23T08:00', end: '2027-04-23T08:45', room: null },
     { title: 'Fixture Sponsor Callout', start: '2027-04-23T12:00', end: '2027-04-23T12:15', room: 'Fixture Hall' },
     { title: 'Lunch', start: '2027-04-23T12:15', end: '2027-04-23T13:00', room: null },
-  ]), `service sessions are not breaks, plenum ones in every room: ${JSON.stringify(raw.breaks)}`);
-  expect(session('1001')?.start === '2027-04-23T09:00' && session('1004')?.end === '2027-04-23T14:30', 'event-local times are not kept as Central wall-clock times');
-  expect(session('1005')?.room === 'Fixture Hall' && session('1003')?.room === 'Fixture Room B', 'rooms are not mapped by id');
-  expect(session('1004')?.speakers.length === 2, 'a Session loses a Speaker');
-  const kinds = (n) => speaker(n).links.map((l) => l.kind).join(',');
-  expect(kinds('a') === 'github,bluesky,x', `Speaker A's links map to ${kinds('a')}, not github,bluesky,x (by host; Twitter to x; Sessionize dropped)`);
-  expect(kinds('b') === 'linkedin,site', `Speaker B's links map to ${kinds('b')}, not linkedin,site (Instagram dropped)`);
-  expect(kinds('c') === 'site,mastodon', `Speaker C's links map to ${kinds('c')}, not site,mastodon (Blog to site; Facebook dropped)`);
-  expect(speaker('a').name === 'Fixture Person A' && speaker('a').tagline === 'Platform Engineer, Fixture Company', 'the name or tagline is not mapped');
+  ]), `breaks are not read, or a break in every room is not one break: ${JSON.stringify(raw.breaks)}`);
+  expect(session('FXKEY1')?.start === '2027-04-23T09:00' && session('FXKEY1')?.end === '2027-04-23T09:30', `a time in UTC is not converted to Central: ${session('FXKEY1')?.start}`);
+  expect(session('FXWRK4')?.start === '2027-04-23T13:00' && session('FXWRK4')?.end === '2027-04-23T13:50' && session('FXEUS2')?.start === '2027-04-23T10:00', 'a time with an offset is not converted to Central');
+  expect(session('FXALL5')?.room === 'Fixture Hall' && session('FXTLK3')?.room === 'Fixture Room B', 'rooms are not mapped by id');
+  expect(session('FXWRK4')?.speakers.join() === 'FXSPKC,FXSPKD' && session('FXALL5')?.speakers.join() === 'FXSPKD,FXSPKA,FXSPKB,FXSPKC', 'a Session loses a Speaker, or the Speakers\' order');
+  expect(session('FXKEY1')?.abstract === 'A made-up keynote abstract for the adapter tests.\n\nA made-up second paragraph,\nfrom the description field.', `the abstract and the description are not one text: ${JSON.stringify(session('FXKEY1')?.abstract)}`);
+  expect(session('FXTLK3')?.abstract === 'A made-up talk with a description and no abstract.' && session('FXWRK4')?.abstract === null, 'a description alone, or empty texts, are wrong');
+  const pasted = adaptPretalx(JSON.parse(fixtureText.replace('"description": "A made-up second paragraph,\\r\\nfrom the description field."', '"description": "A made-up keynote abstract for the adapter tests.\\r\\n"'))).sessions.find((s) => s.id === 'FXKEY1');
+  expect(pasted?.abstract === 'A made-up keynote abstract for the adapter tests.', `the same text in the abstract and the description shows twice: ${JSON.stringify(pasted?.abstract)}`);
+  expect(session('FXKEY1')?.level === 'Beginner' && session('FXEUS2')?.level === 'Intermediate' && session('FXTLK3')?.level === null, `the Level is not read by its option (${session('FXEUS2')?.level})`);
+  expect(session('FXKEY1')?.recording === null, 'Pretalx gives no recording, but the Session has one');
+  expect(speaker('a')?.name === 'Fixture Person A' && speaker('a')?.tagline === 'Platform Engineer, Fixture Company' && speaker('a')?.bio === 'Fixture Person A is made up for the adapter tests.', 'the name, tagline or bio is not mapped');
+  expect(speaker('c')?.bio === null && speaker('d')?.bio === null && speaker('d')?.tagline === null, 'a missing bio or job title is not null');
+  const kinds = (c) => speaker(c).links.map((l) => `${l.kind} ${l.url}`).join(', ');
+  expect(kinds('a') === 'site https://fixture-a.example/, github https://github.com/fixture-person-a', `Speaker A's links are ${kinds('a')}, not site, github (in the fields' order)`);
+  expect(kinds('b') === 'linkedin https://www.linkedin.com/in/fixture-person-b', `Speaker B's links are ${kinds('b')}, not linkedin (the website field by its host; Instagram and plain http dropped)`);
+  expect(kinds('c') === 'mastodon https://mastodon.fixture.example/@fixturec, x https://x.com/fixture_person_c', `Speaker C's links are ${kinds('c')}, not mastodon, x (a Pretalx profile dropped)`);
   for (const [url, hint, kind] of [
-    ['https://github.com/x', { type: 'Other', title: 'Github' }, 'github'], ['https://bsky.app/profile/x', { type: 'Other' }, 'bluesky'],
-    ['https://x.com/x', {}, 'x'], ['https://example.com/', { type: 'Twitter' }, 'x'], ['https://example.com/', { type: 'Company_Website' }, 'site'],
-    ['https://example.com/', { type: 'Blog' }, 'site'], ['https://sessionize.com/x', { type: 'Sessionize' }, null], ['https://example.com/', { type: 'Sessionize' }, null],
-    ['https://example.com/', { type: 'Other', title: 'Something' }, null], ['https://example.com/', { fallback: 'site' }, 'site'], ['http://github.com/x', {}, null],
+    ['https://github.com/x', { type: 'github', title: 'GitHub' }, 'github'], ['https://bsky.app/profile/x', { type: 'bluesky' }, 'bluesky'],
+    ['https://x.com/x', {}, 'x'], ['https://example.com/', { type: 'twitter' }, 'x'], ['https://example.com/', { type: 'website' }, 'site'],
+    ['https://example.com/', { title: 'Blog' }, 'site'], ['https://example.com/', { type: 'linkedin' }, 'linkedin'], ['https://example.com/@x', {}, 'mastodon'],
+    ['https://pretalx.com/kcd-texas-2027/speaker/X/', { fallback: 'site' }, null], ['https://sessionize.com/x', { fallback: 'site' }, null],
+    ['https://example.com/', { type: 'instagram', fallback: 'site' }, null], ['https://example.com/', { type: 'discord' }, null],
+    ['https://example.com/', { title: 'Something' }, null], ['https://example.com/', { fallback: 'site' }, 'site'], ['http://github.com/x', {}, null],
   ]) expect(linkKind(url, hint) === kind, `linkKind(${url}, ${JSON.stringify(hint)}) is ${linkKind(url, hint)}, not ${kind}`);
+  // One string, or one per language: English first, else the first language with text.
+  expect(i18n('  Talk ') === 'Talk' && i18n({ de: 'Vortrag', en: 'Talk' }) === 'Talk' && i18n({ es: '', de: 'Vortrag' }) === 'Vortrag' && i18n({}) === null && i18n({ en: ' ' }) === null && i18n(null) === null && i18n('a\r\nb') === 'a\nb', 'i18n is wrong');
+  const plain = JSON.parse(fixtureText, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) && typeof v.en === 'string' && Object.values(v).every((x) => typeof x === 'string') ? v.en : v));
+  expect(JSON.stringify(adaptPretalx(plain)) === JSON.stringify(raw), 'plain strings, as Pretalx sends them for ?lang=en, give another program');
 
-  // The allowlist and the gates: the planted marker never reaches the model. The fixture plants it in every text
-  // field the allowlist drops, the names Sessionize sends besides fullName included, and in no field it keeps.
+  // The custom fields: by label, whatever its case, spaces and punctuation, or by identifier. A missing End-User Story
+  // or job title field stops the build; a missing Level or website field doesn't.
+  const broken = (edit) => { const d = fixture(); edit(d); return d; };
+  const renamed = adaptPretalx(broken((d) => { d.questions[0].question = { en: 'End-user story' }; d.questions[2].question = 'JOB TITLE & COMPANY:'; }));
+  expect(renamed.sessions.find((s) => s.id === 'FXEUS2')?.endUser && renamed.speakers[0].tagline === 'Platform Engineer, Fixture Company', 'a field is not found by a label that differs only in case, spaces, punctuation or "&"');
+  const byIdentifier = adaptPretalx(broken((d) => { d.questions[0].question = { en: 'A label the site does not know' }; d.questions[0].identifier = 'end-user-story'; }));
+  expect(byIdentifier.sessions.find((s) => s.id === 'FXEUS2')?.endUser === true, 'a field is not found by its identifier');
+  await rejects(() => adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7001); })), (m) => /no public custom field named "End-User Story" or "Is this an End-User Story\?"/.test(m) && /pretalx\.fields\.endUser/.test(m), 'no End-User Story field');
+  await rejects(() => adaptPretalx(broken((d) => { d.questions[2].question = { en: 'Pronouns' }; })), (m) => /no public custom field named "Job title and company"/.test(m) && /pretalx\.fields\.tagline/.test(m) && !m.includes('Pronouns'), 'no job title field');
+  const noLevel = adaptPretalx(broken((d) => { d.questions = d.questions.filter((q) => q.id !== 7002); }));
+  expect(noLevel.sessions.every((s) => s.level === null) && noLevel.sessions.length === 5, 'a missing Level field fails, or keeps a Level');
+  const noWebsite = adaptPretalx(broken((d) => { d.questions[3].question = { en: 'Another address' }; }));
+  expect(noWebsite.speakers[0].links.map((l) => l.kind).join() === 'github' && noWebsite.speakers[1].links.map((l) => l.kind).join() === 'linkedin', 'without a website field, an address no rule names is kept, or a known host is dropped');
+
+  // The session types: a type the site doesn't know, or one Pretalx doesn't list, stops the build, naming it by id.
+  await rejects(() => adaptPretalx(broken((d) => { d['submission-types'][0].name = { en: 'Fireside chat' }; })), (m) => /submissions\[1\] \(Session FXEUS2\): its session type \(9001\) is not a known format/.test(m) && !m.includes('Fireside'), 'an unknown session type');
+  await rejects(() => adaptPretalx(broken((d) => { d.submissions[0].submission_type = 9999; })), (m) => /submissions\[0\] \(Session FXKEY1\): its session type \(9999\) is not one of the session types/.test(m), 'a missing session type');
+
+  // Breaks: one per title and time, across every room when it's in each room with a Session, else named by its rooms
+  // (a lobby with no Session too); with no title, "Break".
+  const lobby = adaptPretalx(broken((d) => {
+    d.rooms.push({ id: 104, name: { en: 'Fixture Lobby' }, description: null, uuid: '00000000-0000-4000-8000-000000000104', guid: null, capacity: null, position: 3, hidden: false });
+    d.slots.push({ id: 6100, room: 104, start: '2027-04-23T07:30:00-05:00', end: '2027-04-23T08:00:00-05:00', submission: null, schedule: 5001, description: { en: 'Coffee' }, duration: 30 });
+    d.slots.push({ id: 6101, room: 104, start: '2027-04-23T16:00:00-05:00', end: '2027-04-23T16:15:00-05:00', submission: null, schedule: 5001, description: null, duration: 15 });
+    d.slots.push({ id: 6102, room: 102, start: '2027-04-23T16:00:00-05:00', end: '2027-04-23T16:15:00-05:00', submission: null, schedule: 5001, description: { en: '' }, duration: 15 });
+    d.slots.push({ id: 6103, room: 101, start: '2027-04-23T17:00:00-05:00', end: '2027-04-23T17:30:00-05:00', submission: null, schedule: 5001, description: { en: 'Closing drinks' }, duration: 30 });
+    d.slots.push({ id: 6104, room: 102, start: '2027-04-23T17:00:00-05:00', end: '2027-04-23T17:30:00-05:00', submission: null, schedule: 5001, description: { en: 'Closing drinks' }, duration: 30 });
+    d.slots.push({ id: 6105, room: 104, start: '2027-04-23T17:00:00-05:00', end: '2027-04-23T17:30:00-05:00', submission: null, schedule: 5001, description: { en: 'Closing drinks' }, duration: 30 });
+  }));
+  const breaksAt = (t) => lobby.breaks.filter((b) => b.start === t).map((b) => `${b.title} @ ${b.room}`).join(' | ');
+  expect(breaksAt('2027-04-23T07:30') === 'Coffee @ Fixture Lobby' && breaksAt('2027-04-23T16:00') === 'Break @ Fixture Room B, Fixture Lobby' && breaksAt('2027-04-23T17:00') === 'Closing drinks @ null' && breaksAt('2027-04-23T12:00') === 'Fixture Sponsor Callout @ Fixture Hall',
+    `breaks in some rooms, in a lobby, or with no title are wrong: ${JSON.stringify(lobby.breaks)}`);
+
+  // A Session given twice: two Sessions, the second naming the first; while only the Speakers are public, one.
+  const repeated = adaptPretalx(broken((d) => { d.slots.push({ id: 6012, room: 102, start: '2027-04-23T15:00:00-05:00', end: '2027-04-23T15:50:00-05:00', submission: 'FXWRK4', schedule: 5001, description: null, duration: 50 }); }));
+  const workshops = (list) => list.filter((s) => s.title.startsWith('Fixture Workshop'));
+  expect(workshops(repeated.sessions).map((s) => `${s.id} ${s.start} ${s.repeatOf ?? '-'}`).join() === 'FXWRK4 2027-04-23T13:00 -,FXWRK4-2 2027-04-23T15:00 FXWRK4', `a Session given twice is wrong: ${workshops(repeated.sessions).map((s) => `${s.id} ${s.start}`).join()}`);
+  const twice = publicProgram(repeated, { schedulePublic: true });
+  expect(workshops(twice.sessions).length === 2 && !JSON.stringify(twice).includes('repeatOf'), 'the Schedule does not show a Session given twice twice, or the model keeps repeatOf');
+  const once = publicProgram(repeated, { schedulePublic: false });
+  expect(workshops(once.sessions).map((s) => s.id).join() === 'FXWRK4', 'with only the Speakers public, a Session given twice shows twice');
+  // A slot with no time isn't scheduled: with the Schedule public, its Session fails.
+  const unscheduled = adaptPretalx(broken((d) => { d.slots[4].start = null; }));
+  expect(unscheduled.sessions.find((s) => s.id === 'FXTLK3')?.start === null, 'a slot with no time gives a time');
+  await rejects(() => publicProgram(unscheduled, { schedulePublic: true }), (m) => /Session FXTLK3: the Schedule is public, but it has no time or room/.test(m), 'a Session with no scheduled slot, with the Schedule public');
+
+  // Photos: only from Pretalx's host or its subdomains, or the event's custom domain (https). The fixture's D is on
+  // Gravatar: dropped.
+  for (const [url, env, hosts, want] of [
+    ['https://pretalx.com/media/avatars/a.webp', {}, [], true], ['https://cdn.pretalx.com/media/a.webp', {}, [], true],
+    ['https://notpretalx.com/a.webp', {}, [], false], ['https://pretalx.com.example.net/a.webp', {}, [], false],
+    ['http://pretalx.com/media/avatars/a.webp', {}, [], false], ['https://u:p@pretalx.com/a.webp', {}, [], false],
+    ['https://www.gravatar.com/avatar/x', {}, [], false], ['https://cfp.fixture.example/a.webp', {}, ['cfp.fixture.example'], true],
+    ['https://cfp.fixture.example/a.webp', {}, [], false], ['not an address', {}, [], false],
+    [`${origin}/photos/a.jpg`, {}, [], true], [`${origin}/photos/a.jpg`, { NETLIFY: 'true' }, [], false],
+  ]) expect(pretalxPhoto(url, env, hosts) === want, `pretalxPhoto(${url}, ${JSON.stringify(env)}, ${JSON.stringify(hosts)}) is ${!want}`);
+  expect(speaker('a')?.photo === 'https://pretalx.com/media/avatars/FXSPKA_fixture.webp' && speaker('d')?.photo === null, 'a photo on Pretalx is dropped, or one on Gravatar kept');
+  const custom = (domain) => adaptPretalx(broken((d) => {
+    d.event.custom_domain = domain;
+    d.speakers[3].avatar_url = 'https://cfp.fixture.example/media/avatars/FXSPKD.webp';
+    d.speakers[2].avatar_url = 'https://cfp.fixture.example.evil.invalid/media/avatars/FXSPKC.webp';
+  }));
+  expect(custom('https://cfp.fixture.example').speakers[3].photo === 'https://cfp.fixture.example/media/avatars/FXSPKD.webp' && custom('https://cfp.fixture.example').speakers[2].photo === null, 'a photo on the event\'s custom domain is dropped, or one on a look-alike host kept');
+  expect(custom('http://cfp.fixture.example').speakers[3].photo === null && custom('not an address').speakers[3].photo === null, 'a custom domain that is not https lets its photos in');
+  // Optional fields left out, and odd values: no error, and nothing made up.
+  const sparse = adaptPretalx(broken((d) => {
+    delete d.speakers[0].biography; delete d.speakers[0].avatar_url; delete d.submissions[0].description; delete d.questions[0].identifier;
+    delete d.rooms[0].position; delete d.event.custom_domain; d.speakers[1].avatar_url = ''; d.submissions[1].answers[0].answer = null; d.submissions[1].answers[1].options = null;
+  }));
+  expect(sparse.speakers[0].bio === null && sparse.speakers[0].photo === null && sparse.speakers[1].photo === null && sparse.sessions[0].abstract === 'A made-up keynote abstract for the adapter tests.'
+    && sparse.sessions.find((s) => s.id === 'FXEUS2')?.endUser === false && sparse.sessions.find((s) => s.id === 'FXEUS2')?.level === 'Intermedio', 'missing or odd optional fields are wrong');
+
+  // The allowlist and the gates: the planted marker never reaches the model. The fixture plants it in every text field
+  // the allowlist drops, and in no field it keeps.
   const fx = fixture();
   for (const [field, value] of [
-    ["a Speaker's firstName", fx.speakers[0].firstName], ["a Speaker's lastName", fx.speakers[0].lastName],
-    ["a kept link's title", fx.speakers[0].links.find((l) => l.linkType === 'Twitter').title], ["another kept link's title", fx.speakers[1].links[1].title],
-    ["a Session's liveUrl", fx.sessions[0].liveUrl], ['an answer to another question', fx.sessions[0].questionAnswers[0].answerValue],
-    ["a Speaker's answer", fx.speakers[0].questionAnswers[0].answerValue], ['another question', fx.questions[1].question],
-    ['a question type', fx.questions[1].questionType], ['another category', fx.categories[2].title], ["another category's item", fx.categories[2].items[0].name],
-    ["a category's type", fx.categories[2].type], ["a service session's description", fx.sessions[7].description],
-    ['a declined Session', fx.sessions[5].title], ['a Speaker with no accepted Session', fx.speakers[4].fullName],
+    ["the event's email", fx.event.email], ["the event's logo", fx.event.logo], ["a field's help text", fx.questions[0].help_text.en],
+    ["another speaker field's label", fx.questions[7].question.en], ['a Level option', fx.questions[1].options[3].answer.en],
+    ["a Session's image", fx.submissions[0].image], ["a Session's notes", fx.submissions[0].notes], ["a Session's internal notes", fx.submissions[0].internal_notes],
+    ["a Session's answer to another field", fx.submissions[0].answers[2].answer], ['a rejected Session', fx.submissions[5].title],
+    ["a Session that isn't confirmed", fx.submissions[6].title], ["a Speaker's email", fx.speakers[0].email], ["a Speaker's internal notes", fx.speakers[0].internal_notes],
+    ["a Speaker's answer to another field", fx.speakers[0].answers[3].answer], ['an Instagram link', fx.speakers[1].answers[2].answer],
+    ['a plain-http link', fx.speakers[1].answers[3].answer], ['a Pretalx profile link', fx.speakers[2].answers[2].answer],
+    ['a photo on another host', fx.speakers[3].avatar_url], ['a Speaker with no confirmed Session', fx.speakers[4].name],
+    ["a room's description", fx.rooms[0].description.en], ['a hidden room with no Session', fx.rooms[2].name.en], ["a Session's slot description", fx.slots[9].description.en],
   ]) expect(String(value).includes(marker), `the fixture has no planted marker in ${field}`);
   const model = publicProgram(raw, { schedulePublic: true });
   expect(!JSON.stringify(model).includes(marker), 'the planted marker reaches the model');
-  expect(!JSON.stringify(model).includes('instagram') && !model.speakers.some((s) => s.links.some((l) => /sessionize\.com/.test(l.url))) && !JSON.stringify(model).includes('live.fixture'), 'a dropped link or field reaches the model');
-  expect(model.speakers.length === 4 && !model.speakers.some((s) => s.name.includes('Person E')), 'a Speaker with no accepted Session reaches the model');
-  // Photos: only from Sessionize's host or its subdomains. Fixture Person D's, on another host, is dropped.
-  expect(model.speakers.find((s) => s.name.endsWith(' A'))?.photo === 'https://cdn.sessionize.com/fixture/a.jpg', 'a photo on Sessionize\'s host is not kept for download');
-  expect(model.speakers.find((s) => s.name.endsWith(' D'))?.photo === null, 'a photo on another host is kept in Sessionize data');
-  for (const [url, env, want] of [
-    ['https://cdn.sessionize.com/image/a.jpg', {}, true], ['https://sessionize.com/image/a.jpg', {}, true],
-    ['https://photos.example.com/a.jpg', {}, false], ['https://notsessionize.com/a.jpg', {}, false],
-    ['https://sessionize.com.example.net/a.jpg', {}, false], ['http://cdn.sessionize.com/a.jpg', {}, false],
-    ['https://u:p@cdn.sessionize.com/a.jpg', {}, false], ['not an address', {}, false],
-    [`${origin}/photos/a.jpg`, {}, true], [`${origin}/photos/a.jpg`, { NETLIFY: 'true' }, false],
-  ]) expect(sessionizePhoto(url, env) === want, `sessionizePhoto(${url}, ${JSON.stringify(env)}) is ${!want}`);
-  // The CSV's photos may be on any https host.
-  expect(publicModel(adaptCsv(csvText), both, prodCsv).model.speakers.find((s) => s.id === 'p1')?.photo === 'https://photos.fixture.invalid/a.jpg', 'a CSV photo on another https host is dropped');
-  expect(model.sessions.find((s) => s.id === '1002')?.recording === 'https://www.youtube.com/watch?v=fixture1002', 'the recording is dropped');
+  expect(session('FXWRK4')?.level.includes(marker) && model.sessions.every((s) => !('level' in s)), 'the Level is not read, or reaches the model');
+  expect(model.speakers.length === 4 && !model.speakers.some((s) => s.name.includes('Person E')), 'a Speaker with no confirmed Session reaches the model');
+  expect(model.rooms.join('|') === 'Fixture Hall|Fixture Room B', `the model's rooms are ${model.rooms.join('|')}`);
+  expect(!JSON.stringify(model).includes('instagram') && !JSON.stringify(model).includes('gravatar') && !JSON.stringify(model).includes('slides.fixture'), 'a dropped link, photo or answer reaches the model');
   const early = publicProgram(raw, { schedulePublic: false });
   expect(early.sessions.every((s) => s.start === null && s.end === null && s.room === null) && !early.rooms.length && !early.breaks.length, 'speakersPublic alone keeps times, rooms or breaks');
   expect(!JSON.stringify(early).includes(marker), 'the planted marker reaches the speakersPublic model');
 
   // The program version: stable, sorted, and blind to dropped fields.
   const v = programVersion(model);
-  expect(/^[0-9a-f]{64}$/.test(v) && v === programVersion(publicProgram(adaptSessionize(fixture()), { schedulePublic: true })), 'the program version is not a stable SHA-256');
+  expect(/^[0-9a-f]{64}$/.test(v) && v === programVersion(publicProgram(adaptPretalx(fixture()), { schedulePublic: true })), 'the program version is not a stable SHA-256');
   const shuffled = fixture();
-  shuffled.sessions.reverse(); shuffled.speakers.reverse(); shuffled.categories.reverse();
-  expect(programVersion(publicProgram(adaptSessionize(shuffled), { schedulePublic: true })) === v, 'the program version depends on the platform\'s order');
+  for (const key of ['questions', 'submission-types', 'rooms', 'submissions', 'speakers', 'slots']) shuffled[key].reverse();
+  expect(programVersion(publicProgram(adaptPretalx(shuffled), { schedulePublic: true })) === v, 'the program version depends on Pretalx\'s order');
   const otherMarker = JSON.parse(fixtureText.replaceAll(marker, 'another-dropped-value'));
-  expect(programVersion(publicProgram(adaptSessionize(otherMarker), { schedulePublic: true })) === v, 'a dropped field changes the program version');
+  expect(programVersion(publicProgram(adaptPretalx(otherMarker), { schedulePublic: true })) === v, 'a dropped field changes the program version');
   const retitled = fixture();
-  retitled.sessions[1].title += ' (updated)';
-  expect(programVersion(publicProgram(adaptSessionize(retitled), { schedulePublic: true })) !== v, 'a new title keeps the program version');
+  retitled.submissions[1].title += ' (updated)';
+  expect(programVersion(publicProgram(adaptPretalx(retitled), { schedulePublic: true })) !== v, 'a new title keeps the program version');
   const moved = fixture();
-  moved.sessions[0].roomId = 102;
-  expect(programVersion(publicProgram(adaptSessionize(moved), { schedulePublic: true })) !== v, 'a room change keeps the program version');
+  moved.slots[2].room = 102;
+  expect(programVersion(publicProgram(adaptPretalx(moved), { schedulePublic: true })) !== v, 'a room change keeps the program version');
   expect(programVersion(early) !== v, 'the gates do not change the program version');
 
-  // Central time, across daylight saving time (2027: Mar 14 and Nov 7).
+  // Central time, across daylight saving time (2027: Mar 14 and Nov 7), in central.mjs and through the adapter.
   expect(toCentral('2027-04-23T09:15:00') === '2027-04-23T09:15' && toCentral('2027-04-23 09:15') === '2027-04-23T09:15', 'an event-local time is not kept');
   expect(toCentral('2027-04-23T14:15:00Z') === '2027-04-23T09:15', 'a UTC time in April is not CDT (UTC-5)');
   expect(toCentral('2027-01-15T15:15:00Z') === '2027-01-15T09:15', 'a UTC time in January is not CST (UTC-6)');
@@ -205,31 +309,39 @@ try {
   expect(centralToUtc('2027-03-14T02:30') === null && centralOf(new Date('2027-03-14T08:00:00Z')) === '2027-03-14T03:00', 'the skipped hour exists');
   await rejects(() => toCentral('2027-03-14T02:30:00'), (m) => /does not exist/.test(m), 'a time in the skipped hour');
   await rejects(() => toCentral('next Friday'), (m) => /not a time/.test(m), 'text as a time');
+  const across = (start, end) => adaptPretalx(broken((d) => { d.slots[2].start = start; d.slots[2].end = end; })).sessions.find((s) => s.id === 'FXKEY1');
+  for (const [start, end, want] of [
+    ['2027-03-14T07:30:00Z', '2027-03-14T08:30:00Z', '2027-03-14T01:30 2027-03-14T03:30'], ['2027-11-07T06:30:00Z', '2027-11-07T07:45:00Z', '2027-11-07T01:30 2027-11-07T01:45'],
+    ['2027-01-15T15:15:00Z', '2027-01-15T15:45:00Z', '2027-01-15T09:15 2027-01-15T09:45'], ['2027-04-23T22:00:00+08:00', '2027-04-23T22:30:00+08:00', '2027-04-23T09:00 2027-04-23T09:30'],
+  ]) expect(`${across(start, end)?.start} ${across(start, end)?.end}` === want, `the slot ${start} to ${end} is ${across(start, end)?.start} to ${across(start, end)?.end} in Central, not ${want}`);
 
-  // Validation failures name the record and field, never the content.
-  const broken = (edit) => { const d = fixture(); edit(d); return d; };
+  // Validation failures name the list, the position and the field, never the content.
   for (const [what, data, pattern] of [
     ['not an object', [], /not an object/],
-    ['no sessions', broken((d) => { delete d.sessions; }), /sessions is not a list/],
-    ['a missing title', broken((d) => { d.sessions[2].title = ''; }), /sessions\[2\]\.title is missing/],
-    ['a bad time', broken((d) => { d.sessions[0].startsAt = 'soon'; }), /sessions\[0\]\.startsAt is not a time/],
-    ['a skipped-hour time', broken((d) => { d.sessions[0].startsAt = '2027-03-14T02:15:00'; }), /sessions\[0\]\.startsAt is a Central time that does not exist/],
-    ['speakers not a list', broken((d) => { d.sessions[0].speakers = 'A'; }), /sessions\[0\]\.speakers is not a list/],
-    ['a nameless speaker', broken((d) => { d.speakers[0].fullName = ''; d.speakers[0].firstName = null; d.speakers[0].lastName = null; }), /speakers\[0\] has no name/],
+    ['no submissions', broken((d) => { delete d.submissions; }), /submissions is not a list/],
+    ['another event', broken((d) => { d.event.slug = 'kcd-texas-2026'; }), /the event's short form is not kcd-texas-2027/],
+    ['a missing title', broken((d) => { d.submissions[2].title = ''; }), /submissions\[2\]\.title is missing/],
+    ['an odd code', broken((d) => { d.submissions[1].code = `FX EUS2 ${marker}<`; }), /submissions\[1\]\.code is not a Pretalx code/],
+    ['a code twice', broken((d) => { d.speakers[1].code = 'FXSPKA'; }), /speakers\[1\] \(FXSPKA\) comes twice/],
+    ['a bad time', broken((d) => { d.slots[2].start = 'soon'; }), /slots\[2\]\.start is not a time/],
+    ['a skipped-hour time', broken((d) => { d.slots[2].start = '2027-03-14T02:15:00'; }), /slots\[2\]\.start is a Central time that does not exist/],
+    ['speakers not a list', broken((d) => { d.submissions[0].speakers = 'FXSPKA'; }), /submissions\[0\]\.speakers is not a list of codes/],
+    ['answers not expanded', broken((d) => { d.submissions[0].answers = [8001]; }), /submissions\[0\]\.answers\[0\] is not an object \(the answers aren't expanded\)/],
+    ['options not expanded', broken((d) => { d.questions[1].options = [7101, 7102]; }), /questions\[1\]\.options is not a list of options \(the options aren't expanded\)/],
+    ['a nameless speaker', broken((d) => { d.speakers[0].name = ' '; }), /speakers\[0\] has no name/],
     ['a bad room', broken((d) => { d.rooms[0].name = null; }), /rooms\[0\] needs an id and a name/],
-    ['no format category', broken((d) => { d.categories = d.categories.filter((c) => c.title !== 'Session format'); }), /no "Session format" category/],
-    ['no format picked', broken((d) => { d.sessions[0].categoryItems = []; }), /Session 1001\): no "Session format" item/],
-    ['an unknown format', broken((d) => { d.categories[0].items[0].name = 'Fireside chat'; }), /Session 1001\): its "Session format" item is not a known format/],
-  ]) await rejects(() => adaptSessionize(data), (m) => pattern.test(m) && !m.includes(marker) && !m.includes('Fireside'), `the adapter on ${what}`);
-  expect(validateAll(fixture()).length === 0, 'the fixture does not validate');
-  await rejects(() => publicProgram(adaptSessionize(broken((d) => { d.sessions[0].endsAt = '2027-04-23T08:00:00'; })), { schedulePublic: true }), (m) => /ends before it starts/.test(m), 'a Session that ends before it starts');
-  await rejects(() => publicProgram(adaptSessionize(broken((d) => { d.sessions[0].speakers.push('nobody'); })), { schedulePublic: true }), (m) => /unknown Speakers nobody/.test(m), 'a Session with an unknown Speaker');
-  // An empty program fails while a gate is open. An All view with only service sessions has no Sessions and no
-  // Speakers: it would build an empty Schedule and Speakers list, and a link to a calendar file that isn't built.
-  const onlyBreaks = broken((d) => { d.sessions = d.sessions.filter((s) => s.isServiceSession); });
-  await rejects(() => publicProgram(adaptSessionize(onlyBreaks), { schedulePublic: true }), (m) => /the Schedule is public \(schedulePublic\), but the program has no Sessions/.test(m), 'only service sessions, with the Schedule public');
-  await rejects(() => publicProgram(adaptSessionize(onlyBreaks), { schedulePublic: false }), (m) => /the Speakers are public \(speakersPublic\), but the program has no Speakers/.test(m), 'only service sessions, with only the Speakers public');
-  await rejects(() => publicModel(adaptSessionize(onlyBreaks), both, {}), (m) => /^The program data is not valid: the Schedule is public/.test(m), 'publicModel on an empty program');
+    ['a nameless session type', broken((d) => { d['submission-types'][2].name = {}; }), /submission-types\[2\] needs an id and a name/],
+    ['an unknown room', broken((d) => { d.slots[3].room = 999; }), /slots\[3\]: its room \(999\) is not one of the rooms/],
+  ]) await rejects(() => adaptPretalx(data), (m) => pattern.test(m) && !m.includes(marker), `the adapter on ${what}`);
+  expect(validatePretalx(fixture()).length === 0, `the fixture does not validate: ${validatePretalx(fixture()).join('; ')}`);
+  await rejects(() => publicProgram(adaptPretalx(broken((d) => { d.slots[2].end = '2027-04-23T13:00:00Z'; })), { schedulePublic: true }), (m) => /Session FXKEY1: it ends before it starts/.test(m), 'a Session that ends before it starts');
+  await rejects(() => publicProgram(adaptPretalx(broken((d) => { d.submissions[0].speakers.push('NOBODY'); })), { schedulePublic: true }), (m) => /Session FXKEY1: unknown Speakers NOBODY/.test(m), 'a Session with an unknown Speaker');
+  // An empty program fails while a gate is open: a released schedule with only breaks has no Sessions and no
+  // Speakers, and would build an empty Schedule and Speakers list, and a link to a calendar file that isn't built.
+  const onlyBreaks = broken((d) => { d.submissions = d.submissions.filter((s) => s.state !== 'confirmed'); });
+  await rejects(() => publicProgram(adaptPretalx(onlyBreaks), { schedulePublic: true }), (m) => /the Schedule is public \(schedulePublic\), but the program has no Sessions/.test(m), 'only breaks, with the Schedule public');
+  await rejects(() => publicProgram(adaptPretalx(onlyBreaks), { schedulePublic: false }), (m) => /the Speakers are public \(speakersPublic\), but the program has no Speakers/.test(m), 'only breaks, with only the Speakers public');
+  await rejects(() => publicModel(adaptPretalx(onlyBreaks), both, {}), (m) => /^The program data is not valid: the Schedule is public/.test(m), 'publicModel on an empty program');
   await rejects(() => publicProgram(adaptCsv('type,id,title,name,start,end\nbreak,,Lunch,,2027-04-23 12:00,2027-04-23 13:00\n'), { schedulePublic: true }), (m) => /no Sessions/.test(m), 'a CSV with only a break');
 
   // 2. The CSV fallback.
@@ -244,6 +356,8 @@ try {
   expect(csv.sessions[2].speakers.join() === 'p1,p2,p3' && csv.sessions[2].start === '2027-04-23T15:00', 'the CSV speakers or times are wrong');
   expect(csv.speakers[0].links.map((l) => l.kind).join() === 'github,site' && csv.speakers[1].links.map((l) => l.kind).join() === 'linkedin,bluesky', 'the CSV links are not mapped by host');
   expect(!JSON.stringify(csvModel).includes(marker), 'the planted marker reaches the CSV model');
+  // The CSV's photos may be on any https host.
+  expect(publicModel(csv, both, prodCsv).model.speakers.find((s) => s.id === 'p1')?.photo === 'https://photos.fixture.invalid/a.jpg', 'a CSV photo on another https host is dropped');
   for (const [what, text, pattern] of [
     ['no type column', 'id,title,name\n', /no "type" column/],
     ['an unknown type', 'type,id,title,name\nroom,1,x,\n', /row 2, type/],
@@ -274,15 +388,15 @@ try {
   };
   for (const context of [undefined, 'deploy-preview', 'branch-deploy', 'dev']) {
     for (const gates of [both, speakersOnly]) {
-      const w = watched({ CONTEXT: context, SESSIONIZE_ENDPOINT_ID: ID, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+      const w = watched({ ...testEnv, CONTEXT: context, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
       expect(chooseSource(gates, w.env).kind === 'test', `CONTEXT=${context} with a gate open does not use the test data`);
-      expect(!w.read.has('SESSIONIZE_ENDPOINT_ID') && !w.read.has('PROGRAM_CSV_URL'), `CONTEXT=${context} reads the platform variables`);
+      expect(!w.read.has('PROGRAM_CSV_URL') && !w.read.has('KCD_PROGRAM_TEST_BASE'), `CONTEXT=${context} reads the platform's variables`);
     }
   }
   // Cloudflare Pages (ADR 0012): production only when Pages builds `main`; Pages sets CF_PAGES and the branch itself,
   // and on Pages, CONTEXT counts for nothing.
   for (const [pages, want] of [
-    [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }, 'sessionize'],
+    [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }, 'pretalx'],
     [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'cloudflare' }, 'test'],
     [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'main-copy' }, 'test'],
     [{ CF_PAGES: '1', CF_PAGES_BRANCH: 'feature', CONTEXT: 'production' }, 'test'],
@@ -290,10 +404,10 @@ try {
     [{ CF_PAGES: 'true', CF_PAGES_BRANCH: 'main' }, 'test'],
   ]) {
     for (const gates of [both, speakersOnly]) {
-      const w = watched({ ...pages, SESSIONIZE_ENDPOINT_ID: ID, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+      const w = watched({ ...pages });
       const kind = chooseSource(gates, w.env).kind;
       expect(kind === want, `Pages ${JSON.stringify(pages)} with a gate open reads ${kind}, not ${want}`);
-      if (want === 'test') expect(!w.read.has('SESSIONIZE_ENDPOINT_ID') && !w.read.has('PROGRAM_CSV_URL'), `Pages ${JSON.stringify(pages)} reads the platform variables`);
+      if (want === 'test') expect(!w.read.has('PROGRAM_CSV_URL'), `Pages ${JSON.stringify(pages)} reads PROGRAM_CSV_URL`);
     }
   }
   for (const env of [{}, { CONTEXT: 'deploy-preview' }, { NETLIFY: 'true', CONTEXT: 'deploy-preview' }, { CF_PAGES: '1', CF_PAGES_BRANCH: 'x' }]) {
@@ -303,44 +417,63 @@ try {
     expect(isProductionBuild(env) && buildKind(env) === 'production', `${JSON.stringify(env)} doesn't count as a production build`);
   }
   for (const context of [undefined, 'production']) {
-    const w = watched({ CONTEXT: context, SESSIONIZE_ENDPOINT_ID: ID });
-    expect(chooseSource(closed, w.env).kind === 'none' && !w.read.has('SESSIONIZE_ENDPOINT_ID'), `closed gates read a source (CONTEXT=${context})`);
+    const w = watched({ CONTEXT: context, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+    expect(chooseSource(closed, w.env).kind === 'none' && !w.read.has('PROGRAM_CSV_URL'), `closed gates read a source (CONTEXT=${context})`);
   }
-  expect(chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID }).kind === 'sessionize', 'production with the ID does not read Sessionize');
-  expect(chooseSource(speakersOnly, { CONTEXT: 'production', PROGRAM_CSV_URL: 'https://example.com/p.csv' }).kind === 'csv', 'production with the CSV address does not read the CSV');
-  expect(chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: ID, PROGRAM_CSV_URL: 'https://example.com/p.csv' }).kind === 'sessionize', 'Sessionize does not come first');
-  await rejects(() => chooseSource(both, { CONTEXT: 'production' }), (m) => /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL is set/.test(m), 'production with a gate open and no variable');
-  await rejects(() => chooseSource(both, { CONTEXT: 'production', SESSIONIZE_ENDPOINT_ID: 'bad/id?x' }), (m) => /not a Sessionize endpoint ID/.test(m) && !m.includes('bad/id'), 'a malformed endpoint ID');
+  expect(chooseSource(both, { CONTEXT: 'production' }).kind === 'pretalx' && chooseSource(speakersOnly, { CONTEXT: 'production' }).kind === 'pretalx', 'production with a gate open does not read Pretalx');
+  expect(chooseSource(speakersOnly, { CONTEXT: 'production', PROGRAM_CSV_URL: 'https://example.com/p.csv' }).kind === 'csv', 'production with the CSV address does not read the CSV instead of Pretalx');
+  // GitHub passes a secret that isn't set as an empty string.
+  expect(chooseSource(both, { CONTEXT: 'production', PROGRAM_CSV_URL: '' }).kind === 'pretalx', 'an empty PROGRAM_CSV_URL counts as set');
   await rejects(() => chooseSource(both, { CONTEXT: 'production', NETLIFY: 'true', PROGRAM_CSV_URL: `http://127.0.0.1/${CSV_SECRET}` }), (m) => /must be an https address/.test(m) && !m.includes(CSV_SECRET), 'a plain-http CSV address on Netlify');
 
   // The test addresses: this machine only, and never on Cloudflare Pages, Netlify or in GitHub Actions.
-  expect(sessionizeBase({}) === 'https://sessionize.com/api/v2' && sessionizeBase(testEnv) === `${origin}/api/v2`, 'the Sessionize base is wrong');
+  expect(pretalxBase({}) === 'https://pretalx.com/api' && pretalxBase(testEnv) === `${origin}/api`, 'the Pretalx base is wrong');
   for (const extra of [{ CF_PAGES: '1' }, { NETLIFY: 'true' }, { GITHUB_ACTIONS: 'true' }]) {
-    await rejects(() => sessionizeBase({ ...testEnv, ...extra }), (m) => /refused on Cloudflare Pages, Netlify and in GitHub Actions/.test(m), `KCD_PROGRAM_TEST_BASE with ${Object.keys(extra)[0]}`);
+    await rejects(() => pretalxBase({ ...testEnv, ...extra }), (m) => /refused on Cloudflare Pages, Netlify and in GitHub Actions/.test(m), `KCD_PROGRAM_TEST_BASE with ${Object.keys(extra)[0]}`);
     expect(!fetchable(`${origin}/photos/a.jpg`, extra), `a plain-http photo is allowed with ${Object.keys(extra)[0]}`);
   }
-  await rejects(() => sessionizeBase({ KCD_PROGRAM_TEST_BASE: 'https://evil.example/api' }), (m) => /a server on this machine/.test(m), 'a remote KCD_PROGRAM_TEST_BASE');
+  await rejects(() => pretalxBase({ KCD_PROGRAM_TEST_BASE: 'https://evil.example/api' }), (m) => /a server on this machine/.test(m), 'a remote KCD_PROGRAM_TEST_BASE');
   expect(fetchable('https://cdn.example/a.jpg', { NETLIFY: 'true' }) && !fetchable('http://cdn.example/a.jpg', {}) && !fetchable('https://u:p@cdn.example/a.jpg', {}), 'fetchable is wrong');
 
-  // Reading the platform: the local Sessionize and CSV, and redacted failures.
+  // Reading the platform: the local Pretalx, every list in one request each, with the site's User-Agent.
   state.requests.length = 0;
-  const live = await readPlatform(chooseSource(both, prodSessionize), prodSessionize);
-  expect(state.requests.includes(`/api/v2/${ID}/view/All`) && live.sessions.length === 5, 'readPlatform does not read the All view');
-  const viaServer = publicModel(live, both, prodSessionize);
-  expect(viaServer.model.speakers.find((s) => s.name.endsWith(' A'))?.photo === `${origin}/photos/a.jpg`, 'a local test photo is dropped');
-  expect(live.speakers.find((s) => s.name.endsWith(' D'))?.photo === null, 'readPlatform keeps a Sessionize photo on another host');
+  state.agents.length = 0;
+  const live = await readPlatform(chooseSource(both, prodPretalx), prodPretalx);
+  const asked = ['', 'questions/?expand=options&page_size=50', 'submission-types/?page_size=50', 'rooms/?page_size=50', 'submissions/?expand=answers&page_size=50', 'speakers/?expand=answers&page_size=50', 'slots/?page_size=50'].map((p) => `${EVENT}${p}`);
+  expect(apiRequests().join(' ') === asked.join(' ') && live.sessions.length === 5, `readPlatform asks for ${apiRequests().join(' ')}`);
+  expect(/kcdtexas\.org/.test(userAgent) && !/@/.test(userAgent) && state.agents.length === 7 && state.agents.every((a) => a === userAgent), `a request doesn't name the site in its User-Agent, or names an email address: ${[...new Set(state.agents)].join(' | ')}`);
+  const viaServer = publicModel(live, both, prodPretalx);
+  expect(viaServer.model.speakers.find((s) => s.name.endsWith(' A'))?.photo === `${origin}/photos/FXSPKA_fixture.webp`, 'a local test photo is dropped');
+  expect(live.speakers.find((s) => s.name.endsWith(' D'))?.photo === null, 'readPlatform keeps a photo on another host');
+  // Page by page: a server that sends 2 entries a page gives the same program.
+  state.pageMax = 2;
+  state.requests.length = 0;
+  const paged = await readPlatform(chooseSource(both, prodPretalx), prodPretalx);
+  state.pageMax = 50;
+  const pages = (name) => apiRequests().filter((u) => u.startsWith(`${EVENT}${name}/`)).length;
+  expect(JSON.stringify(paged) === JSON.stringify(live) && pages('submissions') === 4 && pages('slots') === 6 && pages('questions') === 5 && apiRequests().includes(`${EVENT}submissions/?expand=answers&page_size=50&page=4`), `reading 2 entries a page gives another program, or the wrong pages (${pages('submissions')} of submissions)`);
   const viaCsv = await readPlatform(chooseSource(both, prodCsv), prodCsv);
   expect(viaCsv.sessions.length === 3, 'readPlatform does not read the CSV');
-  const noServer = { ...prodSessionize, KCD_PROGRAM_TEST_BASE: 'http://127.0.0.1:9/api/v2' };
-  for (const [mode, env, pattern] of [
-    ['500', prodSessionize, /HTTP 500/], ['notjson', prodSessionize, /not JSON/], ['invalid', prodSessionize, /sessions is not a list/],
-    ['ok', noServer, /the request failed/], ['500', prodCsv, /HTTP 500/],
+  // Failures: redacted, and each says what failed.
+  const noServer = { ...prodPretalx, KCD_PROGRAM_TEST_BASE: 'http://127.0.0.1:9/api' };
+  for (const [mode, env, pattern, pageMax = 50] of [
+    ['500', prodPretalx, /Pretalx \(the event kcd-texas-2027\): the server answered HTTP 500/],
+    ['notjson', prodPretalx, /Pretalx \(the event kcd-texas-2027\): the response is not JSON/],
+    ['noevent', prodPretalx, /Pretalx \(the event kcd-texas-2027\): the server answered HTTP 404: there is no public event kcd-texas-2027 \(pretalx\.event in src\/lib\/program-source\/config\.mjs\)/],
+    ['unreleased', prodPretalx, /Pretalx \(rooms, page 1\): the server answered HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public/],
+    ['nolist', prodPretalx, /Pretalx \(questions, page 1\): the response is not a list/],
+    ['nexthost', prodPretalx, /Pretalx \(questions, page 1\): the next page is on another host/, 2],
+    ['nextloop', prodPretalx, /Pretalx \(questions, page 1\): the next page is one already read/, 2],
+    ['count', prodPretalx, /Pretalx \(questions\): it counted 10 entries but sent 9, so the list changed while it was read/],
+    ['ok', noServer, /Pretalx \(the event kcd-texas-2027\): the request failed/],
+    ['500', prodCsv, /HTTP 500/],
   ]) {
     state.mode = mode;
-    await rejects(() => readPlatform(chooseSource(both, env), env), (m) => pattern.test(m) && !m.includes(ID) && !m.includes(CSV_SECRET) && !m.includes('127.0.0.1') && /could not be read/.test(m), `a ${mode} platform (${env.PROGRAM_CSV_URL ? 'CSV' : 'Sessionize'})`);
+    state.pageMax = pageMax;
+    await rejects(() => readPlatform(chooseSource(both, env), env), (m) => pattern.test(m) && !m.includes(CSV_SECRET) && !m.includes('127.0.0.1') && /could not be read/.test(m), `a ${mode} platform (${env.PROGRAM_CSV_URL ? 'CSV' : 'Pretalx'})`);
   }
   state.mode = 'ok';
-  expect(!redact(`https://sessionize.com/api/v2/${ID}/view/All and ${encodeURIComponent(ID)}`, prodSessionize).includes(ID), 'redact keeps the endpoint ID');
+  state.pageMax = 50;
   expect(!redact(`x ${prodCsv.PROGRAM_CSV_URL} and ${encodeURIComponent(prodCsv.PROGRAM_CSV_URL)} y`, prodCsv).includes(CSV_SECRET), 'redact keeps the CSV address');
 
   // The photos: square WebP in two sizes, from our server only.
@@ -348,6 +481,8 @@ try {
   const [small, large] = await Promise.all([sharp(pic.small).metadata(), sharp(pic.large).metadata()]);
   expect(small.format === 'webp' && small.width === 160 && small.height === 160 && large.width === 400 && large.height === 400, `the photo sizes are ${small.width}x${small.height} and ${large.width}x${large.height}`);
   expect(!small.exif && !large.exif, 'a photo keeps its metadata');
+  const fromPretalx = await downloadPhoto(`${origin}/photos/FXSPKA_fixture.webp`, 'Speaker 7', {});
+  expect((await sharp(fromPretalx.large).metadata()).width === 400, 'a WebP photo, as Pretalx serves them, is not read');
   await rejects(() => downloadPhoto(`${origin}/photos/missing.png`, 'Speaker 2', {}), (m) => /Speaker 2's photo: the server answered HTTP 404/.test(m), 'a missing photo');
   await rejects(() => downloadPhoto(`${origin}/photos/text.jpg`, 'Speaker 3', {}), (m) => /not an image/.test(m), 'a photo that is HTML');
   await rejects(() => downloadPhoto(`${origin}/photos/broken.jpg`, 'Speaker 4', {}), (m) => /could not be read/.test(m), 'a broken photo');
@@ -362,7 +497,7 @@ try {
   // 4. scripts/program-check.mjs.
   const out = join(outDir, 'output');
   const check = (env) => { writeFileSync(out, ''); return run(process.execPath, ['scripts/program-check.mjs'], { ...env, GITHUB_OUTPUT: out }); };
-  const checkEnv = { ...testEnv, SESSIONIZE_ENDPOINT_ID: ID, KCD_PROGRAM_LIVE_URL: `${origin}/live/program-version.txt` };
+  const checkEnv = { ...testEnv, KCD_PROGRAM_LIVE_URL: `${origin}/live/program-version.txt` };
   let res = await run(process.execPath, ['scripts/program-check.mjs', '--gates'], {});
   expect(res.status === 0 && res.out === 'closed\n', `--gates with the gates closed prints ${JSON.stringify(res.out)}`);
   for (const [gates, want] of [[closed, 'closed'], [speakersOnly, 'speakers'], [both, 'schedule']]) {
@@ -384,32 +519,38 @@ try {
     res = await check(checkEnv);
     expect(res.status === 0 && res.out === 'unchanged\n' && readFileSync(out, 'utf8') === 'changed=false\n', `the same program: ${JSON.stringify(res.out)} ${res.err}`);
     expect(!res.log.includes(viaServer.version), 'program-check prints the program version');
-    state.fixture = fixtureText.replaceAll(marker, 'another-dropped-value');
+    state.pretalx = fixtureText.replaceAll(marker, 'another-dropped-value');
     res = await check(checkEnv);
     expect(res.out === 'unchanged\n', 'a dropped field counts as a change');
-    state.fixture = fixtureText.replace('Opening the Made-Up Day', 'Opening the Made-Up Day, Updated');
+    state.pretalx = fixtureText.replace('Opening the Made-Up Day', 'Opening the Made-Up Day, Updated');
     res = await check(checkEnv);
     expect(res.out === 'changed\n', 'a new title does not count as a change');
+    // A new release that moves a Session to another room.
+    state.pretalx = fixtureText.replace('"id": 6005, "room": 102', '"id": 6005, "room": 101');
+    res = await check(checkEnv);
+    expect(state.pretalx !== fixtureText && res.out === 'changed\n', 'a Session in another room does not count as a change');
     // An empty program fails the check: never "changed", so it can't start a deploy.
-    state.fixture = JSON.stringify(onlyBreaks);
+    state.pretalx = JSON.stringify(onlyBreaks);
     res = await check(checkEnv);
     expect(res.status === 1 && res.out === '' && readFileSync(out, 'utf8') === '' && /the program has no Sessions/.test(res.err), `program-check with an empty program: exit ${res.status}, stdout ${JSON.stringify(res.out)}, stderr ${res.err.trim()}`);
-    state.fixture = fixtureText;
-    res = await check({ ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
-    expect(res.status === 0 && res.out === 'changed\n', `the CSV check: ${JSON.stringify(res.out)} ${res.err}`);
+    state.pretalx = fixtureText;
+    // With PROGRAM_CSV_URL set, the check reads the CSV and not Pretalx.
+    state.requests.length = 0;
+    res = await check({ ...checkEnv, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+    expect(res.status === 0 && res.out === 'changed\n' && !apiRequests().length, `the CSV check: ${JSON.stringify(res.out)} ${res.err}, ${apiRequests().length} requests to Pretalx`);
     // The check's log is public: a bad CSV row is named by its row number, never by an id.
     state.csv = `${csvText}session,${secretId},Fixture Talk: One More,,Talk,no,ghost-${secretId}\n`;
-    res = await check({ ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
-    expect(res.status === 1 && res.out === '' && /row 9, speakers: an id matches no speaker row/.test(res.err) && !res.err.includes(secretId), `program-check with a bad CSV row: exit ${res.status}, stderr ${res.err.trim()}`);
+    res = await check({ ...checkEnv, PROGRAM_CSV_URL: prodCsv.PROGRAM_CSV_URL });
+    expect(res.status === 1 && res.out === '' && /row 9, speakers: an id matches no speaker row/.test(res.err) && !res.err.includes(secretId) && !res.err.includes(CSV_SECRET), `program-check with a bad CSV row: exit ${res.status}, stderr ${res.err.trim()}`);
     state.csv = csvText;
-    for (const [label, env, pattern] of [
-      ['no variable', { ...checkEnv, SESSIONIZE_ENDPOINT_ID: undefined }, /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL/],
-      ['a failing platform', checkEnv, /HTTP 500/],
-      ['GitHub Actions with a test address', { ...checkEnv, GITHUB_ACTIONS: 'true' }, /refused on Cloudflare Pages, Netlify and in GitHub Actions/],
+    for (const [mode, env, pattern] of [
+      ['unreleased', checkEnv, /HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public/],
+      ['500', checkEnv, /HTTP 500/],
+      ['ok', { ...checkEnv, GITHUB_ACTIONS: 'true' }, /refused on Cloudflare Pages, Netlify and in GitHub Actions/],
     ]) {
-      state.mode = label === 'a failing platform' ? '500' : 'ok';
+      state.mode = mode;
       res = await check(env);
-      expect(res.status === 1 && res.out === '' && readFileSync(out, 'utf8') === '' && pattern.test(res.err) && !res.err.includes(ID), `program-check with ${label}: exit ${res.status}, stdout ${JSON.stringify(res.out)}, stderr ${res.err.trim()}`);
+      expect(res.status === 1 && res.out === '' && readFileSync(out, 'utf8') === '' && pattern.test(res.err), `program-check with a ${mode} platform${env.GITHUB_ACTIONS ? ' in GitHub Actions' : ''}: exit ${res.status}, stdout ${JSON.stringify(res.out)}, stderr ${res.err.trim()}`);
     }
     state.mode = 'ok';
   });
@@ -420,31 +561,31 @@ try {
     const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
     const served = () => walk('dist').filter((f) => /\.(?:html|xml|txt|ics|js|css|json|svg)$|(?:^|\/)_(?:redirects|headers)$/.test(f));
     await withGates(both, async () => {
-      // Production, from the local Sessionize: the pages, the photos, the version, and nothing dropped.
+      // Production, from the local Pretalx: the pages, the photos, the version, and nothing dropped.
       state.requests.length = 0;
-      let b = await build(prodSessionize);
-      expect(b.status === 0, `the production build from Sessionize fails:\n${b.log.slice(-2500)}`);
+      let b = await build(prodPretalx);
+      expect(b.status === 0, `the production build from Pretalx fails:\n${b.log.slice(-2500)}`);
       if (b.status === 0) {
-        expect(!b.log.includes(ID) && !b.log.includes(marker), 'the production build log contains the endpoint ID or the marker');
+        expect(!b.log.includes(marker) && /reading the program from Pretalx/.test(b.log), 'the production build log contains the marker, or does not say it reads Pretalx');
         expect(!/Warning: \w+ is set in a/.test(b.log), 'the production build warns about the platform\'s variables');
-        expect(!walk('dist').some((f) => readFileSync(f).includes(ID)), 'a built file contains the endpoint ID');
-        expect(state.requests.filter((u) => u.startsWith('/api/')).length === 1 && state.requests.filter((u) => u.startsWith('/photos/')).length === 3, `the build made ${state.requests.join(', ')} requests, not one All view and three photos`);
+        expect(apiRequests().length === 7 && state.requests.filter((u) => u.startsWith('/photos/')).length === 3, `the build made ${state.requests.join(', ')} requests, not 7 to Pretalx and three photos`);
         const speakers = readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory()).sort();
         expect(speakers.join() === 'fixture-person-a,fixture-person-b,fixture-person-c,fixture-person-d', `Speaker pages: ${speakers.join()}`);
-        expect(readdirSync('dist/2027/sessions').filter((n) => n.endsWith('.ics')).length === 5, 'not every accepted Session has a calendar file');
+        expect(readdirSync('dist/2027/sessions').filter((n) => n.endsWith('.ics')).length === 5, 'not every confirmed Session has a calendar file');
         const photos = readdirSync('dist/2027/speakers').filter((n) => n.endsWith('.webp')).sort();
         expect(photos.join() === ['a', 'b', 'c'].flatMap((x) => [`fixture-person-${x}-large.webp`, `fixture-person-${x}-small.webp`]).join(), `photo files: ${photos.join()}`);
         const page = readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8');
         expect(/<img src="\/2027\/speakers\/fixture-person-a-large\.webp"/.test(page), 'the Speaker page does not load its photo from our domain');
+        expect(page.includes('Platform Engineer, Fixture Company') && page.includes('https://github.com/fixture-person-a') && page.includes('https://fixture-a.example/'), 'the Speaker page lacks the job title or a link');
         expect(/<span>FD<\/span>|<span>FP<\/span>/.test(readFileSync('dist/2027/speakers/fixture-person-d/index.html', 'utf8')), 'a Speaker with no photo lacks the placeholder');
         expect((await sharp(readFileSync('dist/2027/speakers/fixture-person-a-small.webp')).metadata()).width === 160, 'the small photo is not 160 px');
         // check-dist refuses an image from another host, in a page or in a stylesheet.
         const css = walk('dist').find((f) => f.endsWith('.css'));
         const [pageBefore, cssBefore] = [page, readFileSync(css, 'utf8')];
-        writeFileSync('dist/2027/speakers/fixture-person-a/index.html', page.replace('</body>', '<img src="https://cdn.sessionize.example/fx.jpg" alt=""></body>'));
-        writeFileSync(css, `${cssBefore}\n.fx{background:url("https://cdn.sessionize.example/fx.png")}`);
+        writeFileSync('dist/2027/speakers/fixture-person-a/index.html', page.replace('</body>', '<img src="https://pretalx.example/media/fx.jpg" alt=""></body>'));
+        writeFileSync(css, `${cssBefore}\n.fx{background:url("https://pretalx.example/media/fx.png")}`);
         const guard = await run(process.execPath, ['scripts/check-dist.mjs'], {});
-        expect(guard.status === 1 && /fixture-person-a\/index\.html: loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.jpg/.test(guard.log) && /\.css: loads from another host: https:\/\/cdn\.sessionize\.example\/fx\.png/.test(guard.log), `check-dist passes an external image:\n${guard.log.slice(-800)}`);
+        expect(guard.status === 1 && /fixture-person-a\/index\.html: loads from another host: https:\/\/pretalx\.example\/media\/fx\.jpg/.test(guard.log) && /\.css: loads from another host: https:\/\/pretalx\.example\/media\/fx\.png/.test(guard.log), `check-dist passes an external image:\n${guard.log.slice(-800)}`);
         writeFileSync('dist/2027/speakers/fixture-person-a/index.html', pageBefore);
         writeFileSync(css, cssBefore);
         // The published program version is the one scripts/program-check.mjs computes from the platform.
@@ -452,27 +593,32 @@ try {
         expect(!/\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')), 'the production Schedule says "Sample"');
         for (const f of served()) {
           const body = readFileSync(f, 'utf8');
-          expect(!body.includes(marker) && !body.includes(origin) && !body.includes('127.0.0.1:') && !body.includes('photos.fixture.invalid'), `${f}: contains the marker or a platform address`);
+          expect(!body.includes(marker) && !body.includes(origin) && !body.includes('127.0.0.1:') && !body.includes('/media/avatars/') && !body.includes('gravatar') && !body.includes('photos.fixture.invalid'), `${f}: contains the marker or a platform address`);
         }
         const schedule = readFileSync('dist/2027/schedule/index.html', 'utf8');
-        expect(/Fixture Sponsor Callout/.test(schedule) && /Fixture Panel: Plenum, but Not a Keynote/.test(schedule) && !/Declined/.test(schedule), 'the Schedule lacks a break or a Session, or shows a declined one');
+        expect(/Fixture Sponsor Callout/.test(schedule) && /Fixture Talk: Everyone on Stage/.test(schedule) && !/Rejected|Not Confirmed/.test(schedule), 'the Schedule lacks a break or a Session, or shows one that isn\'t confirmed');
+        expect(/<li class="sch-item" data-id="FXEUS2"[^>]*data-eu="1"/.test(schedule) && /<li class="sch-item" data-id="FXKEY1"[^>]*data-eu="0"/.test(schedule), 'the Schedule does not mark the End-User Story, or marks another Session');
+        expect(readFileSync('dist/2027/sessions/fixture-keynote-opening-the-made-up-day/index.html', 'utf8').includes('A made-up keynote abstract for the adapter tests.\n\nA made-up second paragraph,\nfrom the description field.'), 'the Session page does not show the abstract and the description');
       }
 
-      // Production, from the CSV.
+      // Production, from the CSV: with PROGRAM_CSV_URL set, nothing from Pretalx.
+      state.requests.length = 0;
       b = await build(prodCsv);
-      expect(b.status === 0 && existsSync('dist/2027/speakers/fixture-person-c/index.html') && !b.log.includes(CSV_SECRET), `the production build from the CSV fails or prints its address:\n${b.log.slice(-1500)}`);
+      expect(b.status === 0 && existsSync('dist/2027/speakers/fixture-person-c/index.html') && !b.log.includes(CSV_SECRET) && /reading the program CSV/.test(b.log) && !apiRequests().length, `the production build from the CSV fails, prints its address or reads Pretalx:\n${b.log.slice(-1500)}`);
 
-      // More Share Cards than a build draws: 151 Sessions by one Speaker. The build draws the first 150, Sessions
-      // first, and the 151st Session and the Speaker keep the title card.
+      // More Share Cards than a build draws: 151 Sessions by one Speaker, read in four pages. The build draws the
+      // first 150, Sessions first, and the 151st Session and the Speaker keep the title card.
       const budget = Number(readFileSync('src/lib/cards/program-cards.ts', 'utf8').match(/PROGRAM_CARD_BUDGET = (\d+)/)[1]);
       const many = fixture();
-      const talk = many.sessions.find((s) => s.id === '1002');
-      const at = (minutes) => `2027-04-23T${String(8 + Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00`;
-      many.sessions = Array.from({ length: budget + 1 }, (_, i) => ({ ...talk, id: String(3000 + i), title: `Fixture Load Session ${i + 1}`, speakers: [many.speakers[0].id], startsAt: at(i * 3), endsAt: at(i * 3 + 30) }));
-      state.fixture = JSON.stringify(many);
-      b = await build(prodSessionize);
-      state.fixture = fixtureText;
-      expect(b.status === 0, `the production build with ${budget + 1} Sessions fails:\n${b.log.slice(-1500)}`);
+      const talk = many.submissions.find((s) => s.code === 'FXEUS2');
+      const at = (minutes) => `2027-04-23T${String(8 + Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}:00-05:00`;
+      many.submissions = Array.from({ length: budget + 1 }, (_, i) => ({ ...talk, code: `FXLOAD${i}`, title: `Fixture Load Session ${i + 1}`, speakers: ['FXSPKA'], slots: [7000 + i] }));
+      many.slots = many.submissions.map((s, i) => ({ id: 7000 + i, room: 101, start: at(i * 3), end: at(i * 3 + 30), submission: s.code, schedule: 5001, description: null, duration: 30 }));
+      state.pretalx = JSON.stringify(many);
+      state.requests.length = 0;
+      b = await build(prodPretalx);
+      state.pretalx = fixtureText;
+      expect(b.status === 0 && apiRequests().filter((u) => u.startsWith(`${EVENT}submissions/`)).length === Math.ceil((budget + 1) / 50), `the production build with ${budget + 1} Sessions fails, or doesn't read them page by page:\n${b.log.slice(-1500)}`);
       if (b.status === 0) {
         const drawn = readdirSync('dist/cards').filter((n) => /^(?:session|speaker)-/.test(n));
         const cardOf = (page) => readFileSync(`dist/2027/${page}/index.html`, 'utf8').match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
@@ -487,13 +633,14 @@ try {
       // give an image's address as text. A production build passes with them (data-ugc marks them for check-dist).
       const said = 'Sample code for every demo, a TODO list, [TBD], ${HOME}, {name} and https://example.com/slides/diagram.png';
       const words = fixture();
-      words.sessions[0].description = `${said}.`;
-      words.sessions[1].title = 'Sample Apps and a TODO List [TBD] for {name}';
-      words.speakers[0].bio = `Slides with the diagram: https://example.com/slides/diagram.png. ${said}.`;
-      words.speakers[1].tagLine = 'Sample TODO [TBD] ${HOME} {name}';
-      words.rooms[1].name = 'TODO Room [TBD] {name}';
-      state.fixture = JSON.stringify(words);
-      b = await build(prodSessionize);
+      words.submissions[0].abstract = `${said}.`;
+      words.submissions[0].description = null;
+      words.submissions[1].title = 'Sample Apps and a TODO List [TBD] for {name}';
+      words.speakers[0].biography = `Slides with the diagram: https://example.com/slides/diagram.png. ${said}.`;
+      words.speakers[1].answers[0].answer = 'Sample TODO [TBD] ${HOME} {name}';
+      words.rooms[1].name = { en: 'TODO Room [TBD] {name}' };
+      state.pretalx = JSON.stringify(words);
+      b = await build(prodPretalx);
       expect(b.status === 0, `the production build fails on the Speakers' and Organizers' own words:\n${b.log.slice(-2500)}`);
       if (b.status === 0) {
         const page = (path) => readFileSync(`dist/2027/${path}/index.html`, 'utf8');
@@ -509,7 +656,7 @@ try {
       let steps = '';
       let stepsOk = true;
       for (const [cmd, args, env] of [
-        ['npx', ['astro', 'build'], { ...prodSessionize, KCD_BUILD_DAY: EVENT_DAY, KCD_BUILD_CLOCK: '12:00', ASTRO_TELEMETRY_DISABLED: '1' }],
+        ['npx', ['astro', 'build'], { ...prodPretalx, KCD_BUILD_DAY: EVENT_DAY, KCD_BUILD_CLOCK: '12:00', ASTRO_TELEMETRY_DISABLED: '1' }],
         [process.execPath, ['scripts/write-host-files.mjs'], {}],
         [process.execPath, ['scripts/check-dist.mjs'], { CONTEXT: 'production', KCD_BUILD_DAY: EVENT_DAY }],
       ]) {
@@ -518,42 +665,58 @@ try {
         if (r.status !== 0) { stepsOk = false; break; }
       }
       writeFileSync(ANNOUNCEMENTS, announcementsText);
-      state.fixture = fixtureText;
+      state.pretalx = fixtureText;
       expect(stepsOk && readFileSync('dist/2027/today/index.html', 'utf8').includes(`<li><time datetime="${EVENT_DAY}T09:00">9:00 a.m.</time> <span data-ugc>${said}.</span></li>`),
         `production on Event Day fails on the Speakers' and Organizers' own words, or lacks the announcement:\n${steps.slice(-2500)}`);
 
-      // A deploy preview, a branch deploy and a Cloudflare Pages preview with the gates open and both variables set
-      // to this server: the test data, labeled "Sample" and marked as a test build, and no request to the platform.
+      // A deploy preview, a branch deploy and a Cloudflare Pages preview with the gates open, the test base and the
+      // CSV address set to this server: the test data, labeled "Sample" and marked as a test build, and no request.
       for (const [context, hostEnv] of [['deploy-preview', { CONTEXT: 'deploy-preview' }], ['branch-deploy', { CONTEXT: 'branch-deploy' }],
         ['Pages preview', { CF_PAGES: '1', CF_PAGES_BRANCH: 'cloudflare' }]]) {
         state.requests.length = 0;
-        b = await build({ ...prodSessionize, ...prodCsv, ...hostEnv });
+        b = await build({ ...prodCsv, ...hostEnv });
         expect(b.status === 0 && state.requests.length === 0, `the ${context} build fails or reads the platform (${state.requests.length} requests):\n${b.log.slice(-1500)}`);
         expect(b.status === 0 && /using the test program/.test(b.log) && /\bSample\b/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')) && !existsSync('dist/2027/speakers/fixture-person-a')
           && /KCD_PROGRAM_SAMPLE/.test(readFileSync('dist/.test-build', 'utf8')), `the ${context} build does not use the labeled test data`);
-        // It warns that each variable is set where it shouldn't be, naming it, never its value.
-        expect(['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL'].every((v) => b.log.includes(`Warning: ${v} is set in a preview build. Set it for production only`))
-          && !b.log.includes(ID) && !b.log.includes(CSV_SECRET), `the ${context} build doesn't warn about the platform's variables, or prints a value:\n${b.log.slice(0, 1500)}`);
+        // It warns that the CSV address is set where it shouldn't be, naming the variable, never its value.
+        expect(b.log.includes('Warning: PROGRAM_CSV_URL is set in a preview build. Set it for production only') && !b.log.includes(CSV_SECRET), `the ${context} build doesn't warn about PROGRAM_CSV_URL, or prints its value:\n${b.log.slice(0, 1500)}`);
       }
 
-      // Production with no variable, and with a failing platform: the build fails, with a redacted message.
-      b = await build({ CONTEXT: 'production' });
-      expect(b.status !== 0 && /neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL is set/.test(b.log), `production with no variable doesn't fail clearly:\n${b.log.slice(-1500)}`);
+      // Production before Pretalx releases a schedule, and with a failing platform: the build fails, and says why.
+      state.mode = 'unreleased';
+      b = await build(prodPretalx);
+      expect(b.status !== 0 && /HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public/.test(b.log), `production before a schedule release doesn't fail clearly:\n${b.log.slice(-1500)}`);
       state.mode = '500';
-      b = await build(prodSessionize);
-      expect(b.status !== 0 && /HTTP 500/.test(b.log) && !b.log.includes(ID), `production with a failing platform doesn't fail, or prints the ID:\n${b.log.slice(-1500)}`);
+      b = await build(prodPretalx);
+      expect(b.status !== 0 && /HTTP 500/.test(b.log), `production with a failing platform doesn't fail:\n${b.log.slice(-1500)}`);
       state.mode = 'ok';
-      // Production with an empty program, only service sessions: the build fails and says why.
-      state.fixture = JSON.stringify(onlyBreaks);
-      b = await build(prodSessionize);
-      expect(b.status !== 0 && /the program has no Sessions/.test(b.log) && !b.log.includes(ID), `production with an empty program doesn't fail clearly:\n${b.log.slice(-1500)}`);
-      state.fixture = fixtureText;
+      // Production with an empty program, only breaks: the build fails and says why.
+      state.pretalx = JSON.stringify(onlyBreaks);
+      b = await build(prodPretalx);
+      expect(b.status !== 0 && /the program has no Sessions/.test(b.log), `production with an empty program doesn't fail clearly:\n${b.log.slice(-1500)}`);
+      state.pretalx = fixtureText;
     });
-    // A deploy preview with only the Speakers' gate open: the speakers-only test data, with no times or rooms, and no
-    // request to the platform.
     await withGates(speakersOnly, async () => {
+      // Production with only the Speakers' gate open: Pretalx still needs a released schedule, and the site still shows
+      // no time, room, calendar file or Event Day page, and a Session given twice once.
+      state.pretalx = JSON.stringify(broken((d) => { d.slots.push({ id: 6012, room: 102, start: '2027-04-23T15:00:00-05:00', end: '2027-04-23T15:50:00-05:00', submission: 'FXWRK4', schedule: 5001, description: null, duration: 50 }); }));
       state.requests.length = 0;
-      const b = await build({ ...prodSessionize, ...prodCsv, CONTEXT: 'deploy-preview' });
+      let b = await build(prodPretalx);
+      state.pretalx = fixtureText;
+      expect(b.status === 0 && apiRequests().length === 7 && existsSync('dist/2027/speakers/fixture-person-a/index.html') && existsSync('dist/2027/speakers/fixture-person-a-large.webp')
+        && !existsSync('dist/2027/today') && !existsSync('dist/2027/schedule.ics') && !/data-schedule/.test(readFileSync('dist/2027/schedule/index.html', 'utf8'))
+        && !readdirSync('dist/2027/sessions').some((n) => n.endsWith('.ics')) && readdirSync('dist/2027/sessions').filter((n) => n.startsWith('fixture-workshop')).length === 1,
+      `production from Pretalx with only speakersPublic open shows a time, a room or a Session twice, or fails:\n${b.log.slice(-1500)}`);
+      if (b.status === 0) {
+        for (const f of walk('dist/2027').filter((p) => /[\\/](?:speakers|sessions)[\\/].*\.html$/.test(p))) {
+          const body = readFileSync(f, 'utf8');
+          expect(!/data-start="\d|class="(?:sch-time|sch-room|page-facts)"/.test(body) && !body.includes('Fixture Room B'), `${f}: shows a time or a room with only speakersPublic open`);
+        }
+      }
+      // A deploy preview with only the Speakers' gate open: the speakers-only test data, with no times or rooms, and
+      // no request to the platform.
+      state.requests.length = 0;
+      b = await build({ ...prodCsv, CONTEXT: 'deploy-preview' });
       expect(state.requests.length === 0, `the speakers-only deploy preview reads the platform (${state.requests.length} requests)`);
       expect(b.status === 0 && /using the test program/.test(b.log) && existsSync('dist/2027/speakers/index.html') && existsSync('dist/2027/sessions')
         && !existsSync('dist/2027/today') && !existsSync('dist/2027/schedule.ics') && !/data-schedule/.test(readFileSync('dist/2027/schedule/index.html', 'utf8')),

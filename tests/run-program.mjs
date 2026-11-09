@@ -144,7 +144,7 @@ async function serve() {
 }
 
 try {
-  // 0. The program platform: the Sessionize adapter, the CSV fallback, the build rules, the photos and the
+  // 0. The program platform: the Pretalx adapter, the CSV fallback, the build rules, the photos and the
   // refresh check, against local stand-ins (tests/program-adapter.mjs).
   const adapter = spawnSync(process.execPath, ['tests/program-adapter.mjs'], { encoding: 'utf8' });
   process.stdout.write(adapter.stdout);
@@ -291,15 +291,15 @@ try {
   const guard = checkDist({ KCD_PROGRAM_SAMPLE: undefined, KCD_SPONSORS_SAMPLE: undefined });
   expect(guard.status !== 0 && /Sample/.test(guard.log) && /Fixture/.test(guard.log) && /the Session pages \(dist\/2027\/sessions\/\): built, but the gates in src\/data\/edition-2027\.ts are closed/.test(guard.log),
     'check-dist passes the program sample without its flag');
-  // The preview rule in check-dist: a build that isn't a production build never has the platform's variables, and a
-  // test build never has a Speaker photo.
+  // The preview rule in check-dist: a build that isn't a production build never has the CSV's address, and a test
+  // build never has a Speaker photo.
   const flags = { KCD_PROGRAM_SAMPLE: '1', KCD_SPONSORS_SAMPLE: '1' };
   expect(checkDist(flags).status === 0, 'check-dist fails the sample build with its flags');
   for (const [context, hostEnv] of [['deploy-preview', { CONTEXT: 'deploy-preview' }], ['branch-deploy', { CONTEXT: 'branch-deploy' }],
     ['Pages preview', { CF_PAGES: '1', CF_PAGES_BRANCH: 'cloudflare' }]]) {
-    const res = checkDist({ ...flags, ...hostEnv, SESSIONIZE_ENDPOINT_ID: 'fxEndpoint42', PROGRAM_CSV_URL: 'https://example.com/p.csv' });
-    expect(res.status !== 0 && /SESSIONIZE_ENDPOINT_ID reaches a build that isn't a production build/.test(res.log) && /PROGRAM_CSV_URL reaches/.test(res.log) && !res.log.includes('fxEndpoint42'),
-      `check-dist passes a ${context} build with the platform's variables, or prints a value`);
+    const res = checkDist({ ...flags, ...hostEnv, PROGRAM_CSV_URL: 'https://example.com/fx-csv-token/p.csv' });
+    expect(res.status !== 0 && /PROGRAM_CSV_URL reaches a build that isn't a production build/.test(res.log) && !res.log.includes('fx-csv-token'),
+      `check-dist passes a ${context} build with the CSV's address, or prints it`);
   }
   writeFileSync('dist/2027/speakers/planted-small.webp', '');
   const photo = checkDist(flags);

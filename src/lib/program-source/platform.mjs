@@ -1,27 +1,29 @@
-// Where the program comes from, and reading it. The rules (ADR 0009, docs/program-csv.md):
+// Where the program comes from, and reading it. The rules (ADR 0009, ADR 0014, docs/pretalx.md,
+// docs/program-csv.md):
 //   - a closed gate reads nothing;
 //   - real data only in a production build (src/lib/build-context.mjs: Cloudflare Pages building `main`, or a
-//     Netlify production deploy) with a gate open: from Sessionize when
-//     SESSIONIZE_ENDPOINT_ID is set, else from the CSV at PROGRAM_CSV_URL, and the build fails when neither is;
-//   - every other build (deploy previews, branch deploys, local builds) uses the test data and never looks at
-//     those variables;
+//     Netlify production deploy) with a gate open: from the CSV at PROGRAM_CSV_URL when it's set, else from
+//     Pretalx's public API (the event in config.mjs), which needs no key;
+//   - every other build (deploy previews, branch deploys, local builds) uses the test data, reads nothing and never
+//     looks at PROGRAM_CSV_URL;
 //   - a failed fetch or data that doesn't validate fails the build, so the host keeps the last good deploy.
-// Every error message is redacted: it names the variables, never their values.
+// Every error message is redacted: it names PROGRAM_CSV_URL, never its value.
 import { isProductionBuild } from '../build-context.mjs';
 import { adaptCsv } from './csv.mjs';
 import { publicProgram, programVersion } from './model.mjs';
-import { fetchable, fetchBytes, ProgramSourceError, redact, sessionizeBase, sessionizePhoto } from './remote.mjs';
-import { adaptSessionize } from './sessionize.mjs';
+import { adaptPretalx, readPretalx } from './pretalx.mjs';
+import { fetchable, fetchBytes, ProgramSourceError, redact, pretalxPhoto } from './remote.mjs';
 
 /**
  * @typedef {{ speakersPublic: boolean, schedulePublic: boolean }} Gates
- * @typedef {{ kind: 'none' } | { kind: 'test' } | { kind: 'sessionize' } | { kind: 'csv' }} Choice
+ * @typedef {{ kind: 'none' } | { kind: 'test' } | { kind: 'pretalx' } | { kind: 'csv' }} Choice
  */
 
 export const gatesOpen = (gates) => Boolean(gates.speakersPublic || gates.schedulePublic);
 
 /**
- * Which source a build reads. Only a production build with a gate open looks at the platform variables.
+ * Which source a build reads. Only a production build with a gate open looks at PROGRAM_CSV_URL; without it, the
+ * build reads Pretalx.
  * @param {Gates} gates
  * @param {Record<string, string | undefined>} env
  * @returns {Choice}
@@ -29,15 +31,11 @@ export const gatesOpen = (gates) => Boolean(gates.speakersPublic || gates.schedu
 export function chooseSource(gates, env) {
   if (!gatesOpen(gates)) return { kind: 'none' };
   if (!isProductionBuild(env)) return { kind: 'test' };
-  if (env.SESSIONIZE_ENDPOINT_ID) {
-    if (!/^[A-Za-z0-9_-]{1,64}$/.test(env.SESSIONIZE_ENDPOINT_ID)) throw new ProgramSourceError('SESSIONIZE_ENDPOINT_ID is not a Sessionize endpoint ID (letters, digits, "-" and "_").', env);
-    return { kind: 'sessionize' };
-  }
   if (env.PROGRAM_CSV_URL) {
     if (!fetchable(env.PROGRAM_CSV_URL, env)) throw new ProgramSourceError('PROGRAM_CSV_URL must be an https address.', env);
     return { kind: 'csv' };
   }
-  throw new ProgramSourceError('A program gate is open in a production build, but neither SESSIONIZE_ENDPOINT_ID nor PROGRAM_CSV_URL is set. Add one to the host\'s production environment variables (docs/program-csv.md).', env);
+  return { kind: 'pretalx' };
 }
 
 /**
@@ -47,13 +45,9 @@ export function chooseSource(gates, env) {
  */
 export async function readPlatform(choice, env) {
   try {
-    if (choice.kind === 'sessionize') {
-      const url = `${sessionizeBase(env)}/${encodeURIComponent(env.SESSIONIZE_ENDPOINT_ID ?? '')}/view/All`;
-      const { body } = await fetchBytes(url, { env, what: 'Sessionize (the All view of SESSIONIZE_ENDPOINT_ID)', accept: 'application/json' });
-      let data;
-      try { data = JSON.parse(body.toString('utf8')); } catch { throw new Error('Sessionize (the All view of SESSIONIZE_ENDPOINT_ID): the response is not JSON'); }
-      // Photos only from Sessionize's hosts; the CSV's may be on any https host.
-      return adaptSessionize(data, undefined, (url) => sessionizePhoto(url, env));
+    if (choice.kind === 'pretalx') {
+      // Photos only from Pretalx's hosts; the CSV's may be on any https host.
+      return adaptPretalx(await readPretalx(env), undefined, (url, hosts) => pretalxPhoto(url, env, hosts));
     }
     if (choice.kind === 'csv') {
       const { body } = await fetchBytes(env.PROGRAM_CSV_URL ?? '', { env, what: 'The program CSV (PROGRAM_CSV_URL)', accept: 'text/csv, text/plain' });

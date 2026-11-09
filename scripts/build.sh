@@ -113,17 +113,15 @@ if $install; then
 fi
 
 step "Choosing the program data"
-# Real program data only in a production build (src/lib/program-source/platform.mjs). Every other build with a
-# gate open (deploy previews, branch deploys, local builds) uses the test program and never sees the platform's
-# variables.
+# Real program data only in a production build (src/lib/program-source/platform.mjs): from Pretalx's public API, or
+# from the CSV at PROGRAM_CSV_URL when it's set. Every other build with a gate open (deploy previews, branch deploys,
+# local builds) uses the test program, reads neither, and never sees PROGRAM_CSV_URL.
 if ! production; then
-  # The platform's variables belong in the host's production settings alone. The warning names one, never its value.
-  for v in SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL; do
-    if [ -n "${!v:-}" ]; then
-      echo "Warning: $v is set in a $build_kind build. Set it for production only (Cloudflare Pages: the Production environment variables): previews run code from pull requests. This build ignores it." >&2
-    fi
-  done
-  unset SESSIONIZE_ENDPOINT_ID PROGRAM_CSV_URL
+  # The CSV's address belongs in the host's production settings alone. The warning names it, never its value.
+  if [ -n "${PROGRAM_CSV_URL:-}" ]; then
+    echo "Warning: PROGRAM_CSV_URL is set in a $build_kind build. Set it for production only (Cloudflare Pages: the Production environment variables): previews run code from pull requests. This build ignores it." >&2
+  fi
+  unset PROGRAM_CSV_URL
   gates="$(node scripts/program-check.mjs --which-gates)"
   if [ -z "${KCD_PROGRAM_SAMPLE:-}" ] && [ "$gates" != closed ]; then
     # The test program opens the same gates as the Edition file: only the Speakers', or the Schedule's too.
@@ -133,7 +131,11 @@ if ! production; then
     echo "Not a production build: no real program data."
   fi
 elif [ "$(node scripts/program-check.mjs --gates)" = open ]; then
-  echo "A program gate is open: reading the program platform."
+  if [ -n "${PROGRAM_CSV_URL:-}" ]; then
+    echo "A program gate is open: reading the program CSV (PROGRAM_CSV_URL)."
+  else
+    echo "A program gate is open: reading the program from Pretalx."
+  fi
 else
   echo "The program gates are closed: no program data."
 fi
