@@ -207,6 +207,7 @@ export const home = {
       { id: '082', time: '3:12 p.m.', caption: 'Between sessions.', alt: 'Three attendees bump fists in the hallway between sessions.' },
       { id: '138', time: '5:15 p.m.', caption: 'Hands up for the closing raffle.', alt: 'An attendee in a cowboy hat and bandana raises an arm for the closing raffle, with more raised hands behind.' },
     ],
+    more: { text: 'See all 2026 photos', href: edition2026.photosUrl },
   },
 
   attend: {

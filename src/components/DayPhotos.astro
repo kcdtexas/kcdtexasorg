@@ -1,24 +1,46 @@
 ---
-// The photo band: a day at KCD Texas 2026, in three timed photos.
+// A day at KCD Texas in three timed photos: 2026's on the home page (index.astro), in a band of its own with a link
+// to the album, and a Past Edition's on its page (PastEdition.astro), as one of its sections with the photographer's
+// credit.
 import { Image } from 'astro:assets';
-import { home } from '../data/home';
-import { edition2026 } from '../data/edition-2026';
-import { photos } from '../lib/images';
+import type { DayPhoto, Link } from '../data/past-page';
+import { photoOf, photos as photoFiles } from '../lib/images';
+
+interface Props {
+  title: string;
+  photos: readonly DayPhoto[];
+  /** A link under the photos, such as the Edition's album. */
+  more?: Link;
+  /** The photographer's credit under the photos. */
+  credit?: string;
+  /** One of an inner page's sections, under its 1 px rule, rather than a band of the home page. */
+  inPage?: boolean;
+  /** The first photo is the page's largest paint (LCP), so it loads first rather than lazily. */
+  lcp?: boolean;
+  /** The widths each photo is offered in, never more than its file has. The default fits the 2026 album's files,
+   *  2,000 px wide. (Reading the width from the file instead would publish the original file too.) */
+  widths?: number[];
+}
+const { title, photos, more, credit, inPage = false, lcp = false, widths = [1000, 2000] } = Astro.props;
 
 const sizes = ['(min-width: 1440px) 432px, (min-width: 600px) 31vw, 100vw', '(min-width: 1440px) 432px, (min-width: 600px) 31vw, 48vw', '(min-width: 1440px) 432px, (min-width: 600px) 31vw, 48vw'];
+const headingId = inPage ? 'day' : 'day-title';
+// The home page's band holds its content in a .wrap; an inner page's sections are inside the page's own.
+const Wrap = inPage ? Fragment : 'div';
 ---
 
-<section class="day" aria-labelledby="day-title">
-  <div class="wrap">
-    <h2 id="day-title" class="h2">{home.day.title}</h2>
+<section class={inPage ? 'page-sec page-wide' : 'day'} aria-labelledby={headingId}>
+  <Wrap {...(inPage ? {} : { class: 'wrap' })}>
+    <h2 id={headingId} class={inPage ? 'page-h2' : 'h2'}>{title}</h2>
     <div class="day-grid">
-      {home.day.photos.map((p, i) => (
+      {photos.map((p, i) => (
         <figure>
-          <Image src={photos[p.id]} quality={70} widths={[1000, 2000]} sizes={sizes[i]} alt={p.alt} />
+          <Image src={photoOf(photoFiles, p.id, p.caption)} quality={70} widths={widths} sizes={sizes[i]} alt={p.alt} {...(lcp && i === 0 ? { loading: 'eager', fetchpriority: 'high' } as const : {})} />
           <figcaption><b>{p.time}</b> {p.caption}</figcaption>
         </figure>
       ))}
     </div>
-    <p class="more"><a href={edition2026.photosUrl}>See all 2026 photos</a></p>
-  </div>
+    {more && <p class="more"><a href={more.href}>{more.text}</a></p>}
+    {credit && <p class="pg-src">{credit}</p>}
+  </Wrap>
 </section>

@@ -32,7 +32,7 @@ const tickets = ticketsOnSale();
       <SponsorBlock />
       <KeynoteStage />
       <SpeakBlock />
-      <DayPhotos />
+      <DayPhotos {...home.day} />
       <TeamBlock />
       {!tickets && <AttendBlock />}
     </>
@@ -44,7 +44,7 @@ const tickets = ticketsOnSale();
       <AttendBlock />
       <ProgramBlock />
       <KeynoteStage />
-      <DayPhotos />
+      <DayPhotos {...home.day} />
       <TeamBlock />
       {sponsorAsk() && <SponsorBlock />}
     </>
@@ -62,7 +62,7 @@ const tickets = ticketsOnSale();
     <>
       <SponsorWall />
       <ProgramBlock />
-      <DayPhotos />
+      <DayPhotos {...home.day} />
       <TeamBlock />
     </>
   )}
