@@ -17,8 +17,10 @@ export { default as recapPoster } from '../assets/video/recap-poster.jpg';
 
 /** A photo by its file name in one of the folders above; a name with no file fails the build, so a typo never shows
  *  initials in a photo's place. No file name: null, for initials. */
-export const photoOf = (folder: Record<string, ImageMetadata>, file: string | undefined, who: string) => {
+export function photoOf(folder: Record<string, ImageMetadata>, file: string, who: string): ImageMetadata;
+export function photoOf(folder: Record<string, ImageMetadata>, file: string | undefined, who: string): ImageMetadata | null;
+export function photoOf(folder: Record<string, ImageMetadata>, file: string | undefined, who: string) {
   if (!file) return null;
   if (!folder[file]) throw new Error(`No photo "${file}" for ${who}`);
   return folder[file];
-};
+}

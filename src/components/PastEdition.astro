@@ -3,17 +3,20 @@
 // the program, the sponsors and Partners, the Organizers and the links to look back. Speakers appear by name, the
 // Organizers on cards with their photos, and each returning one with a credit as of this Edition (src/lib/loyalty.ts).
 // The Organizers' cards print no titles: the Edition's record has none. A section the Edition has nothing for is
-// left out.
+// left out. An Edition with photos (2025) also shows a day in three photos after the figures, a stage photo of each
+// keynote's Speaker and the team photo above the cards, each with the photographer's credit.
+import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PageHead from './PageHead.astro';
+import DayPhotos from './DayPhotos.astro';
 import SponsorTiers from './SponsorTiers.astro';
 import OrganizerCard from './OrganizerCard.astro';
 import Credit from './program/Credit.astro';
 import MoreEditions from './MoreEditions.astro';
 import { youtube } from '../data/edition-2026';
-import { printedLine } from '../data/past-program';
+import { printedLine, type PastSession } from '../data/past-program';
 import type { PastPage } from '../data/past-page';
-import { organizerPhotos, photoOf } from '../lib/images';
+import { keynotePhotos, organizerPhotos, photoOf, photos } from '../lib/images';
 import { organizerCredit, speakerCredit } from '../lib/loyalty';
 
 interface Props {
@@ -21,6 +24,15 @@ interface Props {
 }
 const { p } = Astro.props;
 const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i === 0 ? '' : i === list.length - 1 ? ' and ' : ', ' }));
+// A keynote's photo is listed under its Speaker's name (the first one's, if it has more). The keynotes show photos,
+// as on /2026/, only when every one has a photo; a photo listed under a name no keynote has fails the build, as a
+// missing file does.
+const speakerOf = (k: PastSession) => k.speakers[0].name;
+const strays = Object.keys(p.keynotes.photos ?? {}).filter((name) => !p.keynotes.sessions.some((k) => speakerOf(k) === name));
+if (strays.length) throw new Error(`A keynote photo for no keynote's Speaker: ${strays.join(', ')}`);
+const keynotePhoto = (k: PastSession) => p.keynotes.photos?.[speakerOf(k)];
+const withPhotos = p.keynotes.sessions.length > 0 && p.keynotes.sessions.every((k) => keynotePhoto(k));
+const group = p.organizers.group;
 ---
 
 <Base title={p.title} description={p.description}>
@@ -31,18 +43,27 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
     </dl>
     <p class="pg-src">Sources: {joinLinks(p.factsSources).map(({ l, sep }) => <>{sep}<a href={l.href}>{l.text}</a></>)}.</p>
 
+    {/* The day's first photo is the page's LCP element on phones and wide screens (2025), so it loads first; the
+        keynote photos below it load lazily. */}
+    {p.day && <DayPhotos inPage lcp title={p.day.title} photos={p.day.photos} credit={p.day.credit} widths={p.day.widths} />}
+
     <section class="page-sec" aria-labelledby="keynotes">
       <h2 id="keynotes" class="page-h2">{p.keynotes.title}</h2>
-      <ul class="pg-keynotes pg-keynotes--text">
-        {p.keynotes.sessions.map((k) => (
-          <li>
-            <h3 class="pg-kn-name">{k.speakers.map((x, i) => <>{i > 0 && ', '}{x.name}<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" /></>)}</h3>
-            <p class="pg-aff">{k.speakers.map(printedLine).join('; ')}</p>
-            <p class="pg-title">{k.title}</p>
-            {k.youtube ? <a class="watch" href={youtube(k.youtube)}>{p.program.watch}<span class="sr-only">: {k.title}</span></a> : <p class="pg-none">{p.keynotes.noRecording}</p>}
-          </li>
-        ))}
+      <ul class={withPhotos ? 'pg-keynotes' : 'pg-keynotes pg-keynotes--text'}>
+        {p.keynotes.sessions.map((k) => {
+          const photo = withPhotos && keynotePhoto(k);
+          return (
+            <li>
+              {photo && <Image class="pg-kn-photo" src={photoOf(keynotePhotos, photo.file, speakerOf(k))} quality={65} widths={[400, 640]} sizes="(min-width: 1000px) 300px, (min-width: 600px) 30vw, 38vw" alt={photo.alt} />}
+              <h3 class="pg-kn-name">{k.speakers.map((x, i) => <>{i > 0 && ', '}{x.name}<Credit credit={speakerCredit(x.name, p.year)} role="Speaker" /></>)}</h3>
+              <p class="pg-aff">{k.speakers.map(printedLine).join('; ')}</p>
+              <p class="pg-title">{k.title}</p>
+              {k.youtube ? <a class="watch" href={youtube(k.youtube)}>{p.program.watch}<span class="sr-only">: {k.title}</span></a> : <p class="pg-none">{p.keynotes.noRecording}</p>}
+            </li>
+          );
+        })}
       </ul>
+      {withPhotos && p.keynotes.photoCredit && <p class="pg-src">{p.keynotes.photoCredit}</p>}
     </section>
 
     <section class="page-sec page-wide" aria-labelledby="program">
@@ -103,6 +124,13 @@ const joinLinks = <T,>(list: readonly T[]) => list.map((l, i) => ({ l, sep: i ==
 
     <section class="page-sec page-wide" aria-labelledby="organizers">
       <h2 id="organizers" class="page-h2">{p.organizers.title}</h2>
+      {group && (
+        <figure>
+          {/* At most 640 px wide, the reading width: its file is 1,024 px wide. */}
+          <Image src={photoOf(photos, group.file, group.caption)} quality={70} width={640} widths={[640, 1024]} sizes="(min-width: 690px) 640px, calc(100vw - 40px)" alt={group.alt} />
+          <figcaption class="pg-src">{group.caption} {group.credit}</figcaption>
+        </figure>
+      )}
       <ul class="pg-org">
         {p.organizers.names.map((n) => <OrganizerCard name={n} photo={photoOf(organizerPhotos, p.organizers.photos[n], n)} credit={organizerCredit(n, p.year)} />)}
       </ul>

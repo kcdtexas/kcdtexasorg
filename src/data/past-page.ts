@@ -5,6 +5,11 @@ import type { PastSession, PastSpeaker } from './past-program';
 
 export interface Link { text: string; href: string }
 export interface LogoCredit { title: string; author: string; source: Link; license: Link }
+/** A photo: its file name in src/assets/ (the folder depends on its use), and its alt text. */
+export interface Photo { file: string; alt: string }
+/** One of the three timed photos of a day at an Edition (DayPhotos.astro): its file in src/assets/photos/, the time
+ *  it was taken (Central), its caption and its alt text. */
+export interface DayPhoto { id: string; time: string; caption: string; alt: string }
 
 export interface PastPage {
   year: 2024 | 2025;
@@ -15,7 +20,12 @@ export interface PastPage {
   lead: string;
   facts: readonly { term: string; text: string }[];
   factsSources: readonly Link[];
-  keynotes: { title: string; sessions: readonly PastSession[]; noRecording: string };
+  /** A day at the Edition in three timed photos, after the figures, with the photographer's credit. `widths`: the
+   *  sizes each photo is offered in, never wider than its file. */
+  day?: { title: string; photos: readonly DayPhoto[]; credit: string; widths: number[] };
+  /** `photos`: a stage photo of each keynote's Speaker, by name, from src/assets/keynotes/, and `photoCredit` names
+   *  the photographer. The keynotes show photos, as on /2026/, only when every one has a photo. */
+  keynotes: { title: string; sessions: readonly PastSession[]; noRecording: string; photos?: Readonly<Record<string, Photo>>; photoCredit?: string };
   program: {
     title: string;
     intro: string;
@@ -41,8 +51,12 @@ export interface PastPage {
     partnersTitle: string;
     partnerGroups: readonly { type: string; names: readonly string[] }[];
   };
-  /** `photos`: each name's file in src/assets/organizers/; a name with none shows initials. */
-  organizers: { title: string; names: readonly string[]; photos: Readonly<Record<string, string>>; note: string; source: Link };
+  /** `photos`: each name's file in src/assets/organizers/; a name with none shows initials. `group`: the team's
+   *  photo above the cards, from src/assets/photos/, with its caption and the photographer's credit. */
+  organizers: {
+    title: string; names: readonly string[]; photos: Readonly<Record<string, string>>; note: string; source: Link;
+    group?: Photo & { caption: string; credit: string };
+  };
   lookBack: { title: string; links: readonly (Link & { note: string })[] };
 }
 
