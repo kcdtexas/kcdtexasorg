@@ -214,7 +214,23 @@ try {
     ['`*args* and **kwargs**` in code, my_var_ and x*y* here', '*args* and **kwargs** in code, my_var_ and x*y* here'],
     ['# Title\n## Sub ##\n#hashtag stays\n# C# and F#', 'Title\nSub\n#hashtag stays\nC# and F#'],
     ['> quoted\n> > nested', 'quoted\nnested'],
-    ['- one\n* two\n+ three\n1. first\n2) second\n- [x] done\n  - nested', 'one\ntwo\nthree\nfirst\nsecond\ndone\nnested'],
+    ['- one\n* two\n+ three\n1. first\n2) second\n- [x] done\n  - nested', 'one\ntwo\nthree\n1. first\n2) second\ndone\nnested'],
+    ['2019. Joined a made-up company\n1. Intro\n10) Tenth', '2019. Joined a made-up company\n1. Intro\n10) Tenth'],
+    // Pretalx shows any tag outside its formatting tags as text, and so does the site.
+    ['Run kubectl logs <pod-name> -n <namespace> to see it.', 'Run kubectl logs <pod-name> -n <namespace> to see it.'],
+    ['Use helm install <release> ./chart, then List<String>, Map<K, V>, x<y and y>z.', 'Use helm install <release> ./chart, then List<String>, Map<K, V>, x<y and y>z.'],
+    ['The <details> tag, <summary>, <kbd>Ctrl</kbd> and <script>alert(1)</script> stay as text.', 'The <details> tag, <summary>, <kbd>Ctrl</kbd> and <script>alert(1)</script> stay as text.'],
+    ['The answer is <B>42</B>, <A HREF="https://x.example">a link</A>, <img src="d.png" alt="a diagram"> and <img src=x>.', 'The answer is 42, a link, a diagram and .'],
+    ['<ul><li>one</li><li>two</li></ul><h2>Next</h2><hr>end', 'one\ntwo\n\nNext\n\nend'],
+    // A reference's definition goes only when it is one: a label, a destination and maybe a title.
+    ['Agenda:\n[Part 1]: Why GitOps\n[Part 2]: How we run it', 'Agenda:\n[Part 1]: Why GitOps\n[Part 2]: How we run it'],
+    ['[Update]: The talk now covers Kubernetes 1.31.', '[Update]: The talk now covers Kubernetes 1.31.'],
+    ['Text\n[docs]: https://example.com\n[home]: <https://example.com/a b> "Home"\n[ref]: https://example.com/r (Title)', 'Text'],
+    // Character references Pretalx shows as characters; control and private-use characters, and unknown names, stay as written.
+    ['A &copy; B &reg; &trade; &mdash; &ndash; &hellip; &laquo;x&raquo; &lsquo;y&rsquo; &ldquo;z&rdquo; a&nbsp;b', 'A \u00a9 B \u00ae \u2122 \u2014 \u2013 \u2026 \u00abx\u00bb \u2018y\u2019 \u201cz\u201d a\u00a0b'],
+    ['bell &#7; &#x9f; &#0; &#27; tab &#9; &#xE03C;b&#xE03E; &AMP; &bogus;', 'bell &#7; &#x9f; &#0; &#27; tab &#9; &#xE03C;b&#xE03E; &AMP; &bogus;'],
+    ['\ue03cb\ue03e and \ue021 dropped', 'b and  dropped'],
+    ['One\\\nTwo, and a \\ backslash, C:\\Users\\name', 'One\nTwo, and a \\ backslash, C:\\Users\\name'],
     ['[the docs](https://example.com/docs "Docs") and [ref][1] and [wiki](https://en.wikipedia.org/wiki/Foo_(bar))\n\n[1]: https://example.com/ref', 'the docs and ref and wiki'],
     ['![diagram](https://example.com/d.png) ![](https://example.com/x.png)', 'diagram'],
     ['<https://example.com/a_b_c> and <me@example.com> and <mailto:you@example.com>', 'https://example.com/a_b_c and me@example.com and you@example.com'],
@@ -232,6 +248,34 @@ try {
     ['email me: a_b@example.com, file_name.txt, __proto__ fields', 'email me: a_b@example.com, file_name.txt, proto fields'],
     ['', ''],
   ]) expect(plainText(md) === want, `plainText(${JSON.stringify(md)}) is ${JSON.stringify(plainText(md))}, not ${JSON.stringify(want)}`);
+  // Long, hostile text stays fast: 200,000 characters built against each step take well under a fifth of a second.
+  const hostile = {
+    'unclosed backticks': (n) => '`a '.repeat(n / 3),
+    'backtick runs of every length': (n) => { let t = ''; for (let k = 1; t.length < n; k += 1) t += `${'`'.repeat(k)}a`; return t; },
+    'unclosed comments': (n) => '<!--a'.repeat(n / 5),
+    'an address with no >': (n) => `<a@${'b.'.repeat(n / 2)}`,
+    'a tag with no >': (n) => `<b ${'x/'.repeat(n / 2)}`,
+    'a heading with long spaces': (n) => `# a${' '.repeat(n)}b`,
+    'long spaces before a hash': (n) => `a${' '.repeat(n)}#`,
+    'unclosed * openers': (n) => 'x *a'.repeat(n / 4),
+    'unclosed _ openers': (n) => 'x _a'.repeat(n / 4),
+    'unclosed ** openers': (n) => 'x **a'.repeat(n / 5),
+    'unclosed ~~ openers': (n) => 'x ~~a'.repeat(n / 5),
+    'unclosed brackets': (n) => '[a'.repeat(n / 2),
+    'unclosed link destinations': (n) => '[a](b'.repeat(n / 5),
+    'a definition with long spaces': (n) => `[a]:${' '.repeat(n)}x y`,
+    'entities with no ;': (n) => '&ab'.repeat(n / 3),
+    'quote markers': (n) => `${'> '.repeat(n / 2)}x`,
+    'dashes and spaces': (n) => `${'- '.repeat(n / 2)}x`,
+    'fences': (n) => `\`\`\`${'a'.repeat(20)}\n`.repeat(n / 24),
+    'bare addresses': (n) => `https://a.b/${'_x'.repeat(n / 2)}`,
+    'escapes': (n) => '\\*'.repeat(n / 2),
+  };
+  for (const [what, make] of Object.entries(hostile)) {
+    const text = make(200_000);
+    const ms = Math.min(...[0, 1].map(() => { const t = performance.now(); plainText(text); return performance.now() - t; }));
+    expect(ms < 200, `plainText takes ${Math.round(ms)} ms on ${text.length} characters of ${what}, not under 200`);
+  }
   const marked = adaptPretalx(((d) => {
     d.submissions[0].abstract = '**Opening** the day, with a [demo](https://example.com/demo).';
     d.submissions[0].description = '- First, *why*\n- Then `how`';
@@ -333,6 +377,22 @@ try {
   }));
   expect(custom('https://cfp.fixture.example').speakers[3].photo === 'https://cfp.fixture.example/media/avatars/FXSPKD.webp' && custom('https://cfp.fixture.example').speakers[2].photo === null, 'a photo on the event\'s custom domain is dropped, or one on a look-alike host kept');
   expect(custom('http://cfp.fixture.example').speakers[3].photo === null && custom('not an address').speakers[3].photo === null, 'a custom domain that is not https lets its photos in');
+  // A text past 20,000 characters is cut at a word, with an ellipsis, before the Markdown steps; the log names the
+  // record and the length, never the text.
+  const warnings = [];
+  const warn = console.warn;
+  console.warn = (m) => warnings.push(String(m));
+  let long;
+  try {
+    long = adaptPretalx(broken((d) => { d.submissions[0].abstract = `${'Planted words '.repeat(2500)}end`; d.submissions[0].description = null; d.speakers[0].biography = 'y'.repeat(25_000); }));
+  } finally {
+    console.warn = warn;
+  }
+  const [cutAbstract, cutBio] = [long.sessions.find((s) => s.id === 'FXKEY1').abstract, long.speakers[0].bio];
+  expect(cutAbstract.length <= 20_001 && cutAbstract.length > 19_800 && /[a-z]\u2026$/.test(cutAbstract) && cutBio === `${'y'.repeat(20_000)}\u2026`, `a long text is not cut at a word with an ellipsis: ${cutAbstract.length}, ${cutBio.length}`);
+  expect(warnings.length === 2 && /the abstract of Session FXKEY1 has 35003 characters/.test(warnings[0]) && /the bio of Speaker FXSPKA has 25000 characters/.test(warnings[1]) && !warnings.join().includes('Planted') && !warnings.join().includes('yyy'),
+    `the log on a long text is wrong: ${warnings.join(' | ')}`);
+
   // Optional fields left out, and odd values: no error, and nothing made up.
   const sparse = adaptPretalx(broken((d) => {
     delete d.speakers[0].biography; delete d.speakers[0].avatar_url; delete d.submissions[0].description; delete d.questions[0].identifier;

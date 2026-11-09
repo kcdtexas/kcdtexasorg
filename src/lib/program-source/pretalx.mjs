@@ -28,7 +28,8 @@
 //     else is dropped (remote.mjs);
 //   - the abstract and the description are two fields; the site shows them as one text, the abstract first, and
 //     once when they're the same;
-//   - abstracts, descriptions and biographies are Markdown: the site shows them as plain text (markdown.mjs).
+//   - abstracts, descriptions and biographies are Markdown: the site shows them as plain text (markdown.mjs), each
+//     cut to MAX_TEXT characters first, since Pretalx sets no limit.
 // Only confirmed Sessions are read. Errors name a record by its list, position and code, never by its content.
 import { formatNames, pretalx, yes } from './config.mjs';
 import { toCentral } from './central.mjs';
@@ -61,8 +62,27 @@ export function i18n(v) {
   return null;
 }
 
-/** Markdown text as plain text, or null when nothing's left. */
-const prose = (v) => i18n(plainText(i18n(v) ?? ''));
+/** The most characters of one Markdown text the site reads. Pretalx sets no limit, and a build must stay fast. */
+export const MAX_TEXT = 20_000;
+
+/** A text cut to MAX_TEXT characters, at the end of a word when one ends near there, with an ellipsis. */
+function clip(text) {
+  const head = text.slice(0, MAX_TEXT + 1);
+  const space = Math.max(head.lastIndexOf(' '), head.lastIndexOf('\n'), head.lastIndexOf('\t'));
+  let cut = space >= MAX_TEXT - 200 ? space : MAX_TEXT;
+  if (cut === MAX_TEXT && /[\ud800-\udbff]/.test(text[cut - 1])) cut -= 1;
+  return `${text.slice(0, cut).trimEnd()}\u2026`;
+}
+
+/** Markdown text as plain text, or null when nothing's left. A text past MAX_TEXT is cut first, and the log names
+ *  the record (`what`) and the length, never the text. */
+const prose = (v, what) => {
+  const text = i18n(v);
+  if (text === null) return null;
+  if (text.length <= MAX_TEXT) return i18n(plainText(text));
+  console.warn(`Pretalx: ${what} has ${text.length} characters; the site shows the first ${MAX_TEXT}, cut at a word.`);
+  return i18n(plainText(clip(text)));
+};
 
 /** A label as the comparison sees it: lowercase, "&" as "and", and any run of other characters as one space. */
 const norm = (s) => String(s ?? '').normalize('NFKC').toLowerCase().replace(/&/g, ' and ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
@@ -234,7 +254,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
     const format = formatNames[type.toLowerCase()];
     if (!format) throw new Error(`${at}: its session type (${s.submission_type}) is not a known format (formatNames in src/lib/program-source/config.mjs)`);
     // The same text pasted into both fields shows once.
-    const texts = [...new Set([prose(s.abstract), prose(s.description)].filter(Boolean))];
+    const texts = [...new Set([prose(s.abstract, `the abstract of Session ${s.code}`), prose(s.description, `the description of Session ${s.code}`)].filter(Boolean))];
     const record = {
       id: s.code,
       title: i18n(s.title),
@@ -285,7 +305,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
     id: p.code,
     name: i18n(p.name),
     tagline: said(p, tagline)[0] ?? null,
-    bio: prose(p.biography),
+    bio: prose(p.biography, `the bio of Speaker ${p.code}`),
     photo: isStr(p.avatar_url) && p.avatar_url && photoAllowed(p.avatar_url, hosts) ? p.avatar_url : null,
     links: mapLinks(p.answers
       .filter((a) => byId.get(fieldOf(a))?.variant === 'url' && byId.get(fieldOf(a))?.target === 'speaker' && i18n(a.answer))
