@@ -46,7 +46,7 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 ## Changes after the announcement
 
 - Times and rooms change on Pretalx's public schedule only with a new release. Move the Session in the schedule editor, then release a new version. The site picks it up with its next refresh: the next morning, or within about 5 minutes on Event Day (`docs/rebuilds.md`, `docs/event-day.md`).
-- A Session that is canceled, or no longer confirmed, leaves the site with the next refresh after Pretalx stops showing it.
+- A Session canceled in Pretalx stays in the released schedule, marked canceled, until the next release. The site drops it with its next refresh, without waiting for a new release, since it shows only confirmed Sessions.
 - The refresh compares everything the pages show, so an edited title, abstract, bio, photo or job title also comes through.
 
 ## What the site shows
@@ -73,13 +73,13 @@ Pretalx's abstracts, descriptions and bios are Markdown. The site shows them as 
 
 | The message says | What to do |
 |---|---|
-| `HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public` | Release the schedule in Pretalx and make it public, then build again. |
+| `HTTP 401: Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public` (or `HTTP 404` for the released schedule) | Release the schedule in Pretalx and make it public, then build again. |
 | `Pretalx has no public custom field per proposal named ...` (or per speaker) | Turn on "Publish answers" for that field in Pretalx, keep it active, and check it's asked for each proposal or each speaker as the table above says. If it was renamed, add its label to `pretalx.fields`. |
 | `its session type (...) is not a known format` | Name the session type Talk, Workshop or Keynote, or add its name to `formatNames`. |
 | `the Schedule is public, but it has no time or room` | A confirmed Session isn't in the released schedule. Schedule it, and release again. |
 | `HTTP 404: there is no public event kcd-texas-2027` | The event isn't public, or its short form changed. Make it public, or fix `pretalx.event`. |
 | `the list changed while it was read`, or `is not among the slots of the released schedule` | Pretalx changed during the build, or a new version was released meanwhile. The next build reads it again. |
-| `slots ... are from schedule ..., not from the released one` | Pretalx sent slots from an older version of the schedule. The API changed: the reader needs a fix. |
+| `... from schedule ..., not from the released one` | Pretalx sent slots from another version of the schedule than the newest one. Its API changed: the reader needs a fix. |
 
 ## The API
 

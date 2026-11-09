@@ -22,6 +22,8 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Failure email | Notifications: a failed Pages deployment of `kcdtexas` emails organizers@kcdtexas.org | a failed build reaches a person |
 | Custom domain | `kcdtexas.org` | |
 
+Sessionize's old setting, `SESSIONIZE_ENDPOINT_ID`, can be deleted where it's left: from the project's variables and from GitHub's `production` environment. Nothing reads it since the program moved to Pretalx (ADR 0014).
+
 ## The zone's settings
 
 | Setting | Value | Why |

@@ -6,6 +6,8 @@ status: accepted
 
 > Supersedes [ADR 0010](0010-hosting-netlify-rare-updates.md). Updates [ADR 0011](0011-main-is-the-production-branch.md): `main` stays the production branch, and the scheduled rebuilds call the Pages deploy hook instead of Netlify's build hook.
 
+> Updated by [ADR 0014](0014-pretalx-is-the-program-platform.md): the program comes from Pretalx's public API, which needs no key, so "the program platform's key" below now means only the CSV's address, when there is one. The rest stands.
+
 On 2026-10-30 the Organizers decided to move the Website from Netlify to Cloudflare Pages. The kcdtexas.org zone and its registration are already on Cloudflare.
 
 The Website is a Pages project with Git integration, in the Cloudflare account that holds the kcdtexas.org zone. Pages builds `main` as production and every other branch as a preview, with `scripts/build.sh`, as Netlify did. Its settings and the rollback are in `docs/hosting.md`.

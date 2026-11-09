@@ -4,7 +4,7 @@ status: accepted
 
 # Pretalx is the program platform
 
-> Updates [ADR 0008](0008-event-day-fast-track.md) and [ADR 0009](0009-pushing-is-announcing-and-program-gates.md): the program comes from Pretalx, not Sessionize. The rest of both stands.
+> Updates [ADR 0008](0008-event-day-fast-track.md), [ADR 0009](0009-pushing-is-announcing-and-program-gates.md) and [ADR 0012](0012-hosting-cloudflare-pages.md): the program comes from Pretalx, not Sessionize, and needs no key. The rest of all three stands.
 
 The 2027 Edition's call for proposals runs on Pretalx, at pretalx.com/kcd-texas-2027. So the build reads the 2027 program from Pretalx: the Sessions, the Speakers and the Schedule. The Sessionize reader is gone. The CSV fallback stays (`docs/program-csv.md`).
 
@@ -25,6 +25,7 @@ The build reads Pretalx's public REST API, with no key. Without a key, the API s
 - Releasing a schedule publishes it on pretalx.com at once, whatever the gates say. The Organizers release it on the announcement day, or keep the schedule hidden in Pretalx until then.
 - A time or room change reaches the site only after a new release in Pretalx. The refresh check then finds it like any other change (`docs/rebuilds.md`).
 - The refresh check still compares a hash of the public model, not Pretalx's schedule version, so it also follows changes outside the schedule, such as an edited bio.
-- Speaker photos are downloaded at build time, as ADR 0007 asks, and only from pretalx.com or the event's custom domain. Pretalx stopped taking pictures from other sites, such as Gravatar, in version 2026.1.
+- Speaker photos are downloaded at build time, as ADR 0007 asks, and only from pretalx.com or the event's custom domain, redirects included. Pretalx stopped taking pictures from other sites, such as Gravatar, in version 2026.1.
+- Pretalx stores abstracts, descriptions and bios as Markdown. The site shows them as plain text with the marks removed, as the owner chose on 2026-11-08 (`src/lib/program-source/markdown.mjs`).
 - ADR 0012's "program platform's key" now means only the CSV's address.
 - Past Editions keep their Sessionize links and their saved programs (ADR 0004).
