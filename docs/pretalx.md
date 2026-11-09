@@ -91,7 +91,7 @@ Pretalx keeps every released version of the schedule. The build takes the newest
 
 The build follows a redirect only to the same kind of host: an API request stays on pretalx.com, and a photo stays on pretalx.com or the event's custom domain. A redirect anywhere else fails the build, and no request goes there.
 
-When Pretalx is busy (HTTP 429, asking to wait 30 seconds or less) or a gateway fails (HTTP 502, 503 or 504), the build waits a few seconds and tries that request once more. A second failure, or any other error, fails the build. Photos and the CSV get the same one retry. Every request names the site in its User-Agent, and no email address.
+When Pretalx is busy (HTTP 429) and asks to wait 30 seconds or less, the build waits as long as it asks (3 seconds if it doesn't say) and tries that request once more. When a gateway fails (HTTP 502, 503 or 504), it waits 2 seconds and tries once more. A second failure, or any other error, or a wait longer than 30 seconds, fails the build. Photos and the CSV get the same one retry. Every request names the site in its User-Agent, and no email address.
 
 The build reads the API's current version (Pretalx's API changelog: https://docs.pretalx.org/api/changelog/) and checks the shape of every response, so a change on Pretalx's side fails the build instead of showing wrong data.
 
