@@ -8,7 +8,7 @@ export const about = {
   title: 'About KCD Texas',
   description: 'KCD Texas is the yearly Kubernetes Community Day in Texas, organized by local volunteers and supported by CNCF. Its history, its Committees and how to get involved.',
   kicker: 'About',
-  lead: 'KCD Texas is a Kubernetes Community Day: a one-day conference organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF). It’s the annual conference of Cloud Native Texas, the community behind the monthly meetups in Austin, Dallas and Houston.',
+  lead: 'KCD Texas is a Kubernetes Community Day: a one-day conference organized by local volunteers and supported by the Cloud Native Computing Foundation (CNCF). It’s the annual conference of Cloud Native Texas, the nonprofit supporting monthly meetups in Austin, Dallas and Houston.',
   money: 'KCD Texas is not-for-profit: sponsorship and tickets pay for the event.',
   kcdLink: 'Kubernetes Community Days on cncf.io',
 
