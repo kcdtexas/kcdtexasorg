@@ -54,7 +54,7 @@ const AVATARS = 'https://pretalx.com/media/avatars/';
 // The local stand-in for every remote address. Pretalx's lists come from the fixture, 50 entries a page at most (or
 // `pageMax`), with `next` links as Pretalx sends them. Photos on Pretalx's host, and the CSV's on any host, come from
 // here; Fixture Person D's, on another host, stays where it is, so a request for it would fail.
-const state = { mode: 'ok', pretalx: fixtureText, csv: csvText, live: null, requests: [], agents: [], pageMax: 50, endlessClosed: false };
+const state = { mode: 'ok', pretalx: fixtureText, csv: csvText, live: null, requests: [], agents: [], hits: {}, pageMax: 50, endlessClosed: false };
 const photo = await sharp({ create: { width: 600, height: 400, channels: 3, background: { r: 200, g: 40, b: 90 } } }).jpeg().toBuffer();
 const avatar = await sharp({ create: { width: 400, height: 500, channels: 3, background: { r: 30, g: 120, b: 160 } } }).webp().toBuffer();
 const server = createServer((req, res) => {
@@ -75,6 +75,8 @@ const server = createServer((req, res) => {
     // A redirect off the API's host is refused; one on it, like Pretalx's for a missing slash, is followed.
     if (state.mode === 'apiaway' && req.headers.host?.startsWith('127.0.0.1')) return redirect(`${elsewhere}${req.url}`);
     if (state.mode === 'apihere' && !url.searchParams.has('moved')) { const to = new URL(url); to.searchParams.set('moved', '1'); return redirect(to.href); }
+    // A gateway that fails once: the reader tries the request once more.
+    if (state.mode === 'gateway-once' && name === 'speakers' && !state.hits.speakers) { state.hits.speakers = 1; return send(503, 'text/plain', 'down'); }
     const data = JSON.parse(local(state.pretalx, AVATARS));
     if (name === '') return state.mode === 'noevent' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.event));
     if (name === 'schedules/latest') return state.mode === 'noschedule' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.schedule));
@@ -96,6 +98,21 @@ const server = createServer((req, res) => {
     return send(200, 'application/json', JSON.stringify({ count, next, previous: page > 1 ? at(page - 1) : null, results: lists[name].slice((page - 1) * size, page * size) }));
   }
   if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(state.csv, 'https://photos.fixture.invalid/'));
+  // Busy servers and failing gateways, answering each path's first request (or every one) with an error.
+  const flaky = /^\/flaky\/([a-z0-9-]+)$/.exec(req.url)?.[1];
+  if (flaky) {
+    state.hits[flaky] = (state.hits[flaky] ?? 0) + 1;
+    const first = state.hits[flaky] === 1;
+    const busy = (after) => { res.writeHead(429, { 'content-type': 'text/plain', ...(after === undefined ? {} : { 'retry-after': after }) }); res.end('busy'); };
+    if (flaky === 'busy-1' && first) return busy('1');
+    if (flaky === 'busy-long') return busy('120');
+    if (flaky === 'busy-none' && first) return busy(undefined);
+    if (flaky === 'busy-date' && first) return busy(new Date(Date.now() + 1000).toUTCString());
+    if (flaky === 'gateway-once' && first) return send(503, 'text/plain', 'down');
+    if (flaky === 'gateway-always') return send(502, 'text/plain', 'down');
+    if (flaky === 'error-once' && first) return send(500, 'text/plain', 'down');
+    return send(200, 'text/plain', 'ok');
+  }
   // Redirects: on this host, to another host, to plain http, in a loop, and to localhost (another origin), where the
   // CSV goes too, as a published Google Sheet's address redirects.
   if (req.url === '/redirect/here.jpg') return redirect('/photos/a.jpg');
@@ -527,6 +544,28 @@ try {
   state.mode = 'ok';
   state.pageMax = 50;
   expect(!redact(`x ${prodCsv.PROGRAM_CSV_URL} and ${encodeURIComponent(prodCsv.PROGRAM_CSV_URL)} y`, prodCsv).includes(CSV_SECRET), 'redact keeps the CSV address');
+
+  // One retry, for a busy server that asks for 30 seconds or less (3 when it doesn't say) or a failing gateway (after
+  // 2 seconds); none for anything else, and never a second.
+  const retry = async (name) => {
+    const started = Date.now();
+    const done = (out) => ({ ...out, ms: Date.now() - started, hits: state.hits[name] });
+    try { return done({ ok: (await fetchBytes(`${origin}/flaky/${name}`, { env: {}, what: `The ${name} test` })).body.toString() }); } catch (e) { return done({ error: e.message }); }
+  };
+  for (const [name, want, hits, atLeast, below] of [
+    ['busy-1', 'ok', 2, 900, 5000], ['busy-long', 'The busy-long test: the server answered HTTP 429', 1, 0, 900],
+    ['busy-none', 'ok', 2, 2900, 6000], ['busy-date', 'ok', 2, 0, 5000], ['gateway-once', 'ok', 2, 1900, 5000],
+    ['gateway-always', 'The gateway-always test: the server answered HTTP 502, also on the one retry', 2, 1900, 5000],
+    ['error-once', 'The error-once test: the server answered HTTP 500', 1, 0, 900],
+  ]) {
+    const r = await retry(name);
+    expect((r.ok ?? r.error) === want && r.hits === hits && r.ms >= atLeast && r.ms < below, `the ${name} server: ${r.ok ?? r.error}, after ${r.hits} requests and ${r.ms} ms`);
+  }
+  state.mode = 'gateway-once';
+  state.requests.length = 0;
+  const afterRetry = await readPlatform(chooseSource(both, prodPretalx), prodPretalx);
+  state.mode = 'ok';
+  expect(JSON.stringify(afterRetry) === JSON.stringify(live) && apiRequests().length === 9, `a Pretalx list that fails once is not read on the retry (${apiRequests().length} requests)`);
 
   // The photos: square WebP in two sizes, from our server only.
   const pic = await downloadPhoto(`${origin}/photos/a.jpg`, 'Speaker 1', {});

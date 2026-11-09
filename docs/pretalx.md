@@ -87,7 +87,9 @@ The build reads these from `https://pretalx.com/api/events/kcd-texas-2027/`, 50 
 
 Pretalx keeps every released version of the schedule. The build takes the newest version's id from `schedules/latest/` and asks for that version's slots only. If a slot from another version comes back anyway, or a Session's slot is missing from the list, the build fails and says so.
 
-The build follows a redirect only to the same kind of host: an API request stays on pretalx.com, and a photo stays on pretalx.com or the event's custom domain. A redirect anywhere else fails the build, and no request goes there. Every request names the site in its User-Agent, and no email address.
+The build follows a redirect only to the same kind of host: an API request stays on pretalx.com, and a photo stays on pretalx.com or the event's custom domain. A redirect anywhere else fails the build, and no request goes there.
+
+When Pretalx is busy (HTTP 429, asking to wait 30 seconds or less) or a gateway fails (HTTP 502, 503 or 504), the build waits a few seconds and tries that request once more. A second failure, or any other error, fails the build. Photos and the CSV get the same one retry. Every request names the site in its User-Agent, and no email address.
 
 The build reads the API's current version (Pretalx's API changelog: https://docs.pretalx.org/api/changelog/) and checks the shape of every response, so a change on Pretalx's side fails the build instead of showing wrong data.
 

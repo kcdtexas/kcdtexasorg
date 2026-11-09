@@ -6,7 +6,8 @@
 // localhost or [::1]) stands in for the platform and the photo host, and KCD_PROGRAM_TEST_BASE points the
 // Pretalx reader at it. Both are refused on the hosts and in GitHub Actions (CF_PAGES, NETLIFY or
 // GITHUB_ACTIONS set), so a real production build can't be redirected, and even elsewhere they reach only this
-// machine. Every request names the site in its User-Agent, and no email address (config.mjs).
+// machine. Every request names the site in its User-Agent, and no email address (config.mjs). A busy server or a
+// failing gateway gets one retry (retryWait); any other error fails at once.
 import { pretalx, userAgent } from './config.mjs';
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
@@ -71,6 +72,22 @@ export const pretalxBase = (env) => localTestUrl('KCD_PROGRAM_TEST_BASE', env) ?
 const MAX_REDIRECTS = 5;
 
 /**
+ * How long to wait before the one retry, in milliseconds, or null for none: a busy server (429) that asks for 30
+ * seconds or less (3 seconds when it doesn't say), or a gateway's error (502, 503, 504) after 2 seconds.
+ * @param {Response} res
+ */
+function retryWait(res) {
+  if (res.status === 429) {
+    const after = (res.headers.get('retry-after') ?? '').trim();
+    if (!after) return 3000;
+    const seconds = /^\d+$/.test(after) ? Number(after) : (Date.parse(after) - Date.now()) / 1000;
+    if (Number.isNaN(seconds)) return 3000;
+    return seconds <= 30 ? Math.max(0, seconds) * 1000 : null;
+  }
+  return [502, 503, 504].includes(res.status) ? 2000 : null;
+}
+
+/**
  * One request, following redirects by hand: every address on the way must be https (or a local test server where
  * tests are allowed) and pass `allowed`, so no request goes to a host the reader may not use.
  * @param {string} url
@@ -108,10 +125,17 @@ async function request(url, { env, what, accept, timeoutMs, allowed }) {
 export async function fetchBytes(url, { env, what, maxBytes = 20 * 1024 * 1024, accept = '*/*', timeoutMs = 30_000, allowed = null }) {
   if (!fetchable(url, env)) throw new ProgramSourceError(`${what}: the address must be https`, env);
   if (allowed && !allowed(url)) throw new ProgramSourceError(`${what}: the address is on a host that isn't allowed`, env);
-  const res = await request(url, { env, what, accept, timeoutMs, allowed });
+  let res = await request(url, { env, what, accept, timeoutMs, allowed });
+  // One retry at most, for a busy server or a failing gateway: the refresh on Event Day runs every 5 minutes anyway.
+  const wait = res.ok ? null : retryWait(res);
+  if (wait !== null) {
+    await res.body?.cancel().catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, wait));
+    res = await request(url, { env, what, accept, timeoutMs, allowed });
+  }
   if (!res.ok) {
     await res.body?.cancel().catch(() => {});
-    throw new ProgramSourceError(`${what}: the server answered HTTP ${res.status}`, env, res.status);
+    throw new ProgramSourceError(`${what}: the server answered HTTP ${res.status}${wait !== null ? ', also on the one retry' : ''}`, env, res.status);
   }
   const tooLarge = () => new ProgramSourceError(`${what}: the response is larger than ${maxBytes} bytes`, env);
   if (Number(res.headers.get('content-length') ?? 0) > maxBytes) {
