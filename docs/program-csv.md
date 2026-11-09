@@ -1,6 +1,6 @@
 # The program from a CSV file
 
-The site reads the program (Sessions, Speakers, the Schedule) from Sessionize. If the program lives somewhere else, or the platform has no API, the build can read one CSV file instead. `src/lib/program-source/csv.mjs` reads it, and `src/lib/program.ts` applies the same allowlist and gates as for Sessionize.
+The site reads the program (Sessions, Speakers, the Schedule) from Pretalx (`docs/pretalx.md`). If the program has to come from somewhere else, the build can read one CSV file instead. `src/lib/program-source/csv.mjs` reads it, and `src/lib/program.ts` applies the same allowlist and gates as for Pretalx.
 
 **Never commit a program CSV to this repository before the program is announced.** The repository is public, so a committed file announces the program (ADR 0009). The made-up file in `tests/fixtures/program.csv` is the only CSV in git.
 
@@ -9,12 +9,12 @@ The site reads the program (Sessions, Speakers, the Schedule) from Sessionize. I
 The build downloads the file from the address in the host environment variable `PROGRAM_CSV_URL`. A published Google Sheet works: in Google Sheets, choose File, Share, Publish to web, the sheet, and "Comma-separated values (.csv)".
 
 - The address must be https.
-- Treat it as a secret, like the Sessionize endpoint ID, and never put it in git. The next section says where it goes. The build never prints it, error messages included.
-- When `SESSIONIZE_ENDPOINT_ID` is also set, the build reads Sessionize and ignores the CSV.
+- Treat it as a secret, and never put it in git: anyone with the address can read the sheet. The next section says where it goes. The build never prints it, error messages included.
+- While it's set, the build reads the CSV instead of Pretalx.
 
 ## Where the setting goes
 
-`SESSIONIZE_ENDPOINT_ID` or `PROGRAM_CSV_URL` goes in two places:
+`PROGRAM_CSV_URL` goes in two places:
 
 - **Cloudflare Pages:** the project's variables for **Production** only, never for Preview, as a secret (type "Secret"), so it's never shown again (`docs/hosting.md`).
 - **GitHub:** a secret of the `production` environment, which only `main` can use. The refresh workflow's check reads it there (`docs/rebuilds.md`).
@@ -26,7 +26,7 @@ Deploy previews run code from pull requests, so the value must never be availabl
 - Only in a production build (Cloudflare Pages building `main`, `src/lib/build-context.mjs`), and only while a program gate is open (`program` in `src/data/edition-2027.ts`).
 - With both gates closed, the build reads nothing.
 - Deploy previews, branch deploys and local builds with a gate open use the test program, labeled "Sample", and never read the variable.
-- If a gate is open in production and neither variable is set, the build fails. It also fails when the download fails or the file doesn't follow this format, so the site keeps the last good deployment. The error names the row and the column, as the spreadsheet numbers them, never a value or an id.
+- The build fails when the download fails or the file doesn't follow this format, so the site keeps the last good deployment. The error names the row and the column, as the spreadsheet numbers them, never a value or an id.
 
 ## The format
 
@@ -42,7 +42,7 @@ Deploy previews run code from pull requests, so the value must never be availabl
 | `tagline` | speaker | Their role and company, as printed under the name |
 | `bio` | speaker | The bio, as the Speaker wrote it |
 | `photo` | speaker | An https address of the photo. The build downloads it, crops it square and serves it from kcdtexas.org. |
-| `links` | speaker | https addresses, separated by spaces or `;`. The kind comes from the address: github.com, bsky.app, linkedin.com, x.com or twitter.com, a Mastodon profile (`https://<server>/@<name>`), and anything else is the Speaker's website. Instagram, Facebook and Sessionize addresses are dropped, and only the first link of each kind is kept. |
+| `links` | speaker | https addresses, separated by spaces or `;`. The kind comes from the address: github.com, bsky.app, linkedin.com, x.com or twitter.com, a Mastodon profile (`https://<server>/@<name>`), and anything else is the Speaker's website. Instagram, Facebook, Pretalx and Sessionize addresses are dropped, and only the first link of each kind is kept. |
 | `title` | session, break | The title |
 | `format` | session | `Keynote`, `Talk`, `Workshop` or `Panel` |
 | `end_user` | session | `yes` for an End-User Story; `no` or empty otherwise |

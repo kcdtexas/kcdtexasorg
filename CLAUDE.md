@@ -11,12 +11,12 @@ The official website of KCD Texas at kcdtexas.org: one permanent site that prese
 ## Rules
 
 - **Pushing = announcing (ADR 0009).** The repository is public, and branches, pull requests, previews and CI logs are public too. Never push anything the Organizers haven't announced: dates, venue, sponsors, speakers, prices or targets.
-- **Program data only through `src/lib/program.ts`.** It applies the field allowlist and the `speakersPublic` / `schedulePublic` gates at fetch time. Nothing else reads Sessionize. Pull request builds use test data with the gates closed. No real program data goes in CI logs, artifacts or caches.
+- **Program data only through `src/lib/program.ts`.** It applies the field allowlist and the `speakersPublic` / `schedulePublic` gates at fetch time. Nothing else reads the program platform (Pretalx, or the CSV fallback). Pull request builds use test data with the gates closed. No real program data goes in CI logs, artifacts or caches.
 - **Zero data (ADR 0007).** No cookies and no forms on our domain. Download images, fonts and thumbnails at build time. Videos load only on click through our nocookie facade. Cloudflare Web Analytics, behind a switch, is the only exception (ADR 0013).
 - **Verified numbers only.** Attendance means checked-in Attendees, never Registrations. Every figure needs a public source, and survey figures are labeled as survey figures.
 - **English only** for now. **Central time** (America/Chicago) everywhere.
 - **Public copy workflow:** Claude drafts the text and runs the delete-ai-words / red-pen pass, and the user skims it. It goes live without waiting for a Committee's sign-off: anyone who disagrees tells the Organizers, and the next release fixes it.
-- **No secrets in git.** Sessionize endpoint IDs, deploy hooks and analytics settings belong in host environment variables or the `production` GitHub environment, which is limited to `main`.
+- **No secrets in git.** The program CSV's address, deploy hooks and analytics settings belong in host environment variables or the `production` GitHub environment, which is limited to `main`. Pretalx's public API needs no key.
 - **`docs/research/` is private and git-ignored.** Never commit it, and never quote it as fact without checking a primary source. `docs/research/past-editions.md` is the only source for published numbers.
 - **Licensing:**
   - Code: Apache-2.0.
