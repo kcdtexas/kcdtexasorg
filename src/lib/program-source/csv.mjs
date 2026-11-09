@@ -1,4 +1,4 @@
-// The CSV fallback, for a program platform that isn't Sessionize or has no API: one CSV file, read from
+// The CSV fallback, for a program that isn't on Pretalx, or a platform with no API: one CSV file, read from
 // PROGRAM_CSV_URL, in the format docs/program-csv.md describes. Each row is a speaker, a session or a break
 // (the "type" column); columns the format doesn't name are ignored. Errors name a row and a column, never a value
 // or an id: the ids are the Organizers' own, and the refresh check's log is public. Each record carries its row as

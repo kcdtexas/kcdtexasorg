@@ -11,13 +11,13 @@
 //       Prints exactly "changed" or "unchanged" on stdout, and nothing else: no program data, no hash. When
 //       GITHUB_OUTPUT is set, it also appends "changed=true" or "changed=false" to that file, and nothing else.
 //       - Both gates closed: "unchanged", and no platform call.
-//       - A gate open: reads the platform as a production build does (src/lib/program-source/platform.mjs):
-//         Sessionize when SESSIONIZE_ENDPOINT_ID is set, else the CSV at PROGRAM_CSV_URL. It computes the program
-//         version with those gates, then compares it with the live https://kcdtexas.org/2027/program-version.txt.
-//         A missing or unreadable live file counts as "changed".
-//       - Exit 0 after printing. On a failure (no variable set, a failed fetch, data that doesn't validate) it
-//         prints a redacted message on stderr, nothing on stdout, writes no output, and exits 1.
-//   Tests only: KCD_PROGRAM_TEST_BASE (the Sessionize base) and KCD_PROGRAM_LIVE_URL (the live file) may name a
+//       - A gate open: reads the platform as a production build does (src/lib/program-source/platform.mjs): the
+//         CSV at PROGRAM_CSV_URL when it's set, else Pretalx's public API. It computes the program version with
+//         those gates, then compares it with the live https://kcdtexas.org/2027/program-version.txt. A missing or
+//         unreadable live file counts as "changed".
+//       - Exit 0 after printing. On a failure (a failed fetch, a schedule Pretalx hasn't released, data that
+//         doesn't validate) it prints a redacted message on stderr, nothing on stdout, writes no output, and exits 1.
+//   Tests only: KCD_PROGRAM_TEST_BASE (Pretalx's API base) and KCD_PROGRAM_LIVE_URL (the live file) may name a
 //   server on this machine; both are refused on Cloudflare Pages, Netlify and in GitHub Actions.
 import { appendFileSync } from 'node:fs';
 import { importTs } from './lib/import-ts.mjs';

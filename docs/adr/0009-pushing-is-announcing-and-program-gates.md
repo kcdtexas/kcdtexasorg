@@ -1,5 +1,7 @@
 # Pushing is announcing, and the program is gated
 
+> Updated by [ADR 0014](0014-pretalx-is-the-program-platform.md): the program comes from Pretalx's public API, not Sessionize. Pretalx shows the program only after a schedule release, but the gates, the allowlist and the planted marker stay as this ADR says.
+
 The repository is public. Anything pushed to it is public at once, including branches, pull requests, deploy previews and CI logs. So only facts the Organizers have announced go into git.
 
 Program data needs a separate guard. Accepted Sessions appear in the Sessionize API as soon as speakers are notified, which can be weeks before the Organizers announce them. Two flags on each Edition, `speakersPublic` and `schedulePublic`, are flipped by the pull request that makes each announcement. `src/lib/program.ts` is the only code that reads program data. It applies a field allowlist and the gates at fetch time, before anything is written, cached or hashed.

@@ -113,6 +113,8 @@
   /* Relative, as the photo is (for its initials): later in the page's order, the tab paints over it. */
   .spk-head > .credit { position: relative; align-self: end; justify-self: start; border-color: var(--photo-tab-fg); background: var(--photo-tab); color: var(--photo-tab-fg); }
   .spk-links { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 12px; font-weight: 700; }
+  /* A bio keeps its line breaks, like a Session's abstract. */
+  .spk-bio { white-space: pre-line; }
 
   /* A Session's page. */
   .ses-page .badges { margin-bottom: 12px; }

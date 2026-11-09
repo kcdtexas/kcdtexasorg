@@ -151,8 +151,8 @@ function loadedUrls(html) {
  * --program-sample test build's. Closed, nothing of the program ships. A gate open builds the Speakers and the
  * program version; `speakersPublic` alone shows no time, room, calendar file or Event Day page, and the Schedule's
  * gate builds them. Outside a production build (deploy previews, branch deploys, local builds), an open gate shows
- * the test program, labeled "Sample": scripts/build.sh keeps the platform's variables from the build, and the test
- * program has no Speaker photos to download.
+ * the test program, labeled "Sample": scripts/build.sh keeps PROGRAM_CSV_URL from the build, the test program reads
+ * no platform, and it has no Speaker photos to download.
  */
 function programGates({ edition2027 }, walk) {
   const failures = [];
@@ -181,9 +181,7 @@ function programGates({ edition2027 }, walk) {
 
   // The preview rule.
   if (!isProductionBuild(process.env)) {
-    for (const v of ['SESSIONIZE_ENDPOINT_ID', 'PROGRAM_CSV_URL']) {
-      if (process.env[v] !== undefined) failures.push(`${v} reaches a build that isn't a production build (a ${buildKind(process.env)} build); scripts/build.sh unsets it there`);
-    }
+    if (process.env.PROGRAM_CSV_URL !== undefined) failures.push(`PROGRAM_CSV_URL reaches a build that isn't a production build (a ${buildKind(process.env)} build); scripts/build.sh unsets it there`);
     if (open) {
       if (!sample) failures.push('a program gate is open outside a production build, but the build has no test program (scripts/build.sh sets KCD_PROGRAM_SAMPLE)');
       if (!has(TEST_BUILD_MARKER)) failures.push(`a program gate is open outside a production build, but dist/${TEST_BUILD_MARKER} is missing`);

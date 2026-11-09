@@ -67,7 +67,7 @@ const linkName: Record<string, string> = { site: 'Website', linkedin: 'LinkedIn'
 
       <section class="page-sec" aria-labelledby="about-speaker">
         <h2 id="about-speaker" class="page-h2">{w.about}</h2>
-        {p.bio ? <p data-ugc>{p.bio}</p> : <p class="pg-none">{w.noBio}</p>}
+        {p.bio ? <p class="spk-bio" data-ugc>{p.bio}</p> : <p class="pg-none">{w.noBio}</p>}
         {p.links.length > 0 && (
           <ul class="spk-links" aria-label={w.links}>
             {p.links.map((l) => <li><a href={l.url} data-ugc-attrs>{linkName[l.kind]}</a></li>)}

@@ -1,5 +1,7 @@
 # Event Day fast-track publishing
 
+> Updated by [ADR 0014](0014-pretalx-is-the-program-platform.md): room and time changes now come from Pretalx, once a new schedule version is released there. The rest stands.
+
 On Event Day, 2 named Organizers on duty may publish announcement-only changes without a second approval. They come from a group of 3: a Maintainer, the Core Event Committee Moderator and the Session Committee Moderator. On every other day, every change needs a second Organizer's approval.
 
 Room and time changes don't need the fast-track. They come from Sessionize, which the Website checks every 5 minutes on Event Day.

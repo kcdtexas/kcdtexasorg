@@ -1,7 +1,7 @@
-// The program allowlist and the program version. A source (the test data, Sessionize, the CSV) hands over raw
+// The program allowlist and the program version. A source (the test data, Pretalx, the CSV) hands over raw
 // records; publicProgram() copies only the public fields, so anything else a platform sends (emails, phone
 // numbers, review notes, the planted marker) never reaches the model. The gates apply here too: with only
-// speakersPublic open, the times, rooms and breaks are dropped.
+// speakersPublic open, the times, rooms and breaks are dropped, and so are a Session's repeats.
 //
 // programVersion() hashes that public model, sorted, so the build (/2027/program-version.txt) and
 // scripts/program-check.mjs get the same value from the same data, and a new value means the pages change.
@@ -71,13 +71,16 @@ function allowBreak(b, i) {
 /**
  * The public program: the allowlisted fields, with the gates applied, and only the Speakers who have a Session.
  * With a gate open, an empty program fails: the Schedule's gate needs a Session, and the Speakers' gate a Speaker.
+ * A Session given more than once comes as one record per time, and each repeat names the first in `repeatOf`.
+ * Without the Schedule there's no time to tell them apart, so only the first is kept.
  * @param {{ speakers: readonly any[], sessions: readonly any[], rooms: readonly string[], breaks: readonly any[] }} src
  * @param {{ schedulePublic: boolean, speakersPublic?: boolean, photoAllowed?: (url: string) => boolean }} options
  * @returns {PublicProgram}
  */
 export function publicProgram(src, { schedulePublic, speakersPublic = true, photoAllowed = isHttps }) {
-  const sessions = src.sessions.map((r) => allowSession(r, schedulePublic));
-  const name = (i) => nameOf(src.sessions[i], `Session ${sessions[i].id}`);
+  const kept = schedulePublic ? src.sessions : src.sessions.filter((r) => !r.repeatOf);
+  const sessions = kept.map((r) => allowSession(r, schedulePublic));
+  const name = (i) => nameOf(kept[i], `Session ${sessions[i].id}`);
   const ids = new Set();
   sessions.forEach((s, i) => {
     if (ids.has(s.id)) throw new Error(`${name(i)}: the id is used twice`);
@@ -87,7 +90,7 @@ export function publicProgram(src, { schedulePublic, speakersPublic = true, phot
   const speakers = src.speakers.filter((r) => speaking.has(String(r.id))).map((r) => allowSpeaker(r, photoAllowed));
   sessions.forEach((s, i) => {
     const missing = s.speakerIds.filter((id) => !speakers.some((p) => p.id === id));
-    if (missing.length) throw new Error(`${name(i)}: unknown Speakers${typeof src.sessions[i].ref === 'string' ? '' : ` ${missing.join(', ')}`}`);
+    if (missing.length) throw new Error(`${name(i)}: unknown Speakers${typeof kept[i].ref === 'string' ? '' : ` ${missing.join(', ')}`}`);
   });
   // An empty program would build an empty Schedule or Speakers list, and the Schedule's calendar link would lead
   // nowhere: the platform, or its API settings, left the accepted Sessions out.

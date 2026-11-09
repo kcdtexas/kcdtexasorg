@@ -6,7 +6,7 @@ How the website runs on Event Day: posting announcements, checking the program r
 
 On Event Day, the two Organizers on duty, who are named in the team chat, may publish announcement-only changes without a second approval (ADR 0008's fast track). They come from a group of three: a Maintainer, the Core Event Committee Moderator and the Session Committee Moderator. Any other change needs a second Organizer's approval, as on every other day.
 
-Room and time changes don't need the fast track. They come from the program platform, which the site checks every 5 minutes (below).
+Room and time changes don't need the fast track. They come from Pretalx, which the site checks every 5 minutes (below).
 
 Safety and emergency messages never wait for the website. They go through the MC, Slack and signage.
 
@@ -51,7 +51,7 @@ If the build fails, the site keeps the last good version. The deployment's build
 
 ## The program refresh
 
-Room and time changes come from the program platform, not from this file. On Event Day, from 7 a.m. to 7 p.m. Central, the workflow "Rebuild on date changes" checks the program every 5 minutes and rebuilds only when it changed (`docs/rebuilds.md`).
+Room and time changes come from Pretalx, not from this file. In Pretalx's schedule editor, move the Session, then release a new schedule version: the change is public, and the site can read it, only after the release (`docs/pretalx.md`). On Event Day, from 7 a.m. to 7 p.m. Central, the workflow "Rebuild on date changes" checks the program every 5 minutes and rebuilds only when it changed (`docs/rebuilds.md`).
 
 **Check the runs:** on GitHub, open Actions, then "Rebuild on date changes". A run should appear every 5 minutes. Its program check prints "changed" or "unchanged". After "changed", a Pages production deployment of `main` starts, and the run waits until the live site has the change, for up to 10 minutes. Within 5 minutes of the last program deploy, a run doesn't check, and its log says from what time the next one can deploy.
 

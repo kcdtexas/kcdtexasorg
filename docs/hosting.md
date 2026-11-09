@@ -1,6 +1,6 @@
 # Hosting: Cloudflare Pages
 
-kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012). This page lists its settings, so whoever holds the account next can check them or set them up again. No secret goes here: hook addresses and the program platform's key live only in Cloudflare and in GitHub's `production` environment.
+kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012). This page lists its settings, so whoever holds the account next can check them or set them up again. No secret goes here: hook addresses, and the program CSV's address if there is one, live only in Cloudflare and in GitHub's `production` environment.
 
 ## The project's settings
 
@@ -15,12 +15,14 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Build command | `npm ci --ignore-scripts --no-audit --no-fund && bash scripts/build.sh --skip-install` | no dependency's install script runs in a production build |
 | Build output directory | `dist` | |
 | Variables, Production and Preview | `NODE_VERSION=22`, `ASTRO_TELEMETRY_DISABLED=1`, `SKIP_DEPENDENCY_INSTALL=1` | Astro needs Node 22.12 or newer; the build command installs the dependencies itself, without their install scripts |
-| Variables, Production only | `ANALYTICS=cloudflare` (ADR 0013); and `SESSIONIZE_ENDPOINT_ID` or `PROGRAM_CSV_URL`, as a secret, only shortly before the program goes public | ADR 0009, `docs/program-csv.md` |
+| Variables, Production only | `ANALYTICS=cloudflare` (ADR 0013). The program needs none: Pretalx's public API takes no key (ADR 0014). `PROGRAM_CSV_URL`, as a secret, only if the program comes from a CSV instead of Pretalx | ADR 0009, `docs/pretalx.md`, `docs/program-csv.md` |
 | Build cache | off | no program data in a cache |
 | Deploy hook | one, for `main`; its address is the secret `CLOUDFLARE_DEPLOY_HOOK` in GitHub's `production` environment | the scheduled rebuilds (`docs/rebuilds.md`) |
 | Web Analytics, the project's | off | the zone's covers kcdtexas.org (ADR 0013) |
 | Failure email | Notifications: a failed Pages deployment of `kcdtexas` emails organizers@kcdtexas.org | a failed build reaches a person |
 | Custom domain | `kcdtexas.org` | |
+
+Sessionize's old setting, `SESSIONIZE_ENDPOINT_ID`, can be deleted where it's left: from the project's variables and from GitHub's `production` environment. Nothing reads it since the program moved to Pretalx (ADR 0014).
 
 ## The zone's settings
 

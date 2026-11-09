@@ -9,7 +9,7 @@
 // A test build with --program-sample opens both on test data, and --program-sample=speakers only `speakersPublic`:
 // the made-up sample Schedule (src/data/program-sample-schedule.ts, in the 2026 Schedule's shape) and the made-up
 // fixture (src/data/program-fixture.ts). No real name reaches a test build. The pages label it "Sample".
-// Real data comes from Sessionize or the CSV fallback (src/lib/program-source/), read only in a production build
+// Real data comes from Pretalx or the CSV fallback (src/lib/program-source/, ADR 0014), read only in a production build
 // (src/lib/build-context.mjs) with a gate open; scripts/build.sh gives every other build with a gate open the test data.
 // Speaker photos are downloaded and resized at build time and served from /2027/speakers/ (ADR 0007), and the
 // public model's hash is published at /2027/program-version.txt for the refresh check (scripts/program-check.mjs).
@@ -119,6 +119,8 @@ interface Source {
   sessions: readonly RawSession[];
   rooms: readonly string[];
   breaks: readonly Break[];
+  /** Where the source's photos may come from, redirects included; without it, each stays on its own host. */
+  photoAllowed?: (url: string) => boolean;
 }
 
 // The test data: the made-up sample Schedule and the fixture. Their names are made up, so none may be a real
@@ -153,7 +155,7 @@ async function source(): Promise<Source> {
   if (programDataSample) return sample();
   const choice = chooseSource(edition2027.program, env);
   // scripts/build.sh builds every non-production build with a gate open on the test data (--program-sample).
-  if (choice.kind !== 'sessionize' && choice.kind !== 'csv') throw new Error('A program gate is open outside a production build: build with scripts/build.sh, which uses the test data there.');
+  if (choice.kind !== 'pretalx' && choice.kind !== 'csv') throw new Error('A program gate is open outside a production build: build with scripts/build.sh, which uses the test data there.');
   const raw = await readPlatform(choice, env);
   return raw;
 }
@@ -177,7 +179,7 @@ async function build(src: Source, open: { speakersPublic: boolean; schedulePubli
   // The photos, downloaded and resized now; a Speaker without one keeps the placeholder. An error names the Speaker
   // by the source's reference when it gives one (a CSV row: its ids stay out of the logs), else by place and id.
   const refs = new Map(src.speakers.map((r) => [String(r.id), typeof r.ref === 'string' ? r.ref : null]));
-  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: refs.get(s.id) ?? `Speaker ${i + 1} (${s.id})` }] : [])), env);
+  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: refs.get(s.id) ?? `Speaker ${i + 1} (${s.id})` }] : [])), env, src.photoAllowed);
   return {
     version,
     photos,
