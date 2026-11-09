@@ -24,6 +24,7 @@ import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/ce
 import { pretalx, userAgent } from '../src/lib/program-source/config.mjs';
 import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
+import { plainText } from '../src/lib/program-source/markdown.mjs';
 import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { buildKind, isProductionBuild } from '../src/lib/build-context.mjs';
@@ -202,6 +203,46 @@ try {
   expect(session('FXTLK3')?.abstract === 'A made-up talk with a description and no abstract.' && session('FXWRK4')?.abstract === null, 'a description alone, or empty texts, are wrong');
   const pasted = adaptPretalx(JSON.parse(fixtureText.replace('"description": "A made-up second paragraph,\\r\\nfrom the description field."', '"description": "A made-up keynote abstract for the adapter tests.\\r\\n"'))).sessions.find((s) => s.id === 'FXKEY1');
   expect(pasted?.abstract === 'A made-up keynote abstract for the adapter tests.', `the same text in the abstract and the description shows twice: ${JSON.stringify(pasted?.abstract)}`);
+  // Markdown as plain text: the marks go, the words and the line breaks stay, and nothing that only looks like a mark
+  // goes: an asterisk or an underscore inside a word or between spaces, code, a web address, an escaped character.
+  for (const [md, want] of [
+    ['**Bold**, __strong__, *em*, _em_ and ***both***.', 'Bold, strong, em, em and both.'],
+    ['5 * 3 = 15, 2*3*4, snake_case_name, 2**10 and 3**2', '5 * 3 = 15, 2*3*4, snake_case_name, 2**10 and 3**2'],
+    ['__init__ and **_mixed_** and _**mixed**_ and (*aside*)', 'init and mixed and mixed and (aside)'],
+    ['Use `kubectl get pods -l app=web*` and ``a ` b``.', 'Use kubectl get pods -l app=web* and a ` b.'],
+    ['`*args* and **kwargs**` in code, my_var_ and x*y* here', '*args* and **kwargs** in code, my_var_ and x*y* here'],
+    ['# Title\n## Sub ##\n#hashtag stays\n# C# and F#', 'Title\nSub\n#hashtag stays\nC# and F#'],
+    ['> quoted\n> > nested', 'quoted\nnested'],
+    ['- one\n* two\n+ three\n1. first\n2) second\n- [x] done\n  - nested', 'one\ntwo\nthree\nfirst\nsecond\ndone\nnested'],
+    ['[the docs](https://example.com/docs "Docs") and [ref][1] and [wiki](https://en.wikipedia.org/wiki/Foo_(bar))\n\n[1]: https://example.com/ref', 'the docs and ref and wiki'],
+    ['![diagram](https://example.com/d.png) ![](https://example.com/x.png)', 'diagram'],
+    ['<https://example.com/a_b_c> and <me@example.com> and <mailto:you@example.com>', 'https://example.com/a_b_c and me@example.com and you@example.com'],
+    ['Line<br>break and <b>bold</b> <span class="x">text</span> <!-- note -->\n<p>Para</p>after', 'Line\nbreak and bold text\nPara\nafter'],
+    ['\\*not emphasis\\* and \\_kept\\_ and \\[not a link\\](x)', '*not emphasis* and _kept_ and [not a link](x)'],
+    ['https://example.com/_path_/x?a=1&b=2 and see_also_this', 'https://example.com/_path_/x?a=1&b=2 and see_also_this'],
+    ['Para one.\n\n\n\nPara two.\n---\n\n* * *\nEnd\n===', 'Para one.\n\nPara two.\n\nEnd'],
+    ['```yaml\nkey: *anchor*\n# not a heading\n```\nAfter', 'key: *anchor*\n# not a heading\nAfter'],
+    ['x < y > z, 3<4 and 4>3', 'x < y > z, 3<4 and 4>3'],
+    ['Fish &amp; chips &lt;3 &#169; &#x1F600; &bogus;', 'Fish & chips <3 \u00a9 \u{1F600} &bogus;'],
+    ['[TBD] and {name} and ${HOME} stay, a TODO list too', '[TBD] and {name} and ${HOME} stay, a TODO list too'],
+    ['~~old~~ new', 'old new'],
+    ['Line one  \nLine two\r\nLine three', 'Line one\nLine two\nLine three'],
+    ['*not closed and _neither', '*not closed and _neither'],
+    ['email me: a_b@example.com, file_name.txt, __proto__ fields', 'email me: a_b@example.com, file_name.txt, proto fields'],
+    ['', ''],
+  ]) expect(plainText(md) === want, `plainText(${JSON.stringify(md)}) is ${JSON.stringify(plainText(md))}, not ${JSON.stringify(want)}`);
+  const marked = adaptPretalx(((d) => {
+    d.submissions[0].abstract = '**Opening** the day, with a [demo](https://example.com/demo).';
+    d.submissions[0].description = '- First, *why*\n- Then `how`';
+    d.submissions[1].abstract = '# Same text\n\nAgain.';
+    d.submissions[1].description = 'Same text\n\nAgain.';
+    d.submissions[1].title = 'A title with *stars* stays as written';
+    d.speakers[0].biography = '> Builds **platforms** at a made-up company.\n\n<b>Likes</b> snake_case.';
+    return d;
+  })(fixture()));
+  expect(marked.sessions[0].abstract === 'Opening the day, with a demo.\n\nFirst, why\nThen how' && marked.sessions[1].abstract === 'Same text\n\nAgain.'
+    && marked.sessions[1].title === 'A title with *stars* stays as written' && marked.speakers[0].bio === 'Builds platforms at a made-up company.\n\nLikes snake_case.',
+  `Markdown reaches the model, or a title loses its marks: ${JSON.stringify([marked.sessions[0].abstract, marked.sessions[1].abstract, marked.sessions[1].title, marked.speakers[0].bio])}`);
   expect(session('FXKEY1')?.level === 'Beginner' && session('FXEUS2')?.level === 'Intermediate' && session('FXTLK3')?.level === null, `the Level is not read by its option (${session('FXEUS2')?.level})`);
   expect(session('FXKEY1')?.recording === null, 'Pretalx gives no recording, but the Session has one');
   expect(speaker('a')?.name === 'Fixture Person A' && speaker('a')?.tagline === 'Platform Engineer, Fixture Company' && speaker('a')?.bio === 'Fixture Person A is made up for the adapter tests.', 'the name, tagline or bio is not mapped');

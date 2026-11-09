@@ -67,7 +67,7 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 
 Everything else Pretalx sends is dropped. A Session given more than once (scheduled in 2 slots) shows once for each time; while only `speakersPublic` is open, it shows once. A break with no title shows as "Break".
 
-Pretalx's texts are Markdown. The site shows them as plain text, with their line breaks.
+Pretalx's abstracts, descriptions and bios are Markdown. The site shows them as plain text with the marks removed (`src/lib/program-source/markdown.mjs`): emphasis and code marks, headings, and quote and list markers go; a link keeps its text, an image its alt text, an address in angle brackets the address; HTML tags go. Line breaks stay. An asterisk or an underscore that isn't emphasis stays as written, like in 5 * 3, 2*3*4 or snake_case, and so does anything in code or in a web address. Titles and job titles aren't Markdown in Pretalx, and stay as written.
 
 ## When the build fails
 

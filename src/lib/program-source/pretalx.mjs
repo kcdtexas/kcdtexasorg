@@ -27,11 +27,13 @@
 //   - Speaker photos are on pretalx.com, or on the event's custom domain when it has one, so a photo address anywhere
 //     else is dropped (remote.mjs);
 //   - the abstract and the description are two fields; the site shows them as one text, the abstract first, and
-//     once when they're the same.
+//     once when they're the same;
+//   - abstracts, descriptions and biographies are Markdown: the site shows them as plain text (markdown.mjs).
 // Only confirmed Sessions are read. Errors name a record by its list, position and code, never by its content.
 import { formatNames, pretalx, yes } from './config.mjs';
 import { toCentral } from './central.mjs';
 import { mapLinks } from './links.mjs';
+import { plainText } from './markdown.mjs';
 import { fetchBytes, pretalxBase, pretalxPhoto } from './remote.mjs';
 
 /** The lists the adapter reads. */
@@ -58,6 +60,9 @@ export function i18n(v) {
   for (const key of ['en', ...Object.keys(v).sort()]) if (isStr(v[key]) && clean(v[key])) return clean(v[key]);
   return null;
 }
+
+/** Markdown text as plain text, or null when nothing's left. */
+const prose = (v) => i18n(plainText(i18n(v) ?? ''));
 
 /** A label as the comparison sees it: lowercase, "&" as "and", and any run of other characters as one space. */
 const norm = (s) => String(s ?? '').normalize('NFKC').toLowerCase().replace(/&/g, ' and ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
@@ -229,7 +234,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
     const format = formatNames[type.toLowerCase()];
     if (!format) throw new Error(`${at}: its session type (${s.submission_type}) is not a known format (formatNames in src/lib/program-source/config.mjs)`);
     // The same text pasted into both fields shows once.
-    const texts = [...new Set([i18n(s.abstract), i18n(s.description)].filter(Boolean))];
+    const texts = [...new Set([prose(s.abstract), prose(s.description)].filter(Boolean))];
     const record = {
       id: s.code,
       title: i18n(s.title),
@@ -280,7 +285,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
     id: p.code,
     name: i18n(p.name),
     tagline: said(p, tagline)[0] ?? null,
-    bio: i18n(p.biography),
+    bio: prose(p.biography),
     photo: isStr(p.avatar_url) && p.avatar_url && photoAllowed(p.avatar_url, hosts) ? p.avatar_url : null,
     links: mapLinks(p.answers
       .filter((a) => byId.get(fieldOf(a))?.variant === 'url' && byId.get(fieldOf(a))?.target === 'speaker' && i18n(a.answer))
