@@ -788,6 +788,8 @@ try {
         expect(photos.join() === ['a', 'b', 'c'].flatMap((x) => [`fixture-person-${x}-large.webp`, `fixture-person-${x}-small.webp`]).join(), `photo files: ${photos.join()}`);
         const page = readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8');
         expect(/<img src="\/2027\/speakers\/fixture-person-a-large\.webp"/.test(page), 'the Speaker page does not load its photo from our domain');
+        // A bio keeps its line breaks, like an abstract.
+        expect(page.includes('<p class="spk-bio" data-ugc>Fixture Person A is made up for the adapter tests.</p>') && /\.spk-bio[^{]*\{[^}]*white-space:\s*pre-line/.test(readFileSync('dist/schedule.css', 'utf8')), 'a bio does not keep its line breaks');
         expect(page.includes('Platform Engineer, Fixture Company') && page.includes('https://github.com/fixture-person-a') && page.includes('https://fixture-a.example/'), 'the Speaker page lacks the job title or a link');
         expect(/<span>FD<\/span>|<span>FP<\/span>/.test(readFileSync('dist/2027/speakers/fixture-person-d/index.html', 'utf8')), 'a Speaker with no photo lacks the placeholder');
         expect((await sharp(readFileSync('dist/2027/speakers/fixture-person-a-small.webp')).metadata()).width === 160, 'the small photo is not 160 px');
@@ -857,7 +859,7 @@ try {
       if (b.status === 0) {
         const page = (path) => readFileSync(`dist/2027/${path}/index.html`, 'utf8');
         expect(page('sessions/fixture-keynote-opening-the-made-up-day').includes(`<p class="ses-abstract" data-ugc>${said}.</p>`)
-          && page('speakers/fixture-person-a').includes('<p data-ugc>Slides with the diagram: https://example.com/slides/diagram.png.')
+          && page('speakers/fixture-person-a').includes('<p class="spk-bio" data-ugc>Slides with the diagram: https://example.com/slides/diagram.png.')
           && page('speakers/fixture-person-b').includes('Sample TODO [TBD] ${HOME} {name}')
           && /Sample Apps and a TODO List \[TBD\] for \{name\}/.test(page('schedule')) && /TODO Room \[TBD\] \{name\}/.test(page('schedule')),
         'the production build does not show the Speakers\' and Organizers\' own words as they wrote them');
