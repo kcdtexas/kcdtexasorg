@@ -8,7 +8,7 @@ The site reads the program (Sessions, Speakers, the Schedule) from Pretalx (`doc
 
 The build downloads the file from the address in the host environment variable `PROGRAM_CSV_URL`. A published Google Sheet works: in Google Sheets, choose File, Share, Publish to web, the sheet, and "Comma-separated values (.csv)".
 
-- The address must be https.
+- The address must be https. It may redirect to another https address, as a published Google Sheet's does. The photos it names may be on any https host too.
 - Treat it as a secret, and never put it in git: anyone with the address can read the sheet. The next section says where it goes. The build never prints it, error messages included.
 - While it's set, the build reads the CSV instead of Pretalx.
 

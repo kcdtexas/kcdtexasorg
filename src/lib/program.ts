@@ -119,6 +119,8 @@ interface Source {
   sessions: readonly RawSession[];
   rooms: readonly string[];
   breaks: readonly Break[];
+  /** Where the source's photos may come from, redirects included; without it, each stays on its own host. */
+  photoAllowed?: (url: string) => boolean;
 }
 
 // The test data: the made-up sample Schedule and the fixture. Their names are made up, so none may be a real
@@ -177,7 +179,7 @@ async function build(src: Source, open: { speakersPublic: boolean; schedulePubli
   // The photos, downloaded and resized now; a Speaker without one keeps the placeholder. An error names the Speaker
   // by the source's reference when it gives one (a CSV row: its ids stay out of the logs), else by place and id.
   const refs = new Map(src.speakers.map((r) => [String(r.id), typeof r.ref === 'string' ? r.ref : null]));
-  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: refs.get(s.id) ?? `Speaker ${i + 1} (${s.id})` }] : [])), env);
+  const photos = await downloadPhotos(speakers.flatMap((s, i) => (s.photo ? [{ key: s.slug, url: s.photo, label: refs.get(s.id) ?? `Speaker ${i + 1} (${s.id})` }] : [])), env, src.photoAllowed);
   return {
     version,
     photos,

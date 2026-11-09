@@ -46,12 +46,13 @@ export function chooseSource(gates, env) {
 export async function readPlatform(choice, env) {
   try {
     if (choice.kind === 'pretalx') {
-      // Photos only from Pretalx's hosts; the CSV's may be on any https host.
+      // Photos only from Pretalx's hosts, redirects included; the CSV's may be on any https host.
       return adaptPretalx(await readPretalx(env), undefined, (url, hosts) => pretalxPhoto(url, env, hosts));
     }
     if (choice.kind === 'csv') {
+      // The address may redirect to any https address: a published Google Sheet does.
       const { body } = await fetchBytes(env.PROGRAM_CSV_URL ?? '', { env, what: 'The program CSV (PROGRAM_CSV_URL)', accept: 'text/csv, text/plain' });
-      return adaptCsv(body.toString('utf8'));
+      return { ...adaptCsv(body.toString('utf8')), photoAllowed: (url) => fetchable(url, env) };
     }
   } catch (e) {
     // A fresh error: no cause or stack from a fetch that could carry the address.

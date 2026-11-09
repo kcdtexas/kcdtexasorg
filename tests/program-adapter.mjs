@@ -61,6 +61,8 @@ const server = createServer((req, res) => {
   state.requests.push(req.url);
   state.agents.push(req.headers['user-agent'] ?? '');
   const send = (status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body); };
+  const redirect = (to) => { res.writeHead(302, { location: to }); res.end(); };
+  const elsewhere = origin.replace('127.0.0.1', 'localhost');
   const local = (s, from) => s.replaceAll(from, `${origin}/photos/`);
   const url = new URL(req.url, origin);
   if (url.pathname.startsWith(EVENT)) {
@@ -70,6 +72,9 @@ const server = createServer((req, res) => {
     // Until a schedule is released and public, Pretalx answers 401 for the program's lists; the event, its custom
     // fields and its session types stay public.
     if (state.mode === 'unreleased' && !['', 'questions', 'submission-types'].includes(name)) return send(401, 'application/json', '{"detail":"Authentication credentials were not provided."}');
+    // A redirect off the API's host is refused; one on it, like Pretalx's for a missing slash, is followed.
+    if (state.mode === 'apiaway' && req.headers.host?.startsWith('127.0.0.1')) return redirect(`${elsewhere}${req.url}`);
+    if (state.mode === 'apihere' && !url.searchParams.has('moved')) { const to = new URL(url); to.searchParams.set('moved', '1'); return redirect(to.href); }
     const data = JSON.parse(local(state.pretalx, AVATARS));
     if (name === '') return state.mode === 'noevent' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.event));
     if (name === 'schedules/latest') return state.mode === 'noschedule' ? send(404, 'application/json', '{"detail":"Not found."}') : send(200, 'application/json', JSON.stringify(data.schedule));
@@ -91,6 +96,14 @@ const server = createServer((req, res) => {
     return send(200, 'application/json', JSON.stringify({ count, next, previous: page > 1 ? at(page - 1) : null, results: lists[name].slice((page - 1) * size, page * size) }));
   }
   if (req.url === `/sheets/${CSV_SECRET}/program.csv`) return state.mode === '500' ? send(500, 'text/plain', 'down') : send(200, 'text/csv', local(state.csv, 'https://photos.fixture.invalid/'));
+  // Redirects: on this host, to another host, to plain http, in a loop, and to localhost (another origin), where the
+  // CSV goes too, as a published Google Sheet's address redirects.
+  if (req.url === '/redirect/here.jpg') return redirect('/photos/a.jpg');
+  if (req.url === '/redirect/away.jpg') return redirect('https://photos.fixture.invalid/a.jpg');
+  if (req.url === '/redirect/plain.jpg') return redirect('http://photos.fixture.invalid/a.jpg');
+  if (req.url === '/redirect/loop') return redirect('/redirect/loop');
+  if (req.url === '/redirect/localhost.jpg') return redirect(`${elsewhere}/photos/a.jpg`);
+  if (req.url === '/redirect/csv') return redirect(`${elsewhere}/sheets/${CSV_SECRET}/program.csv`);
   if (req.url === '/photos/text.jpg') return send(200, 'text/html', '<html>');
   if (req.url === '/photos/broken.jpg') return send(200, 'image/jpeg', 'not a jpeg');
   if (/^\/photos\/[a-z]\.jpg$/.test(req.url)) return send(200, 'image/jpeg', photo);
@@ -193,7 +206,7 @@ try {
   ]) expect(linkKind(url, hint) === kind, `linkKind(${url}, ${JSON.stringify(hint)}) is ${linkKind(url, hint)}, not ${kind}`);
   // One string, or one per language: English first, else the first language with text.
   expect(i18n('  Talk ') === 'Talk' && i18n({ de: 'Vortrag', en: 'Talk' }) === 'Talk' && i18n({ es: '', de: 'Vortrag' }) === 'Vortrag' && i18n({}) === null && i18n({ en: ' ' }) === null && i18n(null) === null && i18n('a\r\nb') === 'a\nb', 'i18n is wrong');
-  const plain = JSON.parse(fixtureText, (k, v) => (v && typeof v === 'object' && !Array.isArray(v) && typeof v.en === 'string' && Object.values(v).every((x) => typeof x === 'string') ? v.en : v));
+  const plain = JSON.parse(fixtureText, (_, v) => (v && typeof v === 'object' && !Array.isArray(v) && typeof v.en === 'string' && Object.values(v).every((x) => typeof x === 'string') ? v.en : v));
   expect(JSON.stringify(adaptPretalx(plain)) === JSON.stringify(raw), 'plain strings, as Pretalx sends them for ?lang=en, give another program');
 
   // The custom fields: by label, whatever its case, spaces and punctuation, or by identifier. A missing End-User Story
@@ -482,6 +495,15 @@ try {
   expect(JSON.stringify(paged) === JSON.stringify(live) && pages('submissions') === 4 && pages('slots') === 6 && pages('questions') === 5 && apiRequests().includes(`${EVENT}submissions/?expand=answers&page_size=50&page=4`), `reading 2 entries a page gives another program, or the wrong pages (${pages('submissions')} of submissions)`);
   const viaCsv = await readPlatform(chooseSource(both, prodCsv), prodCsv);
   expect(viaCsv.sessions.length === 3, 'readPlatform does not read the CSV');
+  // Each source's photo rule goes with its records, for the download: Pretalx's hosts, or any https address for the CSV.
+  expect(live.photoAllowed(`${origin}/photos/a.jpg`) && !live.photoAllowed('https://photos.fixture.invalid/a.jpg') && viaCsv.photoAllowed('https://photos.fixture.invalid/a.jpg'), 'a source\'s photo rule is wrong');
+  // Redirects: Pretalx's API on its own host only; the CSV anywhere https.
+  state.mode = 'apihere';
+  const redirected = await readPlatform(chooseSource(both, prodPretalx), prodPretalx);
+  state.mode = 'ok';
+  expect(JSON.stringify(redirected) === JSON.stringify(live), 'a redirect on the API\'s own host is not followed');
+  const csvMoved = { ...prodCsv, PROGRAM_CSV_URL: `${origin}/redirect/csv` };
+  expect((await readPlatform(chooseSource(both, csvMoved), csvMoved)).sessions.length === 3, 'a CSV address that redirects to another host is refused');
   // Failures: redacted, and each says what failed.
   const noServer = { ...prodPretalx, KCD_PROGRAM_TEST_BASE: 'http://127.0.0.1:9/api' };
   for (const [mode, env, pattern, pageMax = 50] of [
@@ -494,6 +516,7 @@ try {
     ['nexthost', prodPretalx, /Pretalx \(questions, page 1\): the next page is on another host/, 2],
     ['nextloop', prodPretalx, /Pretalx \(questions, page 1\): the next page is one already read/, 2],
     ['count', prodPretalx, /Pretalx \(questions\): it counted 10 entries but sent 9, so the list changed while it was read/],
+    ['apiaway', prodPretalx, /Pretalx \(the event kcd-texas-2027\): redirected to a host that isn't allowed/],
     ['ok', noServer, /Pretalx \(the event kcd-texas-2027\): the request failed/],
     ['500', prodCsv, /HTTP 500/],
   ]) {
@@ -510,6 +533,19 @@ try {
   const [small, large] = await Promise.all([sharp(pic.small).metadata(), sharp(pic.large).metadata()]);
   expect(small.format === 'webp' && small.width === 160 && small.height === 160 && large.width === 400 && large.height === 400, `the photo sizes are ${small.width}x${small.height} and ${large.width}x${large.height}`);
   expect(!small.exif && !large.exif, 'a photo keeps its metadata');
+  // Redirects. A photo stays on the host it starts at, unless its source's rule says where it may come from: Pretalx's
+  // refuses another host, the CSV's allows any https address. Plain http, a loop and a start outside the rule fail.
+  expect((await sharp((await downloadPhoto(`${origin}/redirect/here.jpg`, 'Speaker 8', {})).large).metadata()).width === 400, 'a photo redirected on its own host is not read');
+  await rejects(() => downloadPhoto(`${origin}/redirect/localhost.jpg`, 'Speaker 9', {}), (m) => m === "Speaker 9's photo: redirected to a host that isn't allowed", 'a photo redirected to another host, with no rule');
+  const pretalxRule = (u) => pretalxPhoto(u, {}, []);
+  await rejects(() => downloadPhoto(`${origin}/redirect/away.jpg`, 'Speaker 10', {}, pretalxRule), (m) => m === "Speaker 10's photo: redirected to a host that isn't allowed", 'a Pretalx photo redirected off Pretalx');
+  const anyHttps = (u) => fetchable(u, {});
+  expect((await sharp((await downloadPhoto(`${origin}/redirect/localhost.jpg`, 'Speaker 11', {}, anyHttps)).large).metadata()).width === 400, 'a CSV photo redirected to another host is refused');
+  await rejects(() => downloadPhoto(`${origin}/redirect/plain.jpg`, 'Speaker 12', {}, anyHttps), (m) => m === "Speaker 12's photo: redirected to an address that isn't https", 'a photo redirected to plain http');
+  state.requests.length = 0;
+  await rejects(() => downloadPhoto(`${origin}/redirect/loop`, 'Speaker 13', {}), (m) => m === "Speaker 13's photo: more than 5 redirects", 'a redirect loop');
+  expect(state.requests.length === 6, `a redirect loop made ${state.requests.length} requests, not 6`);
+  await rejects(() => downloadPhoto('https://photos.fixture.invalid/a.jpg', 'Speaker 14', {}, pretalxRule), (m) => m === "Speaker 14's photo: the address is on a host that isn't allowed", 'a Pretalx photo that starts off Pretalx');
   const fromPretalx = await downloadPhoto(`${origin}/photos/FXSPKA_fixture.webp`, 'Speaker 7', {});
   expect((await sharp(fromPretalx.large).metadata()).width === 400, 'a WebP photo, as Pretalx serves them, is not read');
   await rejects(() => downloadPhoto(`${origin}/photos/missing.png`, 'Speaker 2', {}), (m) => /Speaker 2's photo: the server answered HTTP 404/.test(m), 'a missing photo');

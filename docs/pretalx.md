@@ -63,7 +63,7 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 | A Speaker's name and bio | the name and the biography |
 | The line under the name | the "Job title and company" field |
 | Links | the Speaker's public URL fields. GitHub, LinkedIn, Bluesky, X and Mastodon are known by their address, or by the field's icon or label. Any other address in the website field is the Speaker's website. Only https addresses show. Pretalx and Sessionize profiles, Instagram and Facebook are dropped. |
-| The photo | the profile picture, downloaded at build time (ADR 0007), cropped square and saved as WebP, only from pretalx.com or the event's custom domain |
+| The photo | the profile picture, downloaded at build time (ADR 0007), cropped square and saved as WebP, only from pretalx.com or the event's custom domain, redirects included |
 
 Everything else Pretalx sends is dropped. A Session given more than once (scheduled in 2 slots) shows once for each time; while only `speakersPublic` is open, it shows once. A break with no title shows as "Break".
 
@@ -85,7 +85,9 @@ Pretalx's texts are Markdown. The site shows them as plain text, with their line
 
 The build reads these from `https://pretalx.com/api/events/kcd-texas-2027/`, 50 entries a page, and follows each list's `next` page on the same host: the event itself, `questions/?expand=options`, `submission-types/`, `rooms/`, `schedules/latest/`, `submissions/?expand=answers`, `speakers/?expand=answers` and `slots/?schedule=<id>`. That's 8 requests while every list fits on one page, plus one per photo.
 
-Pretalx keeps every released version of the schedule. The build takes the newest version's id from `schedules/latest/` and asks for that version's slots only. If a slot from another version comes back anyway, or a Session's slot is missing from the list, the build fails and says so. Every request names the site in its User-Agent, and no email address.
+Pretalx keeps every released version of the schedule. The build takes the newest version's id from `schedules/latest/` and asks for that version's slots only. If a slot from another version comes back anyway, or a Session's slot is missing from the list, the build fails and says so.
+
+The build follows a redirect only to the same kind of host: an API request stays on pretalx.com, and a photo stays on pretalx.com or the event's custom domain. A redirect anywhere else fails the build, and no request goes there. Every request names the site in its User-Agent, and no email address.
 
 The build reads the API's current version (Pretalx's API changelog: https://docs.pretalx.org/api/changelog/) and checks the shape of every response, so a change on Pretalx's side fails the build instead of showing wrong data.
 

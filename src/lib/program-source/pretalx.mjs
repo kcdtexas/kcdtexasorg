@@ -291,7 +291,8 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
       })),
   }));
 
-  return { speakers, sessions, rooms: rooms.map((r) => roomName.get(r.id)), breaks };
+  // The photo rule goes with the records, so the download holds redirects to it too (photos.mjs).
+  return { speakers, sessions, rooms: rooms.map((r) => roomName.get(r.id)), breaks, photoAllowed: (url) => photoAllowed(url, hosts) };
 }
 
 /** The host of the event's custom domain, as a host photos may come from, when it's an https address. */
@@ -308,11 +309,13 @@ function customDomain(event) {
 /** What a 401 or a 403 means, and a 404 for the released schedule. */
 const UNRELEASED = 'Pretalx publishes the Sessions, the Speakers and the rooms only once a schedule is released and public (docs/pretalx.md)';
 
-/** One response as JSON. A 401 or 403 means Pretalx doesn't publish it yet; `notFound` says what a 404 means. */
+/** One response as JSON, from the API's own host, redirects included. A 401 or 403 means Pretalx doesn't publish it
+ *  yet; `notFound` says what a 404 means. */
 async function getJson(url, env, what, { notFound = null } = {}) {
+  const origin = new URL(url).origin;
   let body;
   try {
-    ({ body } = await fetchBytes(url, { env, what, accept: 'application/json' }));
+    ({ body } = await fetchBytes(url, { env, what, accept: 'application/json', allowed: (to) => new URL(to).origin === origin }));
   } catch (e) {
     if (e?.status === 401 || e?.status === 403) throw new Error(`${e.message}: ${UNRELEASED}`);
     if (e?.status === 404 && notFound) throw new Error(`${e.message}: ${notFound}`);

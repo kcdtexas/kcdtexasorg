@@ -67,21 +67,48 @@ export function localTestUrl(name, env) {
 /** Pretalx's API base: the real one, or a local test server named by KCD_PROGRAM_TEST_BASE. */
 export const pretalxBase = (env) => localTestUrl('KCD_PROGRAM_TEST_BASE', env) ?? pretalx.base;
 
+/** The most redirects one request follows. */
+const MAX_REDIRECTS = 5;
+
+/**
+ * One request, following redirects by hand: every address on the way must be https (or a local test server where
+ * tests are allowed) and pass `allowed`, so no request goes to a host the reader may not use.
+ * @param {string} url
+ * @param {{ env: Record<string, string | undefined>, what: string, accept: string, timeoutMs: number, allowed: ((url: string) => boolean) | null }} options
+ */
+async function request(url, { env, what, accept, timeoutMs, allowed }) {
+  const signal = AbortSignal.timeout(timeoutMs);
+  let current = url;
+  for (let hops = 0; ; hops += 1) {
+    let res;
+    try {
+      res = await fetch(current, { redirect: 'manual', signal, headers: { accept, 'user-agent': userAgent } });
+    } catch (e) {
+      const code = e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'timed out' : 'network error');
+      throw new ProgramSourceError(`${what}: the request failed (${code})`, env);
+    }
+    const location = res.headers.get('location');
+    if (res.status < 300 || res.status > 399 || !location) return res;
+    await res.body?.cancel().catch(() => {});
+    if (hops === MAX_REDIRECTS) throw new ProgramSourceError(`${what}: more than ${MAX_REDIRECTS} redirects`, env);
+    let next = '';
+    try { next = new URL(location, current).href; } catch { /* not an address: refused below */ }
+    if (!fetchable(next, env)) throw new ProgramSourceError(`${what}: redirected to an address that isn't https`, env);
+    if (allowed && !allowed(next)) throw new ProgramSourceError(`${what}: redirected to a host that isn't allowed`, env);
+    current = next;
+  }
+}
+
 /**
  * Fetches an address and returns its body as a Buffer. `what` names the request in errors, never with the address.
+ * `allowed`, when given, decides which addresses the request may start at and be redirected to.
  * @param {string} url
- * @param {{ env: Record<string, string | undefined>, what: string, maxBytes?: number, accept?: string, timeoutMs?: number }} options
+ * @param {{ env: Record<string, string | undefined>, what: string, maxBytes?: number, accept?: string, timeoutMs?: number, allowed?: ((url: string) => boolean) | null }} options
  */
-export async function fetchBytes(url, { env, what, maxBytes = 20 * 1024 * 1024, accept = '*/*', timeoutMs = 30_000 }) {
+export async function fetchBytes(url, { env, what, maxBytes = 20 * 1024 * 1024, accept = '*/*', timeoutMs = 30_000, allowed = null }) {
   if (!fetchable(url, env)) throw new ProgramSourceError(`${what}: the address must be https`, env);
-  let res;
-  try {
-    res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(timeoutMs), headers: { accept, 'user-agent': userAgent } });
-  } catch (e) {
-    const code = e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'timed out' : 'network error');
-    throw new ProgramSourceError(`${what}: the request failed (${code})`, env);
-  }
-  if (res.url && !fetchable(res.url, env)) throw new ProgramSourceError(`${what}: redirected to an address that isn't https`, env);
+  if (allowed && !allowed(url)) throw new ProgramSourceError(`${what}: the address is on a host that isn't allowed`, env);
+  const res = await request(url, { env, what, accept, timeoutMs, allowed });
   if (!res.ok) {
     await res.body?.cancel().catch(() => {});
     throw new ProgramSourceError(`${what}: the server answered HTTP ${res.status}`, env, res.status);
