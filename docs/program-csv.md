@@ -46,6 +46,7 @@ Deploy previews run code from pull requests, so the value must never be availabl
 | `title` | session, break | The title |
 | `format` | session | `Keynote`, `Talk`, `Workshop` or `Panel` |
 | `end_user` | session | `yes` for an End-User Story; `no` or empty otherwise |
+| `level` | session | `Beginner`, `Intermediate` or `Advanced`, or empty for none. Any other value stops the build. |
 | `speakers` | session | The Speakers' ids, separated by `;` |
 | `start`, `end` | session, break | Central time, as `2027-04-23 09:30` (or `2027-04-23T09:30`) |
 | `room` | session, break | The room's name. Rooms show in the order they first appear. A break with no room spans every room. |
@@ -57,11 +58,11 @@ Times and rooms are needed only once `schedulePublic` is open. While only `speak
 ## An example
 
 ```csv
-type,id,title,name,format,end_user,speakers,start,end,room,tagline,links
-speaker,p1,,Fixture Person A,,,,,,,"Platform Engineer, Fixture Company",https://github.com/fixture-person-a
-speaker,p2,,Fixture Person B,,,,,,,Site Reliability Engineer,
-session,s1,Fixture Talk: An Example,,Talk,yes,p1;p2,2027-04-23 10:00,2027-04-23 10:30,Fixture Hall,,
-break,,Lunch,,,,,2027-04-23 12:00,2027-04-23 13:00,,,
+type,id,title,name,format,end_user,level,speakers,start,end,room,tagline,links
+speaker,p1,,Fixture Person A,,,,,,,,"Platform Engineer, Fixture Company",https://github.com/fixture-person-a
+speaker,p2,,Fixture Person B,,,,,,,,Site Reliability Engineer,
+session,s1,Fixture Talk: An Example,,Talk,yes,Intermediate,p1;p2,2027-04-23 10:00,2027-04-23 10:30,Fixture Hall,,
+break,,Lunch,,,,,,2027-04-23 12:00,2027-04-23 13:00,,,
 ```
 
 ## Tests

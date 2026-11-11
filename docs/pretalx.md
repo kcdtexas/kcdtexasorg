@@ -35,9 +35,11 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
    | Is this an End-User Story? | Yes/No | proposal | the End-User Story label | the build fails |
    | Job title and company | Text | speaker | the line under the Speaker's name | the build fails |
    | Website or public profile, for example LinkedIn link | URL | speaker | a link on the Speaker's page | no website links |
-   | Level | Choose one | proposal | nothing yet: read, then dropped | nothing changes |
+   | Level | Choose one | proposal | the Level in the format's badge, and the Schedule's Level filter | no Session shows a Level |
 
    A field renamed beyond case and punctuation needs its new label added to `pretalx.fields`. Giving the field the identifier `end-user-story`, `job-title-and-company`, `website` or `level` in Pretalx works too.
+
+   The Level field's options are named Beginner, Intermediate and Advanced. A Session whose Level has another name shows no Level, and the build goes on. To show a renamed or new option, add its name to `levelNames` in the same file.
 2. **The session types** are named Talk, Workshop or Keynote. Another name needs a line in `formatNames` in the same file, or the build fails and names the type by its id.
 3. **Each Session** is confirmed (by its Speaker, or marked confirmed by an Organizer) and placed in a room at a time.
 4. **The schedule** is released and public (in the schedule editor: Actions, then Make schedule public).
@@ -47,7 +49,7 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 
 - Times and rooms change on Pretalx's public schedule only with a new release. Move the Session in the schedule editor, then release a new version. The site picks it up with its next refresh: the next morning, or within about 5 minutes on Event Day (`docs/rebuilds.md`, `docs/event-day.md`).
 - A Session canceled in Pretalx stays in the released schedule, marked canceled, until the next release. The site drops it with its next refresh, without waiting for a new release, since it shows only confirmed Sessions.
-- The refresh compares everything the pages show, so an edited title, abstract, bio, photo or job title also comes through.
+- The refresh compares everything the pages show, so an edited title, abstract, bio, photo, job title or Level also comes through.
 
 ## What the site shows
 
@@ -57,6 +59,7 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 | A Session's text | the abstract, then the description, as one text (once, if both say the same) |
 | Its format | the session type: Talk, Workshop or Keynote (`formatNames`) |
 | The End-User Story label | the End-User Story field, answered Yes |
+| Its Level, in the format's badge ("TALK \| BEGINNER") | the Level field's option: Beginner, Intermediate or Advanced. The Session page and the Schedule show it; a Speaker's page doesn't. |
 | Its Speakers, in order | the Session's speakers |
 | Its time and room | its slot in the released schedule, in Central time |
 | Breaks | the schedule's breaks, once each: across all rooms when a break is in every room that has Sessions, else with the names of its rooms |
@@ -64,6 +67,8 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 | The line under the name | the "Job title and company" field |
 | Links | the Speaker's public URL fields. GitHub, LinkedIn, Bluesky, X and Mastodon are known by their address, or by the field's icon or label. Any other address in the website field is the Speaker's website. Only https addresses show. Pretalx and Sessionize profiles, Instagram and Facebook are dropped. |
 | The photo | the profile picture, downloaded at build time (ADR 0007), cropped square and saved as WebP, only from pretalx.com or the event's custom domain, redirects included |
+
+The Schedule's Level filter offers the Levels the Sessions have. A Session with no Level, such as a keynote, shows only while no Level is ticked.
 
 Everything else Pretalx sends is dropped. A Session given more than once (scheduled in 2 slots) shows once for each time; while only `speakersPublic` is open, it shows once. A break with no title shows as "Break".
 
