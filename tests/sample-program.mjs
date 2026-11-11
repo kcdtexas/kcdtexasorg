@@ -32,8 +32,13 @@ const unique = (list) => [...new Set(list.filter(Boolean))];
 
 /** Every Edition's records in src/data/, loaded through Vite as the build loads them. */
 export async function realRecords() {
-  const vite = await createServer({ configFile: false, logLevel: 'silent', appType: 'custom', server: { middlewareMode: true, ws: false, watch: null }, optimizeDeps: { noDiscovery: true, include: [] } });
+  // Vite's dev server sets NODE_ENV to "development" in this process when it isn't set, and leaves it set. Every build
+  // the process starts afterwards would inherit it (tests/run-time-machine.mjs and tests/run-program.mjs build after
+  // this), and `astro build` keeps an inherited NODE_ENV: a development build. So it goes back to what it was.
+  const nodeEnv = process.env.NODE_ENV;
+  let vite;
   try {
+    vite = await createServer({ configFile: false, logLevel: 'silent', appType: 'custom', server: { middlewareMode: true, ws: false, watch: null }, optimizeDeps: { noDiscovery: true, include: [] } });
     const load = (file) => vite.ssrLoadModule(`/src/data/${file}.ts`);
     const [h2024, h2025, h2026, h2027] = await Promise.all(['2024', '2025', '2026', '2027'].map((y) => load(`history/${y}`).then((m) => m.default)));
     const { sessions2024, hosts2024 } = await load('program-2024');
@@ -75,7 +80,9 @@ export async function realRecords() {
       ]),
     };
   } finally {
-    await vite.close();
+    await vite?.close();
+    if (nodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = nodeEnv;
   }
 }
 
