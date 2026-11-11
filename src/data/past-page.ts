@@ -20,8 +20,8 @@ export interface PastPage {
   lead: string;
   facts: readonly { term: string; text: string }[];
   factsSources: readonly Link[];
-  /** A day at the Edition in three timed photos, after the figures, with the photographer's credit. `widths`: the
-   *  sizes each photo is offered in, never wider than its file. */
+  /** A day at the Edition in three timed photos, after the figures, with their credit (the photographer's, or the
+   *  team's). `widths`: the sizes each photo is offered in, never wider than its file. */
   day?: { title: string; photos: readonly DayPhoto[]; credit: string; widths: number[] };
   /** `photos`: a stage photo of each keynote's Speaker, by name, from src/assets/keynotes/, and `photoCredit` names
    *  the photographer. The keynotes show photos, as on /2026/, only when every one has a photo. */
