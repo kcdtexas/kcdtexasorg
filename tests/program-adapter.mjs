@@ -824,6 +824,22 @@ try {
         const schedule = readFileSync('dist/2027/schedule/index.html', 'utf8');
         expect(/Fixture Sponsor Callout/.test(schedule) && /Fixture Talk: Everyone on Stage/.test(schedule) && !/Rejected|Not Confirmed/.test(schedule), 'the Schedule lacks a break or a Session, or shows one that isn\'t confirmed');
         expect(/<li class="sch-item" data-id="FXEUS2"[^>]*data-eu="1"/.test(schedule) && /<li class="sch-item" data-id="FXKEY1"[^>]*data-eu="0"/.test(schedule), 'the Schedule does not mark the End-User Story, or marks another Session');
+        // The Level, by the field's option, in the format's badge on the Schedule and on a Session page, a keynote's
+        // too. None for the option the site doesn't know (the marker's), nor without an answer; none on a Speaker's page.
+        const levelBadge = (format, name) => {
+          const word = `${format[0].toUpperCase()}${format.slice(1)}`;
+          return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level">${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
+        };
+        // An empty data-level is written bare (data-level); a missing one shows as "missing".
+        const levels = ['FXKEY1', 'FXEUS2', 'FXTLK3', 'FXWRK4', 'FXALL5'].map((id) => {
+          const m = schedule.match(new RegExp(`<li class="sch-item" data-id="${id}"[^>]* data-level(?:="([a-z]*)")?(?=[\\s>])`));
+          return m ? m[1] ?? '' : 'missing';
+        });
+        expect(levels.join() === 'beginner,intermediate,,,', `the Schedule's Levels are ${levels.join()}, not beginner, intermediate and none`);
+        expect(schedule.includes(levelBadge('keynote', 'Beginner')) && schedule.includes(levelBadge('talk', 'Intermediate')) && (schedule.match(/class="badge-level"/g) ?? []).length === 2, 'the Schedule\'s Level badges are wrong');
+        expect(readFileSync('dist/2027/sessions/fixture-talk-an-end-user-story/index.html', 'utf8').includes(levelBadge('talk', 'Intermediate')), 'the End-User Story\'s page lacks "TALK | INTERMEDIATE"');
+        expect(!readFileSync('dist/2027/sessions/fixture-workshop-two-people-fifty-minutes/index.html', 'utf8').includes('badge-level'), 'a Session page shows a Level the site doesn\'t know');
+        for (const p of speakers) expect(!/badge-level|data-level/.test(readFileSync(`dist/2027/speakers/${p}/index.html`, 'utf8')), `dist/2027/speakers/${p}: shows a Level`);
         expect(readFileSync('dist/2027/sessions/fixture-keynote-opening-the-made-up-day/index.html', 'utf8').includes('A made-up keynote abstract for the adapter tests.\n\nA made-up second paragraph,\nfrom the description field.'), 'the Session page does not show the abstract and the description');
       }
 

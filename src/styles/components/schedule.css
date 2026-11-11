@@ -6,11 +6,13 @@
 @layer properties, theme, base, components, program, utilities;
 
 @layer program {
-  /* The badges: the format in ink, an End-User Story in gold. */
+  /* The badges: the format in ink, an End-User Story in gold. The Session's Level sits in the format's badge, after
+     a rule that runs the badge's full height, in regular weight: "TALK | BEGINNER" (Badges.astro). */
   .badges { display: flex; flex-wrap: wrap; gap: 6px; }
   .badge { padding: 2px 7px; border: 1px solid var(--fg); font-weight: 700; font-size: 12px; line-height: 1.4; letter-spacing: 0.08em; text-transform: uppercase; }
   .badge--keynote { background: var(--fg); color: var(--bg); }
   .badge--eu { background: var(--signal); border-color: var(--signal-edge, var(--signal)); color: var(--on-signal); }
+  .badge-level { display: inline-block; margin: -2px 0 -2px 7px; padding: 2px 0 2px 7px; border-left: 1px solid currentColor; font-weight: 400; }
 
   /* Tap targets (tests/targets.mjs): the program's links that stand alone are at least 44 px tall, with the --tap
      padding from base.css. An inline link's padding leaves its line as it is; a block one gives the space back with

@@ -55,7 +55,7 @@ const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
             <span class="sch-meta"><span class="sch-time">{timeRange(b.start, b.end)}</span>{b.room && <span class="sch-room" data-ugc>{b.room}</span>}</span>
           </li>
         ))}
-        {slot.sessions.map((s) => <SessionItem session={s} />)}
+        {slot.sessions.map((s) => <SessionItem session={s} withLevel />)}
       </ul>
     </section>
   ))}

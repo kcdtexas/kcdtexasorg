@@ -75,6 +75,13 @@ process.on('exit', () => writeFileSync(ANNOUNCEMENTS, announcementsText));
 // Fields the allowlist drops, from the fixture: none may reach a served file.
 const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/track'];
 
+/** A format's badge with the Session's Level, as Badges.astro writes it: "TALK | INTERMEDIATE" to see, and one
+ *  phrase for screen readers, "Talk, Level: Intermediate". */
+const levelBadge = (format, name) => {
+  const word = `${format[0].toUpperCase()}${format.slice(1)}`;
+  return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level">${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
+};
+
 /** A loyalty credit's words as a screen reader hears them: the tab's, then the hidden role. */
 const CREDIT = /<span class="credit">([^<]+)<span class="sr-only">([^<]+)<\/span><\/span>/;
 const creditWords = (html) => html.match(CREDIT)?.slice(1).join('') ?? null;
@@ -224,6 +231,25 @@ try {
   }
   // The End-User Story badge, the formats, and the share cards.
   expect(/badge--eu/.test(schedule) && /badge--workshop/.test(schedule) && /badge--panel/.test(schedule), 'the Schedule lacks the End-User Story, workshop or panel badge');
+  // The Level, in the format's badge after a rule ("TALK | INTERMEDIATE", which screen readers hear as "Talk, Level:
+  // Intermediate"): on the Schedule, with data-level for its filter, and on the Session pages. Every Level of the sample
+  // shows; a keynote has none, nor has the fixture's Session whose Level the site doesn't know (the planted marker).
+  // A Speaker's page lists their Sessions without it.
+  {
+    const named = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+    // An empty data-level is written bare (data-level), as Astro writes an empty attribute.
+    const levelOf = (html) => { const m = html.match(/ data-level(?:="([a-z]*)")?(?=[\s>])/); return m ? m[1] ?? '' : undefined; };
+    const onSchedule = [...schedule.matchAll(/<li class="sch-item[\s\S]*?<\/li>/g)].map(([html]) => ({ html, level: levelOf(html), format: html.match(/ data-format="([a-z]+)"/)?.[1] }));
+    expect(onSchedule.every((x) => x.level === '' || Object.hasOwn(named, x.level ?? '-')), `a Session on the Schedule has no data-level, or one the site doesn't know: ${onSchedule.map((x) => x.level).join()}`);
+    expect(onSchedule.every((x) => (x.level ? x.html.includes(levelBadge(x.format, named[x.level])) : !x.html.includes('badge-level'))), 'a Session on the Schedule shows a Level other than its data-level, or one with no Level shows a Level');
+    expect(Object.keys(named).every((l) => onSchedule.some((x) => x.level === l)) && onSchedule.filter((x) => x.format === 'keynote').every((x) => x.level === ''), 'the Schedule lacks a Level of the sample, or a keynote has one');
+    const page = (slug) => read(`2027/sessions/${slug}/index.html`);
+    expect(page('moving-a-freight-networks-dispatch-system-to-kubernetes-one-depo').includes(`<p class="badges">${levelBadge('talk', 'Intermediate')}<span class="badge badge--eu">End-User Story</span></p>`), 'the Intermediate End-User Story’s page lacks "TALK | INTERMEDIATE" before its gold badge');
+    expect(page('from-notebook-to-endpoint-packaging-scaling-and-monitoring-a-sma').includes(levelBadge('workshop', 'Advanced')), 'the Advanced workshop’s page lacks "WORKSHOP | ADVANCED"');
+    expect(page('five-small-wins-from-a-year-of-community-clusters').includes('<p class="badges"><span class="badge badge--keynote">Keynote</span></p>'), 'a keynote with no Level shows one');
+    expect(page('fixture-session-a-returning-speakers-talk').includes('<p class="badges"><span class="badge badge--talk">Talk</span></p>'), 'the fixture’s Session with a Level the site doesn’t know shows one');
+    for (const p of speakerPages) expect(!/badge-level|data-level/.test(read(`2027/speakers/${p}/index.html`)), `2027/speakers/${p}: shows a Level`);
+  }
   for (const page of [`2027/sessions/${sessionPages[0]}/index.html`, '2027/speakers/fixture-speaker-4/index.html']) {
     const html = read(page);
     const card = html.match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
@@ -577,6 +603,10 @@ try {
     const sessionHtml = read(`2027/sessions/${fx}/index.html`);
     expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title" data-ugc>/.test(sessionHtml), `${fx}: no title or abstract`);
     expect(!/Time \(Central\)|<dt>Room<\/dt>|\.ics"/.test(sessionHtml), `${fx}: shows a time, a room or "Add to calendar"`);
+    expect(sessionHtml.includes(levelBadge('talk', 'Beginner')), `${fx}: lacks its Level, "TALK | BEGINNER", while only the Speakers are public`);
+    for (const p of readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory())) {
+      expect(!/badge-level|data-level/.test(read(`2027/speakers/${p}/index.html`)), `2027/speakers/${p}: shows a Level while only the Speakers are public`);
+    }
     // The Schedule page only says the Schedule comes out soon, so the kicker and the closing link go to the Speakers.
     expect(sessionHtml.includes('<p class="kicker"><a href="/2027/speakers/">KCD Texas 2027 Speakers</a></p>') && sessionHtml.includes('<p class="more"><a href="/2027/speakers/">See all the Speakers</a></p>')
       && !/<p class="(?:kicker|more)"><a href="\/2027\/schedule\/">/.test(sessionHtml), `${fx}: the kicker or the closing link goes to the Schedule while only the Speakers are public`);
