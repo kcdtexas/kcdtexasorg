@@ -7,6 +7,7 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Setting | Value | Why |
 |---|---|---|
 | Account | the Cloudflare account that holds the kcdtexas.org zone | Pages serves an apex domain only from the zone's own account |
+| Type | a Pages project, not a Worker | in Workers & Pages, "Create application" opens on Workers. A Pages project's setup screen asks for a "Build output directory" and has no "Deploy command" |
 | Project name | `kcdtexas`, so its address is `kcdtexas.pages.dev` | the noindex rule in `_headers` matches whatever `pages.dev` name the project gets |
 | Git integration | Cloudflare's GitHub app, limited to `kcdtexas/kcdtexasorg` | |
 | Production branch | `main` | ADR 0011 |
@@ -20,7 +21,9 @@ kcdtexas.org is a Cloudflare Pages project built from this repository (ADR 0012)
 | Deploy hook | one, for `main`; its address is the secret `CLOUDFLARE_DEPLOY_HOOK` in GitHub's `production` environment | the scheduled rebuilds (`docs/rebuilds.md`) |
 | Web Analytics, the project's | off | the zone's covers kcdtexas.org (ADR 0013) |
 | Failure email | Notifications: a failed Pages deployment of `kcdtexas` emails organizers@kcdtexas.org | a failed build reaches a person |
-| Custom domain | `kcdtexas.org` | |
+| Custom domain | `kcdtexas.org` | attaching it can remove the zone's old `www` record; check it afterwards (the zone's settings) |
+
+Variables are set per environment. On the project's Settings page, choose Production or Preview in the environment dropdown at the top, then add or change the variable. A change applies from the next build, not to deployments already made: in production, the next merge or deploy hook build (to build now, run the rebuild workflow with "Force a rebuild now", `docs/rebuilds.md`); for a preview, choose "Retry deployment" on its deployment.
 
 Sessionize's old setting, `SESSIONIZE_ENDPOINT_ID`, can be deleted where it's left: from the project's variables and from GitHub's `production` environment. Nothing reads it since the program moved to Pretalx (ADR 0014).
 
@@ -31,8 +34,9 @@ Sessionize's old setting, `SESSIONIZE_ENDPOINT_ID`, can be deleted where it's le
 | Email Address Obfuscation | off | it rewrites every email address on our pages, which then shows as "[email protected]" without JavaScript |
 | Web Analytics | on, with `ANALYTICS=cloudflare` in the project's Production variables | ADR 0013: the one script allowed from another origin; turn the zone's off before removing the variable |
 | Rocket Loader, Bot Fight Mode, Zaraz | off | they add scripts or cookies |
-| Always Use HTTPS | on | |
-| Redirect Rule | "Redirect from WWW to root": `www.kcdtexas.org` to `kcdtexas.org`, 301 | one address for the site |
+| Always Use HTTPS | on | the Redirect Rule's template matches https only; with this off, `http://www.kcdtexas.org` answered 522 |
+| Redirect Rule | "Redirect from WWW to root": `www.kcdtexas.org` to `kcdtexas.org`, 301 | one address for the site; it needs the `www` record and Always Use HTTPS |
+| `www` record | CNAME `www` to `kcdtexas.org`, proxied | the Redirect Rule runs only on proxied requests. Attaching the apex to Pages can remove an old `www` record |
 | Other records | MX and TXT for mail, `photos.kcdtexas.org` | leave them alone |
 
 To check the result from outside, run the smoke and browser tests against the live site (`node tests/smoke.mjs https://kcdtexas.org`, `node tests/browser.mjs https://kcdtexas.org`). They fail on a cookie, a script from another origin or a console error.
@@ -49,7 +53,33 @@ To check the result from outside, run the smoke and browser tests against the li
 
 1. On Cloudflare, open Workers & Pages, then `kcdtexas`, then Deployments.
 2. Find the last good production deployment, open its menu ("…") and choose "Rollback to this deployment". The site switches to it at once.
-3. Fix the cause on `main`. The next production build, from a merge or the deploy hook, replaces the rollback.
+3. Fix the cause on `main`, or in the project's variables, which apply from the next build. The next production build, from a merge or the deploy hook, replaces the rollback.
+
+## Troubleshooting
+
+**`www.kcdtexas.org` doesn't redirect, or answers 522.** Check the `www` record and Always Use HTTPS in the zone's settings (above). Attaching the apex to Pages can remove the `www` record. The Redirect Rule's template matches https only, so with Always Use HTTPS off, `http://www.kcdtexas.org` answers 522.
+
+**A variable change doesn't show.** It applies from the next build: see "The project's settings".
+
+**A Cloudflare check fails on every push to a branch other than `main`.** A deleted Worker can leave its Workers Builds trigger behind, and that trigger fails a GitHub check on every such push. The dashboard can't remove it; Cloudflare's API can:
+
+1. Create a user API token (My Profile, then API Tokens) with the account permission Workers Builds Configuration: Edit. Account API tokens don't work with this API.
+2. On GitHub, open the failing check's Details, which show its Build ID. The account ID is the first part of the dashboard's address after `dash.cloudflare.com/`.
+3. In a terminal, run these one line at a time, and copy `result.trigger.trigger_uuid` from the answer:
+   ```
+   read -rs TOKEN       # paste the token (it doesn't show), then Enter
+   read -r ACCOUNT_ID   # paste the account ID, then Enter
+   read -r BUILD_ID     # paste the Build ID, then Enter
+   curl -s -H "Authorization: Bearer $TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/builds/builds/$BUILD_ID"
+   ```
+4. Delete the trigger:
+   ```
+   read -r TRIGGER_ID   # paste the trigger_uuid, then Enter
+   curl -s -X DELETE -H "Authorization: Bearer $TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/builds/triggers/$TRIGGER_ID"
+   ```
+5. Delete the token.
+
+Never uninstall Cloudflare's GitHub app to stop the check: Pages builds through it too.
 
 ## Netlify, until it's shut down
 
