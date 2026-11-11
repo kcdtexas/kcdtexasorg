@@ -56,6 +56,10 @@ _Avoid_: Call for Speakers, call for papers, C4P
 One item in an Edition's program (a keynote, talk, workshop or panel), given by one or more Speakers.
 _Avoid_: Talk (when you mean any kind of Session), slot
 
+**Level**:
+The audience a Session is for, as its Speaker states it in the CFP: Beginner, Intermediate or Advanced. A Session can have none.
+_Avoid_: Difficulty, skill level, track
+
 **End-User Story**:
 A Session in which an End User shares how their own organization runs cloud native in production. The Schedule labels these Sessions publicly.
 _Avoid_: Case study (vendor case studies are marketing), customer story

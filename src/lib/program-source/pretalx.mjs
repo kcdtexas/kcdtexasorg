@@ -35,6 +35,7 @@ import { formatNames, pretalx, yes } from './config.mjs';
 import { toCentral } from './central.mjs';
 import { mapLinks } from './links.mjs';
 import { plainText } from './markdown.mjs';
+import { levelOf } from './model.mjs';
 import { fetchBytes, pretalxBase, pretalxPhoto } from './remote.mjs';
 
 /** The lists the adapter reads. */
@@ -242,6 +243,9 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
 
   const sessions = [];
   const confirmed = new Set();
+  // A Level option the site doesn't know shows no Level, and the build goes on (docs/pretalx.md). The log counts those
+  // Sessions and names their options by id only: an option's name, like a Speaker's own text, stays out of it.
+  const unknownLevel = { sessions: 0, options: new Set(), noOption: 0 };
   data.submissions.forEach((s, i) => {
     if (s.state !== undefined && s.state !== null && s.state !== 'confirmed') return;
     confirmed.add(s.code);
@@ -261,11 +265,17 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
       abstract: texts.join('\n\n') || null,
       format,
       endUser: said(s, endUser).some((t) => yes.includes(t.toLowerCase())),
-      // Read for later: no page shows it yet, so the allowlist drops it.
+      // The option's name; the allowlist (model.mjs) keeps the Levels the site knows (levelNames in config.mjs).
       level: said(s, level)[0] ?? null,
       speakers: [...s.speakers],
       recording: null,
     };
+    if (record.level !== null && levelOf(record.level) === null) {
+      unknownLevel.sessions += 1;
+      const ids = s.answers.filter((a) => level.has(fieldOf(a))).flatMap((a) => a.options ?? []);
+      if (ids.length) for (const id of ids) unknownLevel.options.add(id);
+      else unknownLevel.noOption += 1;
+    }
     const times = timed
       .filter(({ sl }) => sl.submission === s.code)
       .sort((a, b) => toCentral(a.sl.start).localeCompare(toCentral(b.sl.start)) || order(a.sl.room) - order(b.sl.room));
@@ -278,6 +288,15 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
       room: roomOf(sl, where),
     }));
   });
+
+  if (unknownLevel.sessions) {
+    const n = unknownLevel.sessions;
+    const which = [
+      unknownLevel.options.size ? `option ids: ${[...unknownLevel.options].sort((a, b) => a - b).join(', ')}` : '',
+      unknownLevel.noOption ? `${unknownLevel.noOption} answered with no option` : '',
+    ].filter(Boolean).join('; ');
+    console.warn(`Pretalx: ${n} Session${n === 1 ? ' has' : 's have'} a Level option the site doesn't know (${which}); ${n === 1 ? 'it shows' : 'they show'} no Level. Add the option's name to levelNames in src/lib/program-source/config.mjs (docs/pretalx.md).`);
+  }
 
   // Breaks. A break in several rooms comes once per room, and becomes one break: across every room when it's in each
   // room that has a Session, else named by its rooms, in their order ("Fixture Room B, Fixture Lobby").

@@ -23,12 +23,15 @@ import { sampleBreaks, sampleRooms, sampleSessions, sampleSpeakers } from '../da
 import { returningOrganizers } from '../data/returning-organizers';
 import { returningSpeakers } from '../data/returning-speakers';
 import { history, norm, speakerCredit, type Credit } from './loyalty';
-import { LINK_KINDS } from './program-source/model.mjs';
+import { LEVELS as SOURCE_LEVELS, LINK_KINDS } from './program-source/model.mjs';
 import { downloadPhotos } from './program-source/photos.mjs';
 import { chooseSource, publicModel, readPlatform } from './program-source/platform.mjs';
 
 export type Format = 'keynote' | 'talk' | 'workshop' | 'panel';
 export const FORMATS: readonly Format[] = ['keynote', 'talk', 'workshop', 'panel'];
+/** A Session's Level, from the easiest: Pretalx's "Level" field (src/lib/program-source/config.mjs). */
+export type Level = (typeof SOURCE_LEVELS)[number];
+export const LEVELS: readonly Level[] = SOURCE_LEVELS;
 
 /** A Speaker as a source hands it over. Fields outside the allowlist are dropped. */
 export interface RawSpeaker {
@@ -48,6 +51,8 @@ export interface RawSession {
   abstract?: string | null;
   format: string;
   endUser?: boolean;
+  /** The Level's name, as the platform writes it ("Intermediate"); the allowlist keeps only the ones it knows. */
+  level?: string | null;
   speakers: readonly string[];
   /** Central local time, 'YYYY-MM-DDTHH:MM'. */
   start?: string | null;
@@ -79,6 +84,8 @@ export interface Session {
   abstract: string | null;
   format: Format;
   endUser: boolean;
+  /** Null when the Session has none: the keynotes, as a rule. */
+  level: Level | null;
   speakerIds: string[];
   /** Central local time, 'YYYY-MM-DDTHH:MM'; null until the Schedule is public. */
   start: string | null;
@@ -164,7 +171,7 @@ interface Built { program: Program; version: string; photos: Map<string, { small
 
 async function build(src: Source, open: { speakersPublic: boolean; schedulePublic: boolean }): Promise<Built> {
   const { model, version } = publicModel(src, open, env);
-  const sessions = model.sessions.map((s) => ({ ...s, format: s.format as Format }));
+  const sessions = model.sessions.map((s) => ({ ...s, format: s.format as Format, level: s.level as Level | null }));
   const order = (s: Omit<Session, 'slug'>) => `${s.start ?? ''} ${String(model.rooms.indexOf(s.room ?? '')).padStart(3, '0')} ${s.title}`;
   sessions.sort((a, b) => order(a).localeCompare(order(b)));
   const takenSessions = new Set<string>();
@@ -215,6 +222,8 @@ export const speakerPhotos: ReadonlyMap<string, { small: Buffer; large: Buffer }
 export const speakersOf = (s: Session) => s.speakerIds.map((id) => program!.speakers.find((p) => p.id === id)!);
 export const sessionsOf = (p: Speaker) => program!.sessions.filter((s) => s.speakerIds.includes(p.id));
 export const formatName: Record<Format, string> = { keynote: 'Keynote', talk: 'Talk', workshop: 'Workshop', panel: 'Panel' };
+/** The Levels' names, as the 2027 call for proposals words its options. */
+export const levelName: Record<Level, string> = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
 
 /** "9:30 a.m." from 'YYYY-MM-DDTHH:MM'. */
 export function clock(t: string): string {

@@ -22,16 +22,22 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/central.mjs';
-import { pretalx, userAgent } from '../src/lib/program-source/config.mjs';
+import { levelNames, pretalx, userAgent } from '../src/lib/program-source/config.mjs';
 import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
 import { plainText } from '../src/lib/program-source/markdown.mjs';
-import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
+import { LEVELS, programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { buildKind, isProductionBuild } from '../src/lib/build-context.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
 import { adaptPretalx, i18n, validatePretalx } from '../src/lib/program-source/pretalx.mjs';
 import { fetchable, fetchBytes, pretalxBase, pretalxPhoto, redact } from '../src/lib/program-source/remote.mjs';
+
+// The fixture has a Level option the site doesn't know (the planted marker's), so each read of it logs a warning, as a
+// production build does. That warning has its own checks below; the rest of the run keeps it out of the output.
+const warnAll = console.warn;
+const UNKNOWN_LEVEL = /^Pretalx: \d+ Sessions? ha(?:s|ve) a Level option the site doesn't know/;
+console.warn = (m, ...rest) => { if (!UNKNOWN_LEVEL.test(String(m))) warnAll(m, ...rest); };
 
 const failures = [];
 let checks = 0;
@@ -390,7 +396,8 @@ try {
   }
   const [cutAbstract, cutBio] = [long.sessions.find((s) => s.id === 'FXKEY1').abstract, long.speakers[0].bio];
   expect(cutAbstract.length <= 20_001 && cutAbstract.length > 19_800 && /[a-z]\u2026$/.test(cutAbstract) && cutBio === `${'y'.repeat(20_000)}\u2026`, `a long text is not cut at a word with an ellipsis: ${cutAbstract.length}, ${cutBio.length}`);
-  expect(warnings.length === 2 && /the abstract of Session FXKEY1 has 35003 characters/.test(warnings[0]) && /the bio of Speaker FXSPKA has 25000 characters/.test(warnings[1]) && !warnings.join().includes('Planted') && !warnings.join().includes('yyy'),
+  const longs = warnings.filter((w) => !UNKNOWN_LEVEL.test(w));
+  expect(longs.length === 2 && /the abstract of Session FXKEY1 has 35003 characters/.test(longs[0]) && /the bio of Speaker FXSPKA has 25000 characters/.test(longs[1]) && !warnings.join().includes('Planted') && !warnings.join().includes('yyy'),
     `the log on a long text is wrong: ${warnings.join(' | ')}`);
 
   // Optional fields left out, and odd values: no error, and nothing made up.
@@ -417,7 +424,36 @@ try {
   ]) expect(String(value).includes(marker), `the fixture has no planted marker in ${field}`);
   const model = publicProgram(raw, { schedulePublic: true });
   expect(!JSON.stringify(model).includes(marker), 'the planted marker reaches the model');
-  expect(session('FXWRK4')?.level.includes(marker) && model.sessions.every((s) => !('level' in s)), 'the Level is not read, or reaches the model');
+  // The Level: the site's own name for a Level it knows, whatever the case and spaces; none for another name (the
+  // marker's option), for the Speaker's own text when the option is missing ("Intermedio"), or for a name every
+  // object has.
+  const levelIn = (m, id) => m.sessions.find((s) => s.id === id)?.level;
+  // levelNames: each name as the readers match it (lowercase, single spaces), to a Level the site has.
+  expect(Object.entries(levelNames).length >= 3 && Object.entries(levelNames).every(([name, l]) => name === name.trim().replace(/\s+/g, ' ').toLowerCase() && LEVELS.includes(l)),
+    `levelNames has a name that isn't lowercase, or a Level the site doesn't have: ${JSON.stringify(levelNames)}`);
+  // A Level option the site doesn't know: the log counts the Sessions and names the options by id, never by name or by
+  // a Speaker's own text, and the build goes on. Known options log nothing.
+  {
+    const said = [];
+    const quiet = console.warn;
+    console.warn = (m) => said.push(String(m));
+    try {
+      adaptPretalx(fixture());
+      adaptPretalx(broken((d) => { d.submissions[1].answers[1].options = null; }));
+      adaptPretalx(broken((d) => { d.submissions[3].answers[1].options = [7103]; }));
+    } finally {
+      console.warn = quiet;
+    }
+    expect(said.length === 2 && said[0] === "Pretalx: 1 Session has a Level option the site doesn't know (option ids: 7104); it shows no Level. Add the option's name to levelNames in src/lib/program-source/config.mjs (docs/pretalx.md)."
+      && said[1].startsWith("Pretalx: 2 Sessions have a Level option the site doesn't know (option ids: 7104; 1 answered with no option); they show no Level.")
+      && !said.join().includes(marker) && !/Expert|Intermedio/.test(said.join()), `the log on a Level the site doesn't know is wrong: ${said.join(' | ')}`);
+  }
+  expect(session('FXWRK4')?.level.includes(marker) && levelIn(model, 'FXKEY1') === 'beginner' && levelIn(model, 'FXEUS2') === 'intermediate' && levelIn(model, 'FXTLK3') === null && levelIn(model, 'FXWRK4') === null,
+    `the model's Levels are wrong: ${JSON.stringify(model.sessions.map((s) => [s.id, s.level]))}`);
+  const relabeled = (labels) => publicProgram({ ...raw, sessions: raw.sessions.map((s, i) => ({ ...s, level: labels[i] ?? null })) }, { schedulePublic: true }).sessions.map((s) => s.level).join();
+  expect(relabeled([' ADVANCED ', 'beginner', 'Intermediate', 'constructor', '__proto__']) === 'advanced,beginner,intermediate,,'
+    && relabeled([7, { en: 'Beginner' }, 'Expert', 'Inter mediate', '']) === ',,,,', `a Level name is matched wrongly: ${relabeled([' ADVANCED ', 'beginner', 'Intermediate', 'constructor', '__proto__'])}`);
+  expect(levelIn(publicProgram(adaptPretalx(broken((d) => { d.submissions[1].answers[1].options = null; })), { schedulePublic: true }), 'FXEUS2') === null, 'the Speaker\'s own text for a Level (no option) reaches the model');
   expect(model.speakers.length === 4 && !model.speakers.some((s) => s.name.includes('Person E')), 'a Speaker with no confirmed Session reaches the model');
   expect(model.rooms.join('|') === 'Fixture Hall|Fixture Room B', `the model's rooms are ${model.rooms.join('|')}`);
   expect(!JSON.stringify(model).includes('instagram') && !JSON.stringify(model).includes('gravatar') && !JSON.stringify(model).includes('slides.fixture'), 'a dropped link, photo or answer reaches the model');
@@ -436,6 +472,10 @@ try {
   const retitled = fixture();
   retitled.submissions[1].title += ' (updated)';
   expect(programVersion(publicProgram(adaptPretalx(retitled), { schedulePublic: true })) !== v, 'a new title keeps the program version');
+  // A Session's new Level comes through too (docs/pretalx.md): FXEUS2 from Intermediate to Advanced.
+  const releveled = fixture();
+  releveled.submissions[1].answers[1].options = [7103];
+  expect(programVersion(publicProgram(adaptPretalx(releveled), { schedulePublic: true })) !== v, 'a new Level keeps the program version');
   const moved = fixture();
   moved.slots[2].room = 102;
   expect(programVersion(publicProgram(adaptPretalx(moved), { schedulePublic: true })) !== v, 'a room change keeps the program version');
@@ -510,6 +550,7 @@ try {
   expect(csvModel.rooms.join('|') === 'Fixture Hall|Fixture Room B', 'the CSV rooms are not in order of first use');
   expect(csv.sessions[0].abstract === 'A made-up abstract, with a comma, "quotes" and\na second line.', 'a quoted CSV field is wrong');
   expect(csv.sessions[1].endUser && !csv.sessions[0].endUser && !csv.sessions[2].endUser && csv.sessions[2].format === 'panel', 'the CSV format or end_user is wrong');
+  expect(csvModel.sessions.map((s) => s.level).join() === ',intermediate,', `the CSV levels are ${csvModel.sessions.map((s) => s.level).join()}, not none, intermediate (" intermediate ") and none`);
   expect(csv.sessions[2].speakers.join() === 'p1,p2,p3' && csv.sessions[2].start === '2027-04-23T15:00', 'the CSV speakers or times are wrong');
   expect(csv.speakers[0].links.map((l) => l.kind).join() === 'github,site' && csv.speakers[1].links.map((l) => l.kind).join() === 'linkedin,bluesky', 'the CSV links are not mapped by host');
   expect(!JSON.stringify(csvModel).includes(marker), 'the planted marker reaches the CSV model');
@@ -523,6 +564,10 @@ try {
     ['a bad time', 'type,id,title,name,format,start\nsession,1,x,,talk,noon\n', /row 2, start/],
     ['an open quote', 'type,id,title,name\nspeaker,1,,"x\n', /never closed/],
   ]) await rejects(() => adaptCsv(text), (m) => pattern.test(m), `the CSV on ${what}`);
+  // A level the CSV doesn't know, or one every object has: named by its row, never by its value.
+  for (const value of ['Expert', 'constructor']) {
+    await rejects(() => adaptCsv(`type,id,title,name,format,level\nsession,1,x,,talk,${value}\n`), (m) => /row 2, level: not Beginner, Intermediate or Advanced/.test(m) && !m.includes(value), `the CSV on the level ${value}`);
+  }
   // Errors name the CSV's rows as the spreadsheet numbers them (empty rows count), never its ids: the refresh
   // check's log is public, and an id could be a name. The allowlist's errors on a CSV's records do too.
   expect(JSON.stringify(parseCsv('a\n\n,\nb\n', { keepEmpty: true })) === JSON.stringify([['a'], [''], ['', ''], ['b']]) && JSON.stringify(parseCsv('a\n\n,\nb\n')) === JSON.stringify([['a'], ['b']]), 'parseCsv keeps or drops empty rows wrongly');
@@ -812,6 +857,25 @@ try {
         const schedule = readFileSync('dist/2027/schedule/index.html', 'utf8');
         expect(/Fixture Sponsor Callout/.test(schedule) && /Fixture Talk: Everyone on Stage/.test(schedule) && !/Rejected|Not Confirmed/.test(schedule), 'the Schedule lacks a break or a Session, or shows one that isn\'t confirmed');
         expect(/<li class="sch-item" data-id="FXEUS2"[^>]*data-eu="1"/.test(schedule) && /<li class="sch-item" data-id="FXKEY1"[^>]*data-eu="0"/.test(schedule), 'the Schedule does not mark the End-User Story, or marks another Session');
+        // The Level, by the field's option, in the format's badge on the Schedule and on a Session page, a keynote's
+        // too. None for the option the site doesn't know (the marker's), nor without an answer; none on a Speaker's page.
+        const levelBadge = (format, name) => {
+          const word = `${format[0].toUpperCase()}${format.slice(1)}`;
+          return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level"> ${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
+        };
+        // An empty data-level is written bare (data-level); a missing one shows as "missing".
+        const levels = ['FXKEY1', 'FXEUS2', 'FXTLK3', 'FXWRK4', 'FXALL5'].map((id) => {
+          const m = schedule.match(new RegExp(`<li class="sch-item" data-id="${id}"[^>]* data-level(?:="([a-z]*)")?(?=[\\s>])`));
+          return m ? m[1] ?? '' : 'missing';
+        });
+        expect(levels.join() === 'beginner,intermediate,,,', `the Schedule's Levels are ${levels.join()}, not beginner, intermediate and none`);
+        expect(schedule.includes(levelBadge('keynote', 'Beginner')) && schedule.includes(levelBadge('talk', 'Intermediate')) && (schedule.match(/class="badge-level"/g) ?? []).length === 2, 'the Schedule\'s Level badges are wrong');
+        expect(readFileSync('dist/2027/sessions/fixture-talk-an-end-user-story/index.html', 'utf8').includes(levelBadge('talk', 'Intermediate')), 'the End-User Story\'s page lacks "TALK | INTERMEDIATE"');
+        expect(!readFileSync('dist/2027/sessions/fixture-workshop-two-people-fifty-minutes/index.html', 'utf8').includes('badge-level'), 'a Session page shows a Level the site doesn\'t know');
+        for (const p of speakers) expect(!/badge-level|data-level/.test(readFileSync(`dist/2027/speakers/${p}/index.html`, 'utf8')), `dist/2027/speakers/${p}: shows a Level`);
+        // The Level filter offers only the Levels the Sessions have: no Advanced here.
+        const chips = [...schedule.matchAll(/data-filter="level" value="([a-z]+)"/g)].map((m) => m[1]).join();
+        expect(chips === 'beginner,intermediate' && schedule.includes('<summary>Format, level and room</summary>'), `the Level filter offers ${chips || 'nothing'}, not Beginner and Intermediate`);
         expect(readFileSync('dist/2027/sessions/fixture-keynote-opening-the-made-up-day/index.html', 'utf8').includes('A made-up keynote abstract for the adapter tests.\n\nA made-up second paragraph,\nfrom the description field.'), 'the Session page does not show the abstract and the description');
       }
 
@@ -840,6 +904,9 @@ try {
         expect(cardOf('sessions/fixture-load-session-1') === 'session-fixture-load-session-1' && cardOf(`sessions/fixture-load-session-${budget + 1}`) === 'default' && cardOf('speakers/fixture-person-a') === 'default',
           `past the budget a page does not keep the title card: ${cardOf(`sessions/fixture-load-session-${budget + 1}`)}, ${cardOf('speakers/fixture-person-a')}`);
         expect(!/Download the Share Card/.test(readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8')), 'a Speaker past the budget offers a Share Card to download');
+        // Every Session here is Intermediate, so the Level filter offers that one Level.
+        const chips = [...readFileSync('dist/2027/schedule/index.html', 'utf8').matchAll(/data-filter="level" value="([a-z]+)"/g)].map((m) => m[1]).join();
+        expect(chips === 'intermediate', `with one Level, the Level filter offers ${chips || 'nothing'}`);
       }
 
       // The Speakers' and the Organizers' own words may hold what check-dist's draft-marker checks look for: an
@@ -853,6 +920,8 @@ try {
       words.speakers[0].biography = `Slides with the diagram: https://example.com/slides/diagram.png. ${said}.`;
       words.speakers[1].answers[0].answer = 'Sample TODO [TBD] ${HOME} {name}';
       words.rooms[1].name = { en: 'TODO Room [TBD] {name}' };
+      // And no Level field: no Session has a Level, so the Schedule has no Level filter.
+      words.questions = words.questions.filter((q) => q.id !== 7002);
       state.pretalx = JSON.stringify(words);
       b = await build(prodPretalx);
       expect(b.status === 0, `the production build fails on the Speakers' and Organizers' own words:\n${b.log.slice(-2500)}`);
@@ -863,6 +932,8 @@ try {
           && page('speakers/fixture-person-b').includes('Sample TODO [TBD] ${HOME} {name}')
           && /Sample Apps and a TODO List \[TBD\] for \{name\}/.test(page('schedule')) && /TODO Room \[TBD\] \{name\}/.test(page('schedule')),
         'the production build does not show the Speakers\' and Organizers\' own words as they wrote them');
+        const unleveled = page('schedule');
+        expect(!/data-filter="level"|badge-level|data-level="[a-z]/.test(unleveled) && unleveled.includes('<summary>Format and room</summary>'), 'with no Level field, the Schedule shows a Level or a Level filter');
       }
       // On Event Day, with an announcement in the same words. scripts/build.sh refuses --now and --clock in production,
       // so this runs its build steps itself, with the day and the time those flags would set.

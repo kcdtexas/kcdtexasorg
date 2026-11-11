@@ -4,8 +4,9 @@
 //
 // It copies the 2026 Schedule's shape (program-2026-schedule.ts), so the layout tests still bite: the same times,
 // rooms, formats and breaks; three keynotes, a workshop by two Speakers and one by three; two Speakers with no
-// tagline, two who share a surname, three-word names; three End-User Stories; and names, titles and taglines about as
-// long as the real ones, the longest included. Every name, title, company and tagline is made up. src/lib/program.ts
+// tagline, two who share a surname, three-word names; three End-User Stories; each Level, from Pretalx's "Level"
+// field, with the keynotes and one talk without one; and names, titles and taglines about as long as the real ones,
+// the longest included. Every name, title, company and tagline is made up. src/lib/program.ts
 // fails the build if a name here matches a real Speaker's, host's or Organizer's in src/data/, and
 // tests/sample-program.mjs checks the built pages for the real ones.
 import type { Break, RawSession, RawSpeaker } from '../lib/program';
@@ -45,37 +46,37 @@ export const sampleSpeakers: readonly RawSpeaker[] = [
   { id: 'sm-27', name: 'Saul Echeverri', tagline: 'Sotolbrooke · Founder and CEO · Community Organizer, Meetup Host and Occasional Podcast Guest.' },
 ];
 
-type Slot = [title: string, speakers: string[], start: string, end: string, room: string, format: RawSession['format'], endUser?: true];
+type Slot = [title: string, speakers: string[], start: string, end: string, room: string, format: RawSession['format'], level: 'Beginner' | 'Intermediate' | 'Advanced' | null, endUser?: true];
 
 const slots: Slot[] = [
-  ['Five Small Wins From a Year of Community Clusters', ['sm-1'], '09:15', '09:35', 'Room 1', 'keynote'],
-  ['What a Shared Platform Owes the Teams Who Use It', ['sm-2'], '09:35', '09:55', 'Room 1', 'keynote'],
-  ['Notes From the Night Shift', ['sm-3'], '09:55', '10:15', 'Room 1', 'keynote'],
-  ['Ask the Platform: Building a Self-Service Portal Your Developers Actually Open', ['sm-4'], '10:30', '10:55', 'Room 1', 'talk'],
-  ['Who Signed This Image? Tracing Artifacts Back to Source', ['sm-5'], '10:30', '10:55', 'Room 2', 'talk'],
-  ['The Two-Hour Platform Sprint: Start From an Empty Cluster, Add Guardrails One by One, and Ship a Working Service.', ['sm-6'], '10:30', '12:00', 'Room 3', 'workshop'],
-  ['One Scheduler for Everything: Running Batch Jobs, Services and Experiments Side by Side', ['sm-7'], '11:10', '11:35', 'Room 1', 'talk'],
-  ['Moving a Freight Network’s Dispatch System to Kubernetes, One Depot at a Time', ['sm-8'], '11:10', '11:35', 'Room 2', 'talk', true],
-  ['Smaller Prompts, Fewer Pages: Writing Runbooks People Read', ['sm-9'], '11:50', '12:15', 'Room 1', 'talk'],
-  ['Release Trains Without the Drama: What We Changed After Fifty Rollbacks', ['sm-10'], '11:50', '12:15', 'Room 2', 'talk'],
-  ['Moving Nightly Batch Jobs to Event-Driven Pipelines Without Losing a Single Record', ['sm-11'], '13:15', '13:40', 'Room 1', 'talk'],
-  ['Quotas, Queues and Fair Shares: Splitting a Small Cluster Between Many Teams', ['sm-12'], '13:15', '13:40', 'Room 2', 'talk'],
-  ['Hands-On Network Policies: Locking Down a Demo App', ['sm-13', 'sm-14'], '13:15', '14:45', 'Room 3', 'workshop'],
-  ['Serving Models Close to the Data: Caching, Batching and Cold Starts in Practice', ['sm-15'], '13:55', '14:20', 'Room 1', 'talk'],
-  ['Filesystems for People Who Run Containers', ['sm-16'], '13:55', '14:20', 'Room 2', 'talk'],
-  ['Our Storage Bill Doubled in a Quarter: What We Measured and What We Cut', ['sm-17'], '14:35', '15:00', 'Room 1', 'talk', true],
-  ['Postmortem Theater: Acting Out a Bad Deploy, Minute by Minute', ['sm-18'], '14:35', '15:00', 'Room 2', 'talk'],
-  ['Clusters in the Field: Running Workloads on Tractors and Grain Elevators', ['sm-19'], '15:15', '15:40', 'Room 1', 'talk'],
-  ['Startup Probes, Readiness and the Slow Java Service', ['sm-20'], '15:15', '15:40', 'Room 2', 'talk'],
-  ['From Notebook to Endpoint: Packaging, Scaling and Monitoring a Small Model on Kubernetes - Workshop', ['sm-21', 'sm-22', 'sm-23'], '15:15', '16:45', 'Room 3', 'workshop'],
-  ['Patching Ten Thousand Nodes: Self-Service Maintenance Windows for Many Tenants', ['sm-24'], '15:55', '16:20', 'Room 1', 'talk', true],
-  ['Reading an Audit Log Like a Detective Novel', ['sm-25'], '15:55', '16:20', 'Room 2', 'talk'],
-  ['Dashboards Nobody Reads and Alerts Everybody Ignores', ['sm-26'], '16:35', '17:00', 'Room 1', 'talk'],
-  ['Writing Down How Your Team Works, and Keeping It True a Year Later', ['sm-27'], '16:35', '17:00', 'Room 2', 'talk'],
+  ['Five Small Wins From a Year of Community Clusters', ['sm-1'], '09:15', '09:35', 'Room 1', 'keynote', null],
+  ['What a Shared Platform Owes the Teams Who Use It', ['sm-2'], '09:35', '09:55', 'Room 1', 'keynote', null],
+  ['Notes From the Night Shift', ['sm-3'], '09:55', '10:15', 'Room 1', 'keynote', null],
+  ['Ask the Platform: Building a Self-Service Portal Your Developers Actually Open', ['sm-4'], '10:30', '10:55', 'Room 1', 'talk', 'Beginner'],
+  ['Who Signed This Image? Tracing Artifacts Back to Source', ['sm-5'], '10:30', '10:55', 'Room 2', 'talk', 'Intermediate'],
+  ['The Two-Hour Platform Sprint: Start From an Empty Cluster, Add Guardrails One by One, and Ship a Working Service.', ['sm-6'], '10:30', '12:00', 'Room 3', 'workshop', 'Beginner'],
+  ['One Scheduler for Everything: Running Batch Jobs, Services and Experiments Side by Side', ['sm-7'], '11:10', '11:35', 'Room 1', 'talk', 'Advanced'],
+  ['Moving a Freight Network’s Dispatch System to Kubernetes, One Depot at a Time', ['sm-8'], '11:10', '11:35', 'Room 2', 'talk', 'Intermediate', true],
+  ['Smaller Prompts, Fewer Pages: Writing Runbooks People Read', ['sm-9'], '11:50', '12:15', 'Room 1', 'talk', 'Beginner'],
+  ['Release Trains Without the Drama: What We Changed After Fifty Rollbacks', ['sm-10'], '11:50', '12:15', 'Room 2', 'talk', 'Intermediate'],
+  ['Moving Nightly Batch Jobs to Event-Driven Pipelines Without Losing a Single Record', ['sm-11'], '13:15', '13:40', 'Room 1', 'talk', 'Advanced'],
+  ['Quotas, Queues and Fair Shares: Splitting a Small Cluster Between Many Teams', ['sm-12'], '13:15', '13:40', 'Room 2', 'talk', 'Intermediate'],
+  ['Hands-On Network Policies: Locking Down a Demo App', ['sm-13', 'sm-14'], '13:15', '14:45', 'Room 3', 'workshop', 'Intermediate'],
+  ['Serving Models Close to the Data: Caching, Batching and Cold Starts in Practice', ['sm-15'], '13:55', '14:20', 'Room 1', 'talk', 'Advanced'],
+  ['Filesystems for People Who Run Containers', ['sm-16'], '13:55', '14:20', 'Room 2', 'talk', 'Beginner'],
+  ['Our Storage Bill Doubled in a Quarter: What We Measured and What We Cut', ['sm-17'], '14:35', '15:00', 'Room 1', 'talk', 'Intermediate', true],
+  ['Postmortem Theater: Acting Out a Bad Deploy, Minute by Minute', ['sm-18'], '14:35', '15:00', 'Room 2', 'talk', 'Beginner'],
+  ['Clusters in the Field: Running Workloads on Tractors and Grain Elevators', ['sm-19'], '15:15', '15:40', 'Room 1', 'talk', 'Intermediate'],
+  ['Startup Probes, Readiness and the Slow Java Service', ['sm-20'], '15:15', '15:40', 'Room 2', 'talk', 'Beginner'],
+  ['From Notebook to Endpoint: Packaging, Scaling and Monitoring a Small Model on Kubernetes - Workshop', ['sm-21', 'sm-22', 'sm-23'], '15:15', '16:45', 'Room 3', 'workshop', 'Advanced'],
+  ['Patching Ten Thousand Nodes: Self-Service Maintenance Windows for Many Tenants', ['sm-24'], '15:55', '16:20', 'Room 1', 'talk', 'Advanced', true],
+  ['Reading an Audit Log Like a Detective Novel', ['sm-25'], '15:55', '16:20', 'Room 2', 'talk', 'Intermediate'],
+  ['Dashboards Nobody Reads and Alerts Everybody Ignores', ['sm-26'], '16:35', '17:00', 'Room 1', 'talk', 'Beginner'],
+  ['Writing Down How Your Team Works, and Keeping It True a Year Later', ['sm-27'], '16:35', '17:00', 'Room 2', 'talk', null],
 ];
 
-export const sampleSessions: readonly RawSession[] = slots.map(([title, speakers, start, end, room, format, endUser], i) => (
-  { id: `sm-s${i + 1}`, title, format, endUser: endUser ?? false, speakers, start: at(start), end: at(end), room }
+export const sampleSessions: readonly RawSession[] = slots.map(([title, speakers, start, end, room, format, level, endUser], i) => (
+  { id: `sm-s${i + 1}`, title, format, endUser: endUser ?? false, level, speakers, start: at(start), end: at(end), room }
 ));
 
 /** Plenary items with no Speaker, as on the 2026 Schedule. */

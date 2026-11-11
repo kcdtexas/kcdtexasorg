@@ -1,12 +1,20 @@
 ---
-// A Session's format and, for an End-User Story, its badge (CONTEXT.md: the Schedule labels these publicly).
-import { formatName, type Session } from '../../lib/program';
+// A Session's format and, for an End-User Story, its badge (CONTEXT.md: the Schedule labels these publicly). With
+// `withLevel`, the format's badge also gives the Session's Level, after a rule: "TALK | BEGINNER". Screen readers
+// hear it as one phrase, "Talk, Level: Beginner", from a hidden span; the badge's own words are hidden from them,
+// since Chrome would read a space before the comma at the rule's edge. The Level's words are ours (levelName).
+import { formatName, levelName, type Session } from '../../lib/program';
 
-interface Props { session: Session }
-const { session: s } = Astro.props;
+interface Props {
+  session: Session;
+  /** Show the Session's Level, when it has one: on its own page and on the Schedule, not on a Speaker's page. */
+  withLevel?: boolean;
+}
+const { session: s, withLevel = false } = Astro.props;
+const level = withLevel ? s.level : null;
 ---
 
 <p class="badges">
-  <span class={`badge badge--${s.format}`}>{formatName[s.format]}</span>
+  <span class={`badge badge--${s.format}`}>{level ? <><span aria-hidden="true">{formatName[s.format]}<span class="badge-level">{' '}{levelName[level]}</span></span><span class="sr-only">{formatName[s.format]}, Level: {levelName[level]}</span></> : formatName[s.format]}</span>
   {s.endUser && <span class="badge badge--eu">End-User Story</span>}
 </p>

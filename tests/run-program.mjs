@@ -75,6 +75,25 @@ process.on('exit', () => writeFileSync(ANNOUNCEMENTS, announcementsText));
 // Fields the allowlist drops, from the fixture: none may reach a served file.
 const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/track'];
 
+/** A format's badge with the Session's Level, as Badges.astro writes it: "TALK | INTERMEDIATE" to see, and one
+ *  phrase for screen readers, "Talk, Level: Intermediate". */
+const levelBadge = (format, name) => {
+  const word = `${format[0].toUpperCase()}${format.slice(1)}`;
+  return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level"> ${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
+};
+
+/** What Chrome's accessibility tree hands screen readers for the Levels on the open page: each text that names one,
+ *  exactly as it's read out (its case included). */
+async function levelTexts(tab) {
+  const cdp = await tab.context().newCDPSession(tab);
+  try {
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    return nodes.filter((n) => !n.ignored && n.role?.value === 'StaticText' && /, level: /i.test(n.name?.value ?? '')).map((n) => n.name.value);
+  } finally {
+    await cdp.detach();
+  }
+}
+
 /** A loyalty credit's words as a screen reader hears them: the tab's, then the hidden role. */
 const CREDIT = /<span class="credit">([^<]+)<span class="sr-only">([^<]+)<\/span><\/span>/;
 const creditWords = (html) => html.match(CREDIT)?.slice(1).join('') ?? null;
@@ -224,6 +243,25 @@ try {
   }
   // The End-User Story badge, the formats, and the share cards.
   expect(/badge--eu/.test(schedule) && /badge--workshop/.test(schedule) && /badge--panel/.test(schedule), 'the Schedule lacks the End-User Story, workshop or panel badge');
+  // The Level, in the format's badge after a rule ("TALK | INTERMEDIATE", which screen readers hear as "Talk, Level:
+  // Intermediate"): on the Schedule, with data-level for its filter, and on the Session pages. Every Level of the sample
+  // shows; a keynote has none, nor has the fixture's Session whose Level the site doesn't know (the planted marker).
+  // A Speaker's page lists their Sessions without it.
+  {
+    const named = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' };
+    // An empty data-level is written bare (data-level), as Astro writes an empty attribute.
+    const levelOf = (html) => { const m = html.match(/ data-level(?:="([a-z]*)")?(?=[\s>])/); return m ? m[1] ?? '' : undefined; };
+    const onSchedule = [...schedule.matchAll(/<li class="sch-item[\s\S]*?<\/li>/g)].map(([html]) => ({ html, level: levelOf(html), format: html.match(/ data-format="([a-z]+)"/)?.[1] }));
+    expect(onSchedule.every((x) => x.level === '' || Object.hasOwn(named, x.level ?? '-')), `a Session on the Schedule has no data-level, or one the site doesn't know: ${onSchedule.map((x) => x.level).join()}`);
+    expect(onSchedule.every((x) => (x.level ? x.html.includes(levelBadge(x.format, named[x.level])) : !x.html.includes('badge-level'))), 'a Session on the Schedule shows a Level other than its data-level, or one with no Level shows a Level');
+    expect(Object.keys(named).every((l) => onSchedule.some((x) => x.level === l)) && onSchedule.filter((x) => x.format === 'keynote').every((x) => x.level === ''), 'the Schedule lacks a Level of the sample, or a keynote has one');
+    const page = (slug) => read(`2027/sessions/${slug}/index.html`);
+    expect(page('moving-a-freight-networks-dispatch-system-to-kubernetes-one-depo').includes(`<p class="badges">${levelBadge('talk', 'Intermediate')}<span class="badge badge--eu">End-User Story</span></p>`), 'the Intermediate End-User Story’s page lacks "TALK | INTERMEDIATE" before its gold badge');
+    expect(page('from-notebook-to-endpoint-packaging-scaling-and-monitoring-a-sma').includes(levelBadge('workshop', 'Advanced')), 'the Advanced workshop’s page lacks "WORKSHOP | ADVANCED"');
+    expect(page('five-small-wins-from-a-year-of-community-clusters').includes('<p class="badges"><span class="badge badge--keynote">Keynote</span></p>'), 'a keynote with no Level shows one');
+    expect(page('fixture-session-a-returning-speakers-talk').includes('<p class="badges"><span class="badge badge--talk">Talk</span></p>'), 'the fixture’s Session with a Level the site doesn’t know shows one');
+    for (const p of speakerPages) expect(!/badge-level|data-level/.test(read(`2027/speakers/${p}/index.html`)), `2027/speakers/${p}: shows a Level`);
+  }
   for (const page of [`2027/sessions/${sessionPages[0]}/index.html`, '2027/speakers/fixture-speaker-4/index.html']) {
     const html = read(page);
     const card = html.match(/<meta property="og:image" content="[^"]*\/cards\/([a-z0-9-]+)\.png"/)?.[1];
@@ -337,9 +375,10 @@ try {
   }
 
   // 4. The program pages in a browser: on a desktop in light with the mouse, and on a phone in dark with the keyboard.
-  // The filters (on the phone, "Format and room" opens first), three stars that survive a reload, the My Schedule view
-  // and its calendar file, and axe on that view in both themes. The Session page's star shares the list, and
-  // /2027/schedule/#my opens the view.
+  // The filters (on the phone, "Format, level and room" opens first), the Level filter alone, with a second Level and
+  // with another group, three stars that survive a reload, the My Schedule view and its calendar file, and axe on the
+  // filtered view and on My Schedule in both themes. The Session page's star shares the list, and /2027/schedule/#my
+  // opens the view. Then the Schedule without JavaScript.
   for (const mode of [{ width: 1280, height: 900, scheme: 'light', keys: false }, { width: 390, height: 844, scheme: 'dark', keys: true }]) {
     const where = `the Schedule at ${mode.width} in ${mode.scheme}, by ${mode.keys ? 'keyboard' : 'mouse'}`;
     // Reduced motion, so a theme switch takes effect at once, with no color transitions for axe to catch midway.
@@ -354,9 +393,9 @@ try {
     await tab.goto(`${base}/2027/schedule/`);
     expect(await tab.locator('[data-filters]').isVisible(), `${where}: the filters stay hidden with JavaScript on`);
     const more = () => tab.locator('[data-more]').evaluate((m) => m.open);
-    expect(await more() === mode.width >= 900, `${where}: "Format and room" is ${await more() ? 'open' : 'closed'} at first`);
+    expect(await more() === mode.width >= 900, `${where}: "Format, level and room" is ${await more() ? 'open' : 'closed'} at first`);
     if (!(await more())) await press(tab.locator('[data-more] > summary'));
-    expect(await more(), `${where}: "Format and room" does not open`);
+    expect(await more(), `${where}: "Format, level and room" does not open`);
     const visible = () => tab.locator('.sch-item:visible').count();
     const all = await visible();
     await toggle('Workshop');
@@ -367,6 +406,35 @@ try {
     await toggle('End-User Stories');
     expect(await visible() === await tab.locator('.sch-item[data-eu="1"]').count(), `${where}: the End-User Stories filter is wrong`);
     await toggle('End-User Stories');
+    // The Level filter: the ticked Level's Sessions; with a second Level, either's; with another group, only those that
+    // match both. A Session with no Level, such as a keynote, hides while a Level is ticked, and so do the breaks.
+    // Screen readers hear the Level in the format's badge.
+    const count = async () => (await tab.locator('[data-count]').textContent()).trim();
+    await toggle('Intermediate');
+    const intermediate = await tab.locator('.sch-item[data-level="intermediate"]').count();
+    expect(intermediate > 0 && await visible() === intermediate && await count() === `Showing ${intermediate} of ${all} Sessions`, `${where}: the Intermediate filter shows ${await visible()} Sessions ("${await count()}"), not ${intermediate}`);
+    expect(await tab.locator('.sch-item[data-level=""]:visible, [data-break]:visible').count() === 0, `${where}: a Session with no Level, or a break, shows while a Level is ticked`);
+    // Exactly, from Chrome's own tree: one text per Session shown, "Talk, Level: Intermediate", as written.
+    const word = (v) => `${v[0].toUpperCase()}${v.slice(1)}`;
+    const meant = await tab.locator('.sch-item:visible').evaluateAll((items) => items.map((li) => [li.dataset.format, li.dataset.level]));
+    const heard = (await levelTexts(tab)).sort().join(' | ');
+    const want = meant.map(([f, l]) => `${word(f)}, Level: ${word(l)}`).sort().join(' | ');
+    expect(heard === want && meant.length === intermediate, `${where}: screen readers hear "${heard}", not "${want}"`);
+    await toggle('Advanced');
+    const either = await tab.locator('.sch-item[data-level="intermediate"], .sch-item[data-level="advanced"]').count();
+    expect(await visible() === either, `${where}: Intermediate and Advanced show ${await visible()} Sessions, not either Level's ${either}`);
+    await toggle('Advanced');
+    await toggle('End-User Stories');
+    const both = await tab.locator('.sch-item[data-level="intermediate"][data-eu="1"]').count();
+    expect(both > 0 && both < intermediate && await visible() === both, `${where}: Intermediate with End-User Stories shows ${await visible()} Sessions, not the ${both} that are both`);
+    for (const scheme of ['light', 'dark']) {
+      await tab.emulateMedia({ colorScheme: scheme });
+      const violations = await axe(tab);
+      expect(!violations.length, `${where}: the Schedule filtered by Level in ${scheme}: axe: ${violations.join(' | ')}`);
+    }
+    await tab.emulateMedia({ colorScheme: mode.scheme });
+    await toggle('End-User Stories');
+    await toggle('Intermediate');
     expect(await visible() === all, `${where}: clearing the filters does not show every Session again`);
     // Three stars; they survive a reload.
     const stars = tab.locator('.sch-item [data-star]');
@@ -397,6 +465,19 @@ try {
     await tab.goto(`${base}/2027/schedule/#my`);
     expect(await tab.locator('[data-filter="my"]').isChecked(), `${where}: /2027/schedule/#my does not open the My Schedule view`);
     expect(!errors.length, `${where}: browser errors: ${errors.join(' | ')}`);
+    await ctx.close();
+  }
+
+  // Without JavaScript the filters stay hidden, and every Session shows, each with its Level in its badge.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });
+    const tab = await ctx.newPage();
+    await tab.goto(`${base}/2027/schedule/`);
+    const shown = await tab.locator('.sch-item:visible').count();
+    const leveled = await tab.locator('.sch-item:not([data-level=""])').count();
+    const levels = await tab.locator('.sch-item .badge-level:visible').count();
+    expect(!(await tab.locator('[data-filters]').isVisible()) && shown === items.length && leveled > 0 && levels === leveled,
+      `without JavaScript, the Schedule shows its filters, or ${shown} of ${items.length} Sessions, or ${levels} of ${leveled} Levels`);
     await ctx.close();
   }
 
@@ -577,6 +658,10 @@ try {
     const sessionHtml = read(`2027/sessions/${fx}/index.html`);
     expect(/class="ses-abstract"/.test(sessionHtml) && /<h1 class="page-title ses-title" data-ugc>/.test(sessionHtml), `${fx}: no title or abstract`);
     expect(!/Time \(Central\)|<dt>Room<\/dt>|\.ics"/.test(sessionHtml), `${fx}: shows a time, a room or "Add to calendar"`);
+    expect(sessionHtml.includes(levelBadge('talk', 'Beginner')), `${fx}: lacks its Level, "TALK | BEGINNER", while only the Speakers are public`);
+    for (const p of readdirSync('dist/2027/speakers').filter((n) => statSync(join('dist/2027/speakers', n)).isDirectory())) {
+      expect(!/badge-level|data-level/.test(read(`2027/speakers/${p}/index.html`)), `2027/speakers/${p}: shows a Level while only the Speakers are public`);
+    }
     // The Schedule page only says the Schedule comes out soon, so the kicker and the closing link go to the Speakers.
     expect(sessionHtml.includes('<p class="kicker"><a href="/2027/speakers/">KCD Texas 2027 Speakers</a></p>') && sessionHtml.includes('<p class="more"><a href="/2027/speakers/">See all the Speakers</a></p>')
       && !/<p class="(?:kicker|more)"><a href="\/2027\/schedule\/">/.test(sessionHtml), `${fx}: the kicker or the closing link goes to the Schedule while only the Speakers are public`);

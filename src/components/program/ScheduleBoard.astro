@@ -2,9 +2,10 @@
 // The Schedule: the Sessions under time headings, with each Session's time and room as text, so it reads in order
 // with or without styles. Every width shows it as a list; on wide screens each time slot is a row, with each
 // room's Session on a line of its own. The filters and My Schedule need /schedule.js: without it, every Session
-// shows and the filters stay hidden.
+// shows and the filters stay hidden. Its Level chips offer the Levels the Sessions have, from the easiest; a Session
+// with no Level, such as a keynote, matches none, so it hides while a Level is ticked, as a keynote does under Talk.
 import SessionItem from './SessionItem.astro';
-import { clock, FORMATS, formatName, hhmm, program, timeRange, type Break, type Session } from '../../lib/program';
+import { clock, FORMATS, formatName, hhmm, LEVELS, levelName, program, timeRange, type Break, type Session } from '../../lib/program';
 
 const p = program!;
 type Slot = { start: string; sessions: Session[]; breaks: Break[] };
@@ -14,6 +15,7 @@ for (const s of p.sessions) if (s.start) slotAt(s.start).sessions.push(s);
 for (const b of p.breaks) slotAt(b.start).breaks.push(b);
 const ordered = [...slots.values()].sort((a, b) => a.start.localeCompare(b.start));
 const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
+const levels = LEVELS.filter((l) => p.sessions.some((s) => s.level === l));
 ---
 
 <div class="sch" data-schedule>
@@ -26,12 +28,18 @@ const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
     </fieldset>
     {/* Folded on phones, so the Schedule starts near the top; /schedule.js opens it on wide screens. */}
     <details class="sch-more" data-more>
-      <summary>Format and room</summary>
+      <summary>{levels.length ? 'Format, level and room' : 'Format and room'}</summary>
       <div class="sch-more-body">
         <fieldset class="sch-group">
           <legend>Format</legend>
           {formats.map((f) => <label class="chip"><input type="checkbox" data-filter="format" value={f} /> {formatName[f]}</label>)}
         </fieldset>
+        {levels.length > 0 && (
+          <fieldset class="sch-group">
+            <legend>Level</legend>
+            {levels.map((l) => <label class="chip"><input type="checkbox" data-filter="level" value={l} /> {levelName[l]}</label>)}
+          </fieldset>
+        )}
         <fieldset class="sch-group">
           <legend>Room</legend>
           {p.rooms.map((r) => <label class="chip" data-ugc><input type="checkbox" data-filter="room" value={r} /> {r}</label>)}
@@ -55,7 +63,7 @@ const formats = FORMATS.filter((f) => p.sessions.some((s) => s.format === f));
             <span class="sch-meta"><span class="sch-time">{timeRange(b.start, b.end)}</span>{b.room && <span class="sch-room" data-ugc>{b.room}</span>}</span>
           </li>
         ))}
-        {slot.sessions.map((s) => <SessionItem session={s} />)}
+        {slot.sessions.map((s) => <SessionItem session={s} withLevel />)}
       </ul>
     </section>
   ))}

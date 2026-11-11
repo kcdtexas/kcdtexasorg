@@ -3,6 +3,8 @@
 // the My Schedule star. The data attributes feed the filters and My Schedule (/schedule.js). The title, the
 // Speakers' names and the room come from the program platform, so data-ugc marks them for scripts/check-dist.mjs,
 // and data-ugc-attrs the item, whose attributes hold the platform's id and room; the badges and the time are ours.
+// With `withLevel` (the Schedule), the format's badge gives the Level too, and data-level feeds the Level chips; a
+// Speaker's page lists their Sessions without it.
 import Badges from './Badges.astro';
 import Star from './Star.astro';
 import { paths } from '../../data/nav';
@@ -14,14 +16,16 @@ interface Props {
   level?: 'h2' | 'h3' | 'h4';
   /** Leave out the Speakers (on a Speaker's own page). */
   noSpeakers?: boolean;
+  /** Show the Session's Level, and give it to the Level chips. */
+  withLevel?: boolean;
 }
-const { session: s, level: H = 'h3', noSpeakers = false } = Astro.props;
+const { session: s, level: H = 'h3', noSpeakers = false, withLevel = false } = Astro.props;
 const who = speakersOf(s);
 const url = `${paths.sessions}${s.slug}/`;
 ---
 
-<li class="sch-item" data-id={s.id} data-format={s.format} data-room={s.room ?? ''} data-eu={s.endUser ? '1' : '0'} data-start={s.start ?? ''} data-end={s.end ?? ''} data-url={url} data-ugc-attrs>
-  <Badges session={s} />
+<li class="sch-item" data-id={s.id} data-format={s.format} data-room={s.room ?? ''} data-eu={s.endUser ? '1' : '0'} data-level={withLevel ? s.level ?? '' : undefined} data-start={s.start ?? ''} data-end={s.end ?? ''} data-url={url} data-ugc-attrs>
+  <Badges session={s} withLevel={withLevel} />
   <H class="sch-title"><a href={url} data-ugc>{s.title}</a></H>
   {!noSpeakers && <p class="sch-who">{who.map((p, i) => <>{i > 0 && ', '}<a href={`${paths.speakers}${p.slug}/`} data-ugc>{p.name}</a></>)}</p>}
   {program!.schedulePublic && s.start && s.end && (

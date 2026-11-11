@@ -18,7 +18,8 @@ export const pretalx = {
   fields: {
     /** Yes/No, per proposal: marks an End-User Story. The build fails if no public field has one of these names. */
     endUser: ['End-User Story', 'Is this an End-User Story?'],
-    /** Choose one, per proposal. Read, but no page shows it yet, so the allowlist (model.mjs) drops it. */
+    /** Choose one, per proposal: the Session's Level, by its option (levelNames below). Without the field, no
+     *  Session shows a Level. */
     level: ['Level'],
     /** Text, per speaker: the line under the Speaker's name. The build fails without it, like endUser. */
     tagline: ['Job title and company'],
@@ -42,6 +43,17 @@ export const formatNames = {
   'hands-on workshop': 'workshop',
   panel: 'panel',
   'panel discussion': 'panel',
+};
+
+/** Level names as a platform writes them, in lowercase, to the site's Levels: the 2027 call's options for its Level
+ *  field are Beginner, Intermediate and Advanced. The allowlist (model.mjs) keeps only these, so a Session whose
+ *  Level has another name shows none, and the build log counts them (pretalx.mjs). To show a renamed option, add its
+ *  new name here, in lowercase, with the Level it stands for, for example 'beginner friendly': 'beginner'. A fourth
+ *  Level needs code: LEVELS in model.mjs and levelName in src/lib/program.ts. */
+export const levelNames = {
+  beginner: 'beginner',
+  intermediate: 'intermediate',
+  advanced: 'advanced',
 };
 
 /** Answers that mean yes or no. */
