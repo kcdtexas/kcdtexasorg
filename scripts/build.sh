@@ -35,6 +35,9 @@ serve=false
 install=true
 # The build day and the samples come only from the flags, never from inherited variables.
 unset KCD_BUILD_DAY KCD_BUILD_CLOCK KCD_TICKETS_DAY KCD_PROGRAM_PUBLIC KCD_SPONSORS_SAMPLE KCD_PROGRAM_SAMPLE
+# Nor the build's mode: `astro build` keeps an inherited NODE_ENV, and NODE_ENV=development makes a development build,
+# which scripts/check-dist.mjs refuses. Unset, Astro builds for production.
+unset NODE_ENV
 # A production build: Cloudflare Pages building `main`, or a Netlify production deploy (src/lib/build-context.mjs).
 build_kind="$(node scripts/build-context.mjs)"
 production() { [ "$build_kind" = production ]; }

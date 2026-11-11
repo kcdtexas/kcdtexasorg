@@ -15,9 +15,10 @@
 // times, rooms, calendar files, stars or Event Day page, and that the home page, the Schedule page and the Session
 // pages' kicker and closing link go to the Speakers. It adds a history file to src/data/history/ (a good one, then a
 // bad one) and removes it again. It builds a preview's og:image (CARD_ORIGIN), which check-dist passes, unlike an
-// image a page loads from another host. Last it builds with the gates closed and checks that no program page, card,
-// calendar file, script, style or credit is built, that check-dist fails a planted "Sample" label, and that the
-// planted marker reaches no served file and no build log in any build.
+// image a page loads from another host. Last it builds with the gates closed, and with NODE_ENV=development inherited,
+// and checks that it's no development build, that no program page, card, calendar file, script, style or credit is
+// built, that check-dist fails a planted "Sample" label and a development build's mark, and that the planted marker
+// reaches no served file and no build log in any build.
 // dist/ ends as a normal build, also when a step fails, unless --keep-dist.
 // Usage: node tests/run-program.mjs [--keep-dist]
 import { spawn, spawnSync } from 'node:child_process';
@@ -650,10 +651,13 @@ try {
     expect(planted.status !== 0 && /about\/index\.html: loads from another host: https:\/\/elsewhere\.example\/x\.png/.test(planted.log), 'check-dist passes an image a page loads from another host');
   }
 
-  // 10. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing.
-  const closed = build([]);
+  // 10. The gates closed: a normal build has no program at all, and no credit while 2025's records are missing. It
+  // inherits NODE_ENV=development, as from a process that started a Vite server (tests/sample-program.mjs), and is still
+  // a production build: scripts/build.sh unsets NODE_ENV.
+  const closed = build([], { NODE_ENV: 'development' });
   if (closed.status !== 0) throw new Error(`the normal build failed:\n${closed.log.slice(-3000)}`);
   normal = true;
+  expect(!walk('dist').some((f) => f.endsWith('.html') && readFileSync(f, 'utf8').includes('data-image-component')), 'the normal build with NODE_ENV=development inherited is a development build (data-image-component)');
   expect(!closed.log.includes(marker), 'the normal build log contains the planted marker');
   for (const p of ['2027/speakers', '2027/sessions', '2027/today', '2027/schedule.ics', '2027/program-version.txt']) expect(!existsSync(join('dist', p)), `a closed gate still builds ${p}`);
   expect(!existsSync('dist/.test-build'), 'a normal build carries the test-build marker');
@@ -684,6 +688,10 @@ try {
       const res = checkDist({});
       expect((res.status !== 0) === fails && (!fails || /about\/index\.html: draft marker (?:a "Sample" label|Sample)/.test(res.log)), `check-dist ${fails ? 'passes' : 'fails'} a normal build with ${what} planted:\n${res.log.slice(-600)}`);
     }
+    // And a development build's mark, data-image-component on the page's images.
+    writeFileSync('dist/about/index.html', page.replaceAll('<img ', '<img data-image-component="true" '));
+    const dev = checkDist({});
+    expect(dev.status !== 0 && /a development build: 1 page has data-image-component/.test(dev.log), `check-dist passes a normal build with data-image-component planted:\n${dev.log.slice(-600)}`);
     writeFileSync('dist/about/index.html', page);
   }
   for (const f of served()) {

@@ -1,6 +1,6 @@
 // Checks the built site before it ships: required pages and files, Short Links,
 // zero-data rules (only the same-origin theme script, no inline styles, no third-party loads),
-// draft markers, and each page's weight.
+// draft markers, a development build's marks, and each page's weight.
 //
 // Usage: node scripts/check-dist.mjs
 // tests/smoke.mjs imports REQUIRED_PAGES and findDraftMarkers from here, so the checks only run
@@ -281,6 +281,12 @@ async function check() {
       if (!/<meta name="robots" content="noindex">/.test(html)) failures.push(`${file}: the 404 page lacks noindex`);
     } else if (!/<link rel="canonical" href="https:\/\/kcdtexas\.org\/[^"]*"/.test(html)) failures.push(`${file}: no canonical kcdtexas.org link`);
   }
+
+  // No build is a development build, test builds included: Astro marks every image with data-image-component only in
+  // development, as when `astro build` inherits NODE_ENV=development (scripts/build.sh unsets it; a Vite dev server
+  // sets it in the process that starts one, tests/sample-program.mjs).
+  const devPages = pages.filter(({ html }) => [...html.matchAll(TAG)].some(([, end, , text]) => !end && attributesOf(text).has('data-image-component')));
+  if (devPages.length) failures.push(`a development build: ${devPages.length} page${devPages.length > 1 ? 's have' : ' has'} data-image-component, which Astro adds only in development, as when the build inherits NODE_ENV=development (first: ${devPages[0].file})`);
 
   // /schedule.js with its cache rule, and the program pages' styles, /schedule.css, ship only in a build where a page
   // loads them.
