@@ -45,9 +45,11 @@ export const formatNames = {
   'panel discussion': 'panel',
 };
 
-/** Level names as a platform writes them (lowercased), to the site's levels: the 2027 call's options for its Level
+/** Level names as a platform writes them, in lowercase, to the site's Levels: the 2027 call's options for its Level
  *  field are Beginner, Intermediate and Advanced. The allowlist (model.mjs) keeps only these, so a Session whose
- *  Level has another name shows none: add the name here. */
+ *  Level has another name shows none, and the build log counts them (pretalx.mjs). To show a renamed option, add its
+ *  new name here, in lowercase, with the Level it stands for, for example 'beginner friendly': 'beginner'. A fourth
+ *  Level needs code: LEVELS in model.mjs and levelName in src/lib/program.ts. */
 export const levelNames = {
   beginner: 'beginner',
   intermediate: 'intermediate',

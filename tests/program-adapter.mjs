@@ -22,16 +22,22 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { centralOf, centralToUtc, toCentral } from '../src/lib/program-source/central.mjs';
-import { pretalx, userAgent } from '../src/lib/program-source/config.mjs';
+import { levelNames, pretalx, userAgent } from '../src/lib/program-source/config.mjs';
 import { adaptCsv, parseCsv } from '../src/lib/program-source/csv.mjs';
 import { linkKind } from '../src/lib/program-source/links.mjs';
 import { plainText } from '../src/lib/program-source/markdown.mjs';
-import { programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
+import { LEVELS, programVersion, publicProgram } from '../src/lib/program-source/model.mjs';
 import { downloadPhoto } from '../src/lib/program-source/photos.mjs';
 import { buildKind, isProductionBuild } from '../src/lib/build-context.mjs';
 import { chooseSource, publicModel, readPlatform } from '../src/lib/program-source/platform.mjs';
 import { adaptPretalx, i18n, validatePretalx } from '../src/lib/program-source/pretalx.mjs';
 import { fetchable, fetchBytes, pretalxBase, pretalxPhoto, redact } from '../src/lib/program-source/remote.mjs';
+
+// The fixture has a Level option the site doesn't know (the planted marker's), so each read of it logs a warning, as a
+// production build does. That warning has its own checks below; the rest of the run keeps it out of the output.
+const warnAll = console.warn;
+const UNKNOWN_LEVEL = /^Pretalx: \d+ Sessions? ha(?:s|ve) a Level option the site doesn't know/;
+console.warn = (m, ...rest) => { if (!UNKNOWN_LEVEL.test(String(m))) warnAll(m, ...rest); };
 
 const failures = [];
 let checks = 0;
@@ -390,7 +396,8 @@ try {
   }
   const [cutAbstract, cutBio] = [long.sessions.find((s) => s.id === 'FXKEY1').abstract, long.speakers[0].bio];
   expect(cutAbstract.length <= 20_001 && cutAbstract.length > 19_800 && /[a-z]\u2026$/.test(cutAbstract) && cutBio === `${'y'.repeat(20_000)}\u2026`, `a long text is not cut at a word with an ellipsis: ${cutAbstract.length}, ${cutBio.length}`);
-  expect(warnings.length === 2 && /the abstract of Session FXKEY1 has 35003 characters/.test(warnings[0]) && /the bio of Speaker FXSPKA has 25000 characters/.test(warnings[1]) && !warnings.join().includes('Planted') && !warnings.join().includes('yyy'),
+  const longs = warnings.filter((w) => !UNKNOWN_LEVEL.test(w));
+  expect(longs.length === 2 && /the abstract of Session FXKEY1 has 35003 characters/.test(longs[0]) && /the bio of Speaker FXSPKA has 25000 characters/.test(longs[1]) && !warnings.join().includes('Planted') && !warnings.join().includes('yyy'),
     `the log on a long text is wrong: ${warnings.join(' | ')}`);
 
   // Optional fields left out, and odd values: no error, and nothing made up.
@@ -421,6 +428,26 @@ try {
   // marker's option), for the Speaker's own text when the option is missing ("Intermedio"), or for a name every
   // object has.
   const levelIn = (m, id) => m.sessions.find((s) => s.id === id)?.level;
+  // levelNames: each name as the readers match it (lowercase, single spaces), to a Level the site has.
+  expect(Object.entries(levelNames).length >= 3 && Object.entries(levelNames).every(([name, l]) => name === name.trim().replace(/\s+/g, ' ').toLowerCase() && LEVELS.includes(l)),
+    `levelNames has a name that isn't lowercase, or a Level the site doesn't have: ${JSON.stringify(levelNames)}`);
+  // A Level option the site doesn't know: the log counts the Sessions and names the options by id, never by name or by
+  // a Speaker's own text, and the build goes on. Known options log nothing.
+  {
+    const said = [];
+    const quiet = console.warn;
+    console.warn = (m) => said.push(String(m));
+    try {
+      adaptPretalx(fixture());
+      adaptPretalx(broken((d) => { d.submissions[1].answers[1].options = null; }));
+      adaptPretalx(broken((d) => { d.submissions[3].answers[1].options = [7103]; }));
+    } finally {
+      console.warn = quiet;
+    }
+    expect(said.length === 2 && said[0] === "Pretalx: 1 Session has a Level option the site doesn't know (option ids: 7104); it shows no Level. Add the option's name to levelNames in src/lib/program-source/config.mjs (docs/pretalx.md)."
+      && said[1].startsWith("Pretalx: 2 Sessions have a Level option the site doesn't know (option ids: 7104; 1 answered with no option); they show no Level.")
+      && !said.join().includes(marker) && !/Expert|Intermedio/.test(said.join()), `the log on a Level the site doesn't know is wrong: ${said.join(' | ')}`);
+  }
   expect(session('FXWRK4')?.level.includes(marker) && levelIn(model, 'FXKEY1') === 'beginner' && levelIn(model, 'FXEUS2') === 'intermediate' && levelIn(model, 'FXTLK3') === null && levelIn(model, 'FXWRK4') === null,
     `the model's Levels are wrong: ${JSON.stringify(model.sessions.map((s) => [s.id, s.level]))}`);
   const relabeled = (labels) => publicProgram({ ...raw, sessions: raw.sessions.map((s, i) => ({ ...s, level: labels[i] ?? null })) }, { schedulePublic: true }).sessions.map((s) => s.level).join();
@@ -445,6 +472,10 @@ try {
   const retitled = fixture();
   retitled.submissions[1].title += ' (updated)';
   expect(programVersion(publicProgram(adaptPretalx(retitled), { schedulePublic: true })) !== v, 'a new title keeps the program version');
+  // A Session's new Level comes through too (docs/pretalx.md): FXEUS2 from Intermediate to Advanced.
+  const releveled = fixture();
+  releveled.submissions[1].answers[1].options = [7103];
+  expect(programVersion(publicProgram(adaptPretalx(releveled), { schedulePublic: true })) !== v, 'a new Level keeps the program version');
   const moved = fixture();
   moved.slots[2].room = 102;
   expect(programVersion(publicProgram(adaptPretalx(moved), { schedulePublic: true })) !== v, 'a room change keeps the program version');
@@ -530,11 +561,13 @@ try {
     ['an unknown type', 'type,id,title,name\nroom,1,x,\n', /row 2, type/],
     ['an unknown format', 'type,id,title,name,format\nsession,1,x,,fireside\n', /row 2, format/],
     ['a bad end_user', 'type,id,title,name,format,end_user\nsession,1,x,,talk,maybe\n', /row 2, end_user/],
-    ['an unknown level', 'type,id,title,name,format,level\nsession,1,x,,talk,Expert\n', /row 2, level: not Beginner, Intermediate or Advanced/],
-    ['a level every object has', 'type,id,title,name,format,level\nsession,1,x,,talk,constructor\n', /row 2, level/],
     ['a bad time', 'type,id,title,name,format,start\nsession,1,x,,talk,noon\n', /row 2, start/],
     ['an open quote', 'type,id,title,name\nspeaker,1,,"x\n', /never closed/],
   ]) await rejects(() => adaptCsv(text), (m) => pattern.test(m), `the CSV on ${what}`);
+  // A level the CSV doesn't know, or one every object has: named by its row, never by its value.
+  for (const value of ['Expert', 'constructor']) {
+    await rejects(() => adaptCsv(`type,id,title,name,format,level\nsession,1,x,,talk,${value}\n`), (m) => /row 2, level: not Beginner, Intermediate or Advanced/.test(m) && !m.includes(value), `the CSV on the level ${value}`);
+  }
   // Errors name the CSV's rows as the spreadsheet numbers them (empty rows count), never its ids: the refresh
   // check's log is public, and an id could be a name. The allowlist's errors on a CSV's records do too.
   expect(JSON.stringify(parseCsv('a\n\n,\nb\n', { keepEmpty: true })) === JSON.stringify([['a'], [''], ['', ''], ['b']]) && JSON.stringify(parseCsv('a\n\n,\nb\n')) === JSON.stringify([['a'], ['b']]), 'parseCsv keeps or drops empty rows wrongly');

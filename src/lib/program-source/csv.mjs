@@ -3,9 +3,10 @@
 // (the "type" column); columns the format doesn't name are ignored. Errors name a row and a column, never a value
 // or an id: the ids are the Organizers' own, and the refresh check's log is public. Each record carries its row as
 // `ref`, so the allowlist's errors (model.mjs) name the row too.
-import { formatNames, levelNames, no, yes } from './config.mjs';
+import { formatNames, no, yes } from './config.mjs';
 import { toCentral } from './central.mjs';
 import { mapLinks } from './links.mjs';
+import { levelOf } from './model.mjs';
 
 /** RFC 4180 rows: quoted fields may hold commas, quotes ("") and line breaks. A leading BOM is skipped. Empty rows
  *  are left out, unless `keepEmpty` keeps them, so each row's place is its row number in the spreadsheet. */
@@ -74,9 +75,10 @@ export function adaptCsv(input) {
       if (!get('id') || !get('title')) problems.push(`row ${line}: a session needs an id and a title`);
       if (!format) problems.push(`row ${line}, format: not a known format (keynote, talk, workshop or panel)`);
       if (!yes.includes(eu) && !no.includes(eu)) problems.push(`row ${line}, end_user: not yes or no`);
-      // Empty for none. A typed name the site doesn't know fails here, where the allowlist would quietly drop it.
-      const level = get('level').toLowerCase();
-      if (level && !Object.hasOwn(levelNames, level)) problems.push(`row ${line}, level: not Beginner, Intermediate or Advanced`);
+      // Empty for none. A typed name the site doesn't know fails here, where the allowlist would quietly drop it; it's
+      // matched as the allowlist matches it (levelOf), and the error never repeats it.
+      const level = get('level');
+      if (level && levelOf(level) === null) problems.push(`row ${line}, level: not Beginner, Intermediate or Advanced`);
       const room = get('room') || null;
       if (room && !rooms.includes(room)) rooms.push(room);
       sessions.push({

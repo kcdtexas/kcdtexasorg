@@ -39,7 +39,7 @@ Before the announcement pull request opens the gates (the program's day, Mar 1, 
 
    A field renamed beyond case and punctuation needs its new label added to `pretalx.fields`. Giving the field the identifier `end-user-story`, `job-title-and-company`, `website` or `level` in Pretalx works too.
 
-   The Level field's options are named Beginner, Intermediate and Advanced. A Session whose Level has another name shows no Level, and the build goes on. To show a renamed or new option, add its name to `levelNames` in the same file.
+   The Level field's options are named Beginner, Intermediate and Advanced. A Session whose Level has another name shows no Level, and the build goes on; its log says how many Sessions, naming the options by their ids. To show a renamed option, add its new name, in lowercase, to `levelNames` with the Level it stands for, for example `'beginner friendly': 'beginner'`. A fourth Level needs code: `LEVELS` in `model.mjs` and `levelName` in `src/lib/program.ts`.
 2. **The session types** are named Talk, Workshop or Keynote. Another name needs a line in `formatNames` in the same file, or the build fails and names the type by its id.
 3. **Each Session** is confirmed (by its Speaker, or marked confirmed by an Organizer) and placed in a room at a time.
 4. **The schedule** is released and public (in the schedule editor: Actions, then Make schedule public).

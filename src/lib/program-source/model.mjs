@@ -17,8 +17,9 @@ const text = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 export const isTime = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v);
 const isHttps = (v) => typeof v === 'string' && /^https:\/\/[^\s"<>]+$/.test(v);
 /** A Level by its name (levelNames in config.mjs), whatever its case and spaces; null for a name the site doesn't
- *  know, such as "constructor", which a plain lookup would find on every object. */
-function levelOf(v) {
+ *  know, such as "constructor", which a plain lookup would find on every object. The readers use it too (pretalx.mjs,
+ *  csv.mjs), so they match a name as the allowlist does. */
+export function levelOf(v) {
   const name = typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').toLowerCase() : '';
   const level = Object.hasOwn(levelNames, name) ? levelNames[name] : null;
   return LEVELS.includes(level) ? level : null;
