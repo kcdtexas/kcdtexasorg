@@ -363,9 +363,10 @@ try {
   }
 
   // 4. The program pages in a browser: on a desktop in light with the mouse, and on a phone in dark with the keyboard.
-  // The filters (on the phone, "Format and room" opens first), three stars that survive a reload, the My Schedule view
-  // and its calendar file, and axe on that view in both themes. The Session page's star shares the list, and
-  // /2027/schedule/#my opens the view.
+  // The filters (on the phone, "Format, level and room" opens first), the Level filter alone, with a second Level and
+  // with another group, three stars that survive a reload, the My Schedule view and its calendar file, and axe on the
+  // filtered view and on My Schedule in both themes. The Session page's star shares the list, and /2027/schedule/#my
+  // opens the view. Then the Schedule without JavaScript.
   for (const mode of [{ width: 1280, height: 900, scheme: 'light', keys: false }, { width: 390, height: 844, scheme: 'dark', keys: true }]) {
     const where = `the Schedule at ${mode.width} in ${mode.scheme}, by ${mode.keys ? 'keyboard' : 'mouse'}`;
     // Reduced motion, so a theme switch takes effect at once, with no color transitions for axe to catch midway.
@@ -380,9 +381,9 @@ try {
     await tab.goto(`${base}/2027/schedule/`);
     expect(await tab.locator('[data-filters]').isVisible(), `${where}: the filters stay hidden with JavaScript on`);
     const more = () => tab.locator('[data-more]').evaluate((m) => m.open);
-    expect(await more() === mode.width >= 900, `${where}: "Format and room" is ${await more() ? 'open' : 'closed'} at first`);
+    expect(await more() === mode.width >= 900, `${where}: "Format, level and room" is ${await more() ? 'open' : 'closed'} at first`);
     if (!(await more())) await press(tab.locator('[data-more] > summary'));
-    expect(await more(), `${where}: "Format and room" does not open`);
+    expect(await more(), `${where}: "Format, level and room" does not open`);
     const visible = () => tab.locator('.sch-item:visible').count();
     const all = await visible();
     await toggle('Workshop');
@@ -393,6 +394,31 @@ try {
     await toggle('End-User Stories');
     expect(await visible() === await tab.locator('.sch-item[data-eu="1"]').count(), `${where}: the End-User Stories filter is wrong`);
     await toggle('End-User Stories');
+    // The Level filter: the ticked Level's Sessions; with a second Level, either's; with another group, only those that
+    // match both. A Session with no Level, such as a keynote, hides while a Level is ticked, and so do the breaks.
+    // Screen readers hear the Level in the format's badge.
+    const count = async () => (await tab.locator('[data-count]').textContent()).trim();
+    await toggle('Intermediate');
+    const intermediate = await tab.locator('.sch-item[data-level="intermediate"]').count();
+    expect(intermediate > 0 && await visible() === intermediate && await count() === `Showing ${intermediate} of ${all} Sessions`, `${where}: the Intermediate filter shows ${await visible()} Sessions ("${await count()}"), not ${intermediate}`);
+    expect(await tab.locator('.sch-item[data-level=""]:visible, [data-break]:visible').count() === 0, `${where}: a Session with no Level, or a break, shows while a Level is ticked`);
+    const heard = await tab.locator('.sch-item[data-level="intermediate"][data-format="talk"] .badges').first().ariaSnapshot();
+    expect(heard.includes('Talk, Level: Intermediate'), `${where}: screen readers hear ${JSON.stringify(heard)}, not "Talk, Level: Intermediate"`);
+    await toggle('Advanced');
+    const either = await tab.locator('.sch-item[data-level="intermediate"], .sch-item[data-level="advanced"]').count();
+    expect(await visible() === either, `${where}: Intermediate and Advanced show ${await visible()} Sessions, not either Level's ${either}`);
+    await toggle('Advanced');
+    await toggle('End-User Stories');
+    const both = await tab.locator('.sch-item[data-level="intermediate"][data-eu="1"]').count();
+    expect(both > 0 && both < intermediate && await visible() === both, `${where}: Intermediate with End-User Stories shows ${await visible()} Sessions, not the ${both} that are both`);
+    for (const scheme of ['light', 'dark']) {
+      await tab.emulateMedia({ colorScheme: scheme });
+      const violations = await axe(tab);
+      expect(!violations.length, `${where}: the Schedule filtered by Level in ${scheme}: axe: ${violations.join(' | ')}`);
+    }
+    await tab.emulateMedia({ colorScheme: mode.scheme });
+    await toggle('End-User Stories');
+    await toggle('Intermediate');
     expect(await visible() === all, `${where}: clearing the filters does not show every Session again`);
     // Three stars; they survive a reload.
     const stars = tab.locator('.sch-item [data-star]');
@@ -423,6 +449,19 @@ try {
     await tab.goto(`${base}/2027/schedule/#my`);
     expect(await tab.locator('[data-filter="my"]').isChecked(), `${where}: /2027/schedule/#my does not open the My Schedule view`);
     expect(!errors.length, `${where}: browser errors: ${errors.join(' | ')}`);
+    await ctx.close();
+  }
+
+  // Without JavaScript the filters stay hidden, and every Session shows, each with its Level in its badge.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false });
+    const tab = await ctx.newPage();
+    await tab.goto(`${base}/2027/schedule/`);
+    const shown = await tab.locator('.sch-item:visible').count();
+    const leveled = await tab.locator('.sch-item:not([data-level=""])').count();
+    const levels = await tab.locator('.sch-item .badge-level:visible').count();
+    expect(!(await tab.locator('[data-filters]').isVisible()) && shown === items.length && leveled > 0 && levels === leveled,
+      `without JavaScript, the Schedule shows its filters, or ${shown} of ${items.length} Sessions, or ${levels} of ${leveled} Levels`);
     await ctx.close();
   }
 

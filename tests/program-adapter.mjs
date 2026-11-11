@@ -840,6 +840,9 @@ try {
         expect(readFileSync('dist/2027/sessions/fixture-talk-an-end-user-story/index.html', 'utf8').includes(levelBadge('talk', 'Intermediate')), 'the End-User Story\'s page lacks "TALK | INTERMEDIATE"');
         expect(!readFileSync('dist/2027/sessions/fixture-workshop-two-people-fifty-minutes/index.html', 'utf8').includes('badge-level'), 'a Session page shows a Level the site doesn\'t know');
         for (const p of speakers) expect(!/badge-level|data-level/.test(readFileSync(`dist/2027/speakers/${p}/index.html`, 'utf8')), `dist/2027/speakers/${p}: shows a Level`);
+        // The Level filter offers only the Levels the Sessions have: no Advanced here.
+        const chips = [...schedule.matchAll(/data-filter="level" value="([a-z]+)"/g)].map((m) => m[1]).join();
+        expect(chips === 'beginner,intermediate' && schedule.includes('<summary>Format, level and room</summary>'), `the Level filter offers ${chips || 'nothing'}, not Beginner and Intermediate`);
         expect(readFileSync('dist/2027/sessions/fixture-keynote-opening-the-made-up-day/index.html', 'utf8').includes('A made-up keynote abstract for the adapter tests.\n\nA made-up second paragraph,\nfrom the description field.'), 'the Session page does not show the abstract and the description');
       }
 
@@ -868,6 +871,9 @@ try {
         expect(cardOf('sessions/fixture-load-session-1') === 'session-fixture-load-session-1' && cardOf(`sessions/fixture-load-session-${budget + 1}`) === 'default' && cardOf('speakers/fixture-person-a') === 'default',
           `past the budget a page does not keep the title card: ${cardOf(`sessions/fixture-load-session-${budget + 1}`)}, ${cardOf('speakers/fixture-person-a')}`);
         expect(!/Download the Share Card/.test(readFileSync('dist/2027/speakers/fixture-person-a/index.html', 'utf8')), 'a Speaker past the budget offers a Share Card to download');
+        // Every Session here is Intermediate, so the Level filter offers that one Level.
+        const chips = [...readFileSync('dist/2027/schedule/index.html', 'utf8').matchAll(/data-filter="level" value="([a-z]+)"/g)].map((m) => m[1]).join();
+        expect(chips === 'intermediate', `with one Level, the Level filter offers ${chips || 'nothing'}`);
       }
 
       // The Speakers' and the Organizers' own words may hold what check-dist's draft-marker checks look for: an
@@ -881,6 +887,8 @@ try {
       words.speakers[0].biography = `Slides with the diagram: https://example.com/slides/diagram.png. ${said}.`;
       words.speakers[1].answers[0].answer = 'Sample TODO [TBD] ${HOME} {name}';
       words.rooms[1].name = { en: 'TODO Room [TBD] {name}' };
+      // And no Level field: no Session has a Level, so the Schedule has no Level filter.
+      words.questions = words.questions.filter((q) => q.id !== 7002);
       state.pretalx = JSON.stringify(words);
       b = await build(prodPretalx);
       expect(b.status === 0, `the production build fails on the Speakers' and Organizers' own words:\n${b.log.slice(-2500)}`);
@@ -891,6 +899,8 @@ try {
           && page('speakers/fixture-person-b').includes('Sample TODO [TBD] ${HOME} {name}')
           && /Sample Apps and a TODO List \[TBD\] for \{name\}/.test(page('schedule')) && /TODO Room \[TBD\] \{name\}/.test(page('schedule')),
         'the production build does not show the Speakers\' and Organizers\' own words as they wrote them');
+        const unleveled = page('schedule');
+        expect(!/data-filter="level"|badge-level|data-level="[a-z]/.test(unleveled) && unleveled.includes('<summary>Format and room</summary>'), 'with no Level field, the Schedule shows a Level or a Level filter');
       }
       // On Event Day, with an announcement in the same words. scripts/build.sh refuses --now and --clock in production,
       // so this runs its build steps itself, with the day and the time those flags would set.

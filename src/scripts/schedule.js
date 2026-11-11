@@ -28,16 +28,16 @@
     status.textContent = i >= 0 ? 'Removed from My Schedule' : 'Added to My Schedule';
   });
 
-  // The filters: a Session shows when it matches every group that has a box ticked.
+  // The filters: a Session shows when it matches every group that has a box ticked. One with no Level matches none.
   var board = d.querySelector('[data-schedule]');
   function apply() {
     if (!board) return;
     var on = {}, n = 0, total = 0;
     all('[data-filter]', board).forEach(function (i) { if (i.checked) (on[i.dataset.filter] = on[i.dataset.filter] || []).push(i.value); });
-    var any = on.format || on.room || on.eu || on.my;
+    var any = on.format || on.level || on.room || on.eu || on.my;
     all('.sch-item', board).forEach(function (li) {
-      var D = li.dataset, ok = (!on.format || on.format.indexOf(D.format) >= 0) && (!on.room || on.room.indexOf(D.room) >= 0) &&
-        (!on.eu || D.eu === '1') && (!on.my || has(D.id));
+      var D = li.dataset, ok = (!on.format || on.format.indexOf(D.format) >= 0) && (!on.level || on.level.indexOf(D.level) >= 0) &&
+        (!on.room || on.room.indexOf(D.room) >= 0) && (!on.eu || D.eu === '1') && (!on.my || has(D.id));
       li.hidden = !ok; total++; if (ok) n++;
     });
     all('[data-break]', board).forEach(function (li) { li.hidden = !!any; });
