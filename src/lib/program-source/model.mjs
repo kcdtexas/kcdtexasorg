@@ -6,17 +6,27 @@
 // programVersion() hashes that public model, sorted, so the build (/2027/program-version.txt) and
 // scripts/program-check.mjs get the same value from the same data, and a new value means the pages change.
 import { createHash } from 'node:crypto';
+import { levelNames } from './config.mjs';
 
 export const FORMATS = /** @type {const} */ (['keynote', 'talk', 'workshop', 'panel']);
 export const LINK_KINDS = /** @type {const} */ (['site', 'linkedin', 'github', 'bluesky', 'mastodon', 'x']);
+/** A Session's Level, from the easiest. */
+export const LEVELS = /** @type {const} */ (['beginner', 'intermediate', 'advanced']);
 
 const text = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 export const isTime = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v);
 const isHttps = (v) => typeof v === 'string' && /^https:\/\/[^\s"<>]+$/.test(v);
+/** A Level by its name (levelNames in config.mjs), whatever its case and spaces; null for a name the site doesn't
+ *  know, such as "constructor", which a plain lookup would find on every object. */
+function levelOf(v) {
+  const name = typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').toLowerCase() : '';
+  const level = Object.hasOwn(levelNames, name) ? levelNames[name] : null;
+  return LEVELS.includes(level) ? level : null;
+}
 
 /**
  * @typedef {{ id: string, name: string, tagline: string | null, bio: string | null, photo: string | null, links: { kind: string, url: string }[] }} PublicSpeaker
- * @typedef {{ id: string, title: string, abstract: string | null, format: string, endUser: boolean, speakerIds: string[], start: string | null, end: string | null, room: string | null, recording: string | null }} PublicSession
+ * @typedef {{ id: string, title: string, abstract: string | null, format: string, endUser: boolean, level: string | null, speakerIds: string[], start: string | null, end: string | null, room: string | null, recording: string | null }} PublicSession
  * @typedef {{ title: string, start: string, end: string, room: string | null }} PublicBreak
  * @typedef {{ speakers: PublicSpeaker[], sessions: PublicSession[], rooms: string[], breaks: PublicBreak[] }} PublicProgram
  */
@@ -54,6 +64,8 @@ function allowSession(r, schedule) {
     abstract: text(r.abstract),
     format,
     endUser: r.endUser === true,
+    // Only a Level the site knows: any other name, or the platform's own text for it, stays out.
+    level: levelOf(r.level),
     speakerIds: (r.speakers ?? []).map(String),
     start: schedule ? r.start : null,
     end: schedule ? r.end : null,

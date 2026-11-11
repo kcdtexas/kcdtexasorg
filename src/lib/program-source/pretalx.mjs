@@ -261,7 +261,7 @@ export function adaptPretalx(data, settings = pretalx, photoAllowed = (url, host
       abstract: texts.join('\n\n') || null,
       format,
       endUser: said(s, endUser).some((t) => yes.includes(t.toLowerCase())),
-      // Read for later: no page shows it yet, so the allowlist drops it.
+      // The option's name; the allowlist (model.mjs) keeps the Levels the site knows (levelNames in config.mjs).
       level: said(s, level)[0] ?? null,
       speakers: [...s.speakers],
       recording: null,

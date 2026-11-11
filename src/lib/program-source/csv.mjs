@@ -3,7 +3,7 @@
 // (the "type" column); columns the format doesn't name are ignored. Errors name a row and a column, never a value
 // or an id: the ids are the Organizers' own, and the refresh check's log is public. Each record carries its row as
 // `ref`, so the allowlist's errors (model.mjs) name the row too.
-import { formatNames, no, yes } from './config.mjs';
+import { formatNames, levelNames, no, yes } from './config.mjs';
 import { toCentral } from './central.mjs';
 import { mapLinks } from './links.mjs';
 
@@ -35,7 +35,7 @@ export function parseCsv(input, { keepEmpty = false } = {}) {
 
 const filled = (row) => row.some((f) => f.trim() !== '');
 
-export const COLUMNS = ['type', 'id', 'title', 'name', 'format', 'end_user', 'speakers', 'start', 'end', 'room', 'abstract', 'tagline', 'bio', 'photo', 'links', 'recording'];
+export const COLUMNS = ['type', 'id', 'title', 'name', 'format', 'end_user', 'level', 'speakers', 'start', 'end', 'room', 'abstract', 'tagline', 'bio', 'photo', 'links', 'recording'];
 
 /** The CSV as raw program records. Throws with every problem found (up to 10). */
 export function adaptCsv(input) {
@@ -74,10 +74,13 @@ export function adaptCsv(input) {
       if (!get('id') || !get('title')) problems.push(`row ${line}: a session needs an id and a title`);
       if (!format) problems.push(`row ${line}, format: not a known format (keynote, talk, workshop or panel)`);
       if (!yes.includes(eu) && !no.includes(eu)) problems.push(`row ${line}, end_user: not yes or no`);
+      // Empty for none. A typed name the site doesn't know fails here, where the allowlist would quietly drop it.
+      const level = get('level').toLowerCase();
+      if (level && !Object.hasOwn(levelNames, level)) problems.push(`row ${line}, level: not Beginner, Intermediate or Advanced`);
       const room = get('room') || null;
       if (room && !rooms.includes(room)) rooms.push(room);
       sessions.push({
-        ref, id: get('id'), title: get('title'), abstract: get('abstract') || null, format: format ?? '', endUser: yes.includes(eu),
+        ref, id: get('id'), title: get('title'), abstract: get('abstract') || null, format: format ?? '', endUser: yes.includes(eu), level: level || null,
         speakers: get('speakers').split(';').map((x) => x.trim()).filter(Boolean),
         start: time('start'), end: time('end'), room, recording: get('recording') || null,
       });

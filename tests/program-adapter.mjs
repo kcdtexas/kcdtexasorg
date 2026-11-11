@@ -417,7 +417,16 @@ try {
   ]) expect(String(value).includes(marker), `the fixture has no planted marker in ${field}`);
   const model = publicProgram(raw, { schedulePublic: true });
   expect(!JSON.stringify(model).includes(marker), 'the planted marker reaches the model');
-  expect(session('FXWRK4')?.level.includes(marker) && model.sessions.every((s) => !('level' in s)), 'the Level is not read, or reaches the model');
+  // The Level: the site's own name for a Level it knows, whatever the case and spaces; none for another name (the
+  // marker's option), for the Speaker's own text when the option is missing ("Intermedio"), or for a name every
+  // object has.
+  const levelIn = (m, id) => m.sessions.find((s) => s.id === id)?.level;
+  expect(session('FXWRK4')?.level.includes(marker) && levelIn(model, 'FXKEY1') === 'beginner' && levelIn(model, 'FXEUS2') === 'intermediate' && levelIn(model, 'FXTLK3') === null && levelIn(model, 'FXWRK4') === null,
+    `the model's Levels are wrong: ${JSON.stringify(model.sessions.map((s) => [s.id, s.level]))}`);
+  const relabeled = (labels) => publicProgram({ ...raw, sessions: raw.sessions.map((s, i) => ({ ...s, level: labels[i] ?? null })) }, { schedulePublic: true }).sessions.map((s) => s.level).join();
+  expect(relabeled([' ADVANCED ', 'beginner', 'Intermediate', 'constructor', '__proto__']) === 'advanced,beginner,intermediate,,'
+    && relabeled([7, { en: 'Beginner' }, 'Expert', 'Inter mediate', '']) === ',,,,', `a Level name is matched wrongly: ${relabeled([' ADVANCED ', 'beginner', 'Intermediate', 'constructor', '__proto__'])}`);
+  expect(levelIn(publicProgram(adaptPretalx(broken((d) => { d.submissions[1].answers[1].options = null; })), { schedulePublic: true }), 'FXEUS2') === null, 'the Speaker\'s own text for a Level (no option) reaches the model');
   expect(model.speakers.length === 4 && !model.speakers.some((s) => s.name.includes('Person E')), 'a Speaker with no confirmed Session reaches the model');
   expect(model.rooms.join('|') === 'Fixture Hall|Fixture Room B', `the model's rooms are ${model.rooms.join('|')}`);
   expect(!JSON.stringify(model).includes('instagram') && !JSON.stringify(model).includes('gravatar') && !JSON.stringify(model).includes('slides.fixture'), 'a dropped link, photo or answer reaches the model');
@@ -510,6 +519,7 @@ try {
   expect(csvModel.rooms.join('|') === 'Fixture Hall|Fixture Room B', 'the CSV rooms are not in order of first use');
   expect(csv.sessions[0].abstract === 'A made-up abstract, with a comma, "quotes" and\na second line.', 'a quoted CSV field is wrong');
   expect(csv.sessions[1].endUser && !csv.sessions[0].endUser && !csv.sessions[2].endUser && csv.sessions[2].format === 'panel', 'the CSV format or end_user is wrong');
+  expect(csvModel.sessions.map((s) => s.level).join() === ',intermediate,', `the CSV levels are ${csvModel.sessions.map((s) => s.level).join()}, not none, intermediate (" intermediate ") and none`);
   expect(csv.sessions[2].speakers.join() === 'p1,p2,p3' && csv.sessions[2].start === '2027-04-23T15:00', 'the CSV speakers or times are wrong');
   expect(csv.speakers[0].links.map((l) => l.kind).join() === 'github,site' && csv.speakers[1].links.map((l) => l.kind).join() === 'linkedin,bluesky', 'the CSV links are not mapped by host');
   expect(!JSON.stringify(csvModel).includes(marker), 'the planted marker reaches the CSV model');
@@ -520,6 +530,8 @@ try {
     ['an unknown type', 'type,id,title,name\nroom,1,x,\n', /row 2, type/],
     ['an unknown format', 'type,id,title,name,format\nsession,1,x,,fireside\n', /row 2, format/],
     ['a bad end_user', 'type,id,title,name,format,end_user\nsession,1,x,,talk,maybe\n', /row 2, end_user/],
+    ['an unknown level', 'type,id,title,name,format,level\nsession,1,x,,talk,Expert\n', /row 2, level: not Beginner, Intermediate or Advanced/],
+    ['a level every object has', 'type,id,title,name,format,level\nsession,1,x,,talk,constructor\n', /row 2, level/],
     ['a bad time', 'type,id,title,name,format,start\nsession,1,x,,talk,noon\n', /row 2, start/],
     ['an open quote', 'type,id,title,name\nspeaker,1,,"x\n', /never closed/],
   ]) await rejects(() => adaptCsv(text), (m) => pattern.test(m), `the CSV on ${what}`);
