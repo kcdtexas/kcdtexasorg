@@ -79,8 +79,20 @@ const DROPPED = [marker, 'speaker1@example.com', '+1 555 0100', 'example.com/tra
  *  phrase for screen readers, "Talk, Level: Intermediate". */
 const levelBadge = (format, name) => {
   const word = `${format[0].toUpperCase()}${format.slice(1)}`;
-  return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level">${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
+  return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level"> ${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
 };
+
+/** What Chrome's accessibility tree hands screen readers for the Levels on the open page: each text that names one,
+ *  exactly as it's read out (its case included). */
+async function levelTexts(tab) {
+  const cdp = await tab.context().newCDPSession(tab);
+  try {
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    return nodes.filter((n) => !n.ignored && n.role?.value === 'StaticText' && /, level: /i.test(n.name?.value ?? '')).map((n) => n.name.value);
+  } finally {
+    await cdp.detach();
+  }
+}
 
 /** A loyalty credit's words as a screen reader hears them: the tab's, then the hidden role. */
 const CREDIT = /<span class="credit">([^<]+)<span class="sr-only">([^<]+)<\/span><\/span>/;
@@ -402,8 +414,12 @@ try {
     const intermediate = await tab.locator('.sch-item[data-level="intermediate"]').count();
     expect(intermediate > 0 && await visible() === intermediate && await count() === `Showing ${intermediate} of ${all} Sessions`, `${where}: the Intermediate filter shows ${await visible()} Sessions ("${await count()}"), not ${intermediate}`);
     expect(await tab.locator('.sch-item[data-level=""]:visible, [data-break]:visible').count() === 0, `${where}: a Session with no Level, or a break, shows while a Level is ticked`);
-    const heard = await tab.locator('.sch-item[data-level="intermediate"][data-format="talk"] .badges').first().ariaSnapshot();
-    expect(heard.includes('Talk, Level: Intermediate'), `${where}: screen readers hear ${JSON.stringify(heard)}, not "Talk, Level: Intermediate"`);
+    // Exactly, from Chrome's own tree: one text per Session shown, "Talk, Level: Intermediate", as written.
+    const word = (v) => `${v[0].toUpperCase()}${v.slice(1)}`;
+    const meant = await tab.locator('.sch-item:visible').evaluateAll((items) => items.map((li) => [li.dataset.format, li.dataset.level]));
+    const heard = (await levelTexts(tab)).sort().join(' | ');
+    const want = meant.map(([f, l]) => `${word(f)}, Level: ${word(l)}`).sort().join(' | ');
+    expect(heard === want && meant.length === intermediate, `${where}: screen readers hear "${heard}", not "${want}"`);
     await toggle('Advanced');
     const either = await tab.locator('.sch-item[data-level="intermediate"], .sch-item[data-level="advanced"]').count();
     expect(await visible() === either, `${where}: Intermediate and Advanced show ${await visible()} Sessions, not either Level's ${either}`);

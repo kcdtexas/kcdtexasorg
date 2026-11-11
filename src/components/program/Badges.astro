@@ -15,6 +15,6 @@ const level = withLevel ? s.level : null;
 ---
 
 <p class="badges">
-  <span class={`badge badge--${s.format}`}>{level ? <><span aria-hidden="true">{formatName[s.format]}<span class="badge-level">{levelName[level]}</span></span><span class="sr-only">{formatName[s.format]}, Level: {levelName[level]}</span></> : formatName[s.format]}</span>
+  <span class={`badge badge--${s.format}`}>{level ? <><span aria-hidden="true">{formatName[s.format]}<span class="badge-level">{' '}{levelName[level]}</span></span><span class="sr-only">{formatName[s.format]}, Level: {levelName[level]}</span></> : formatName[s.format]}</span>
   {s.endUser && <span class="badge badge--eu">End-User Story</span>}
 </p>

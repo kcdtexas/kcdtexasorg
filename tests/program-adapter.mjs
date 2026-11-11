@@ -828,7 +828,7 @@ try {
         // too. None for the option the site doesn't know (the marker's), nor without an answer; none on a Speaker's page.
         const levelBadge = (format, name) => {
           const word = `${format[0].toUpperCase()}${format.slice(1)}`;
-          return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level">${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
+          return `<span class="badge badge--${format}"><span aria-hidden="true">${word}<span class="badge-level"> ${name}</span></span><span class="sr-only">${word}, Level: ${name}</span></span>`;
         };
         // An empty data-level is written bare (data-level); a missing one shows as "missing".
         const levels = ['FXKEY1', 'FXEUS2', 'FXTLK3', 'FXWRK4', 'FXALL5'].map((id) => {

@@ -13,6 +13,10 @@
   .badge--keynote { background: var(--fg); color: var(--bg); }
   .badge--eu { background: var(--signal); border-color: var(--signal-edge, var(--signal)); color: var(--on-signal); }
   .badge-level { display: inline-block; margin: -2px 0 -2px 7px; padding: 2px 0 2px 7px; border-left: 1px solid currentColor; font-weight: 400; }
+  /* A badge's words for screen readers ("Talk, Level: Beginner") as written: Chrome passes a capitalized text on in
+     capitals. The space that starts .badge-level is for a reading without this stylesheet ("Talk Beginner"); at the
+     start of the rule's line it takes no room. */
+  .badge .sr-only { text-transform: none; }
 
   /* Tap targets (tests/targets.mjs): the program's links that stand alone are at least 44 px tall, with the --tap
      padding from base.css. An inline link's padding leaves its line as it is; a block one gives the space back with
