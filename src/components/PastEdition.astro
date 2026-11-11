@@ -3,8 +3,8 @@
 // the program, the sponsors and Partners, the Organizers and the links to look back. Speakers appear by name, the
 // Organizers on cards with their photos, and each returning one with a credit as of this Edition (src/lib/loyalty.ts).
 // The Organizers' cards print no titles: the Edition's record has none. A section the Edition has nothing for is
-// left out. An Edition with photos (2025) also shows a day in three photos after the figures, a stage photo of each
-// keynote's Speaker and the team photo above the cards, each with the photographer's credit.
+// left out. An Edition with photos also shows a day in three photos after the figures (2025, 2024), and 2025 a stage
+// photo of each keynote's Speaker and the team photo above the cards, each with its credit.
 import { Image } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import PageHead from './PageHead.astro';
@@ -43,7 +43,7 @@ const group = p.organizers.group;
     </dl>
     <p class="pg-src">Sources: {joinLinks(p.factsSources).map(({ l, sep }) => <>{sep}<a href={l.href}>{l.text}</a></>)}.</p>
 
-    {/* The day's first photo is the page's LCP element on phones and wide screens (2025), so it loads first; the
+    {/* The day's first photo is the page's LCP element on phones and wide screens (2025, 2024), so it loads first; the
         keynote photos below it load lazily. */}
     {p.day && <DayPhotos inPage lcp title={p.day.title} photos={p.day.photos} credit={p.day.credit} widths={p.day.widths} />}
 

@@ -1,7 +1,6 @@
 ---
 // A day at KCD Texas in three timed photos: 2026's on the home page (index.astro), in a band of its own with a link
-// to the album, and a Past Edition's on its page (PastEdition.astro), as one of its sections with the photographer's
-// credit.
+// to the album, and a Past Edition's on its page (PastEdition.astro), as one of its sections with the photos' credit.
 import { Image } from 'astro:assets';
 import type { DayPhoto, Link } from '../data/past-page';
 import { photoOf, photos as photoFiles } from '../lib/images';
@@ -11,7 +10,7 @@ interface Props {
   photos: readonly DayPhoto[];
   /** A link under the photos, such as the Edition's album. */
   more?: Link;
-  /** The photographer's credit under the photos. */
+  /** The photos' credit, under them: the photographer's, or the team's. */
   credit?: string;
   /** One of an inner page's sections, under its 1 px rule, rather than a band of the home page. */
   inPage?: boolean;
